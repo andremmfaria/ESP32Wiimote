@@ -15,12 +15,12 @@
 #ifndef _TINY_WIIMOTE_H_
 #define _TINY_WIIMOTE_H_
 
-#define RECIEVED_DATA_MAX_LEN     (50)
-struct TinyWiimoteData {
-  uint8_t number;
-  uint8_t data[RECIEVED_DATA_MAX_LEN];
-  uint8_t len;
-};
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+#include "tinywiimote/protocol/wiimote_reports.h"
+
 //#define TWII_OFFSET_BTNS1 (2)
 //#define TWII_OFFSET_BTNS2 (3)
 //#define TWII_OFFSET_EXTCTRL (4) // Offset for Extension Controllers data
