@@ -77,6 +77,7 @@ public:
   ButtonState getButtonState(void);
   AccelState getAccelState(void);
   NunchukState getNunchukState(void);
+  bool isConnected(void);
   void addFilter(int action, int filter);
 
 private:

@@ -1,48 +1,73 @@
 # ESP32Wiimote
 
-ESP32Wiimote is an Arduino library for ESP32 devices, that connects over Bluetooth with a Wii remote (Wiimote), and its optional connected Nunchuk.
+ESP32Wiimote is an Arduino library for ESP32 boards that connects to a Wii Remote (Wiimote) over Bluetooth Classic, with optional Nunchuk support.
 
-This fork has the following improvements:
+## Features
 
-- better output in example
-- optional accelerometer read-out of Wiimote itself
+- Button input (A/B/C/Z/1/2/Minus/Home/Plus/D-Pad)
+- Wiimote accelerometer data
+- Nunchuk accelerometer and analog stick data
+- Connection state check via `isConnected()`
 
-On the ESP32, it reports easily at 100Hz:
-
-- all regular button presses (A/B/C/Z/1/2/-/Home/+/D-Pad)
-- the 3-dimensional acceleration/orientation of both Wiimote and Nunchuk
-- the analog joystick of the Nunchuk
-
-## Requirement
+## Requirements
 
 - ESP32 board (any)
-- Arduino IDE (Version >= 1.8.5)
+- Arduino IDE `>= 1.8.5`
+- ESP32 core package: `esp32:esp32@2.0.17`
 - Wii Remote (RVL-CNT-01)
 - Wii Nunchuk (optional)
 
 ## Installation
 
-1. Download the zip file.
-2. Move the zip file to your libraries directory.
-3. In the Arduino IDE, navigate to Sketch > Include Library > Add .ZIP Library.
-4. Select the zip file.
+1. Download this repository as a `.zip`.
+2. In Arduino IDE, go to `Sketch > Include Library > Add .ZIP Library...`.
+3. Select the downloaded `.zip` file.
 
-## Examples
+## Example
 
-A full example can be found at [ESP32WiimoteDemo.ino](./examples/ESP32WiimoteDemo/ESP32WiimoteDemo.ino)
+See: [ESP32WiimoteDemo.ino](./examples/ESP32WiimoteDemo/ESP32WiimoteDemo.ino)
 
-- Caution: the accelerometers report a lot of data
-- This can get filtered/prevented by using 'add filter(ACTION_IGNORE,...)'
-- The reports from the analog joystick of the Nunchuk can als be configured for larger minimal steps
+Notes:
+
+- Accelerometer output can be verbose.
+- You can reduce events with `wiimote.addFilter(ACTION_IGNORE, FILTER_ACCEL)`.
 
 ## Usage
 
-No need to pair the controller over Bluetooth. Just do:
+No manual Bluetooth pairing is required.
 
-1. To connect, press the 1 and 2 buttons on Wii Remote
-2. The LED1 will be on when they have finished connecting  
-<img width="30%" src="./remocon_led1_on.png" />  
+1. Press `1 + 2` on the Wii Remote.
+2. LED1 turns on when the connection is established.
 
-## Licence
+![Wiimote LED1 on](./resources/remocon_led1_on.png)
 
-   see [LICENSE.md](./LICENSE.md)
+## Connection Test
+
+Use `isConnected()` to check connection status at runtime.
+
+```cpp
+#include "ESP32Wiimote.h"
+
+ESP32Wiimote wiimote;
+
+void setup() {
+  Serial.begin(115200);
+  wiimote.init();
+}
+
+void loop() {
+  wiimote.task();
+
+  if (wiimote.isConnected()) {
+    Serial.println("Wiimote connected");
+  } else {
+    Serial.println("Wiimote disconnected");
+  }
+
+  delay(1000);
+}
+```
+
+## License
+
+See [LICENSE.md](./LICENSE.md).

@@ -1066,6 +1066,10 @@ bool TinyWiimoteDeviceIsInited(void) {
   return deviceInited;
 }
 
+bool TinyWiimoteIsConnected(void) {
+  return wiimoteConnected;
+}
+
 int TinyWiimoteAvailable() {
   return receivedDataRb.cnt;
 }

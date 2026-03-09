@@ -35,6 +35,7 @@ TinyWiimoteData TinyWiimoteRead(void);
 
 void TinyWiimoteResetDevice(void);
 bool TinyWiimoteDeviceIsInited(void);
+bool TinyWiimoteIsConnected(void);
 
 void TinyWiimoteReqAccelerometer(bool use);
 

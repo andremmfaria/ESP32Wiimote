@@ -336,6 +336,11 @@ NunchukState ESP32Wiimote::getNunchukState(void)
   return _nunchukState;
 }
 
+bool ESP32Wiimote::isConnected(void)
+{
+  return TinyWiimoteIsConnected();
+}
+
 void ESP32Wiimote::addFilter(int action, int filter) {
   if (action == ACTION_IGNORE) {
     _filter = _filter | filter;
