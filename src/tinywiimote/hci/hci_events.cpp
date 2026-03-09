@@ -72,7 +72,7 @@ void hci_events_reset_device(struct HciEventContext* ctx) {
 }
 
 static void handle_command_complete(struct HciEventContext* ctx, uint8_t* data) {
-  const uint16_t cmdOpcode = (uint16_t)data[1] | ((uint16_t)data[2] << 8);
+  const uint16_t cmdOpcode = READ_UINT16_LE(data + 1);
 
   switch (cmdOpcode) {
     case HCI_OPCODE_RESET: {
@@ -197,14 +197,14 @@ static void handle_remote_name_request_complete(struct HciEventContext* ctx, uin
 }
 
 static void handle_connection_complete(struct HciEventContext* ctx, uint8_t* data) {
-  const uint16_t connectionHandle = (uint16_t)data[2] << 8 | data[1];
+  const uint16_t connectionHandle = READ_UINT16_LE(data + 1);
   if (ctx->onAclConnected != 0) {
     ctx->onAclConnected(connectionHandle, ctx->userData);
   }
 }
 
 static void handle_disconnection_complete(struct HciEventContext* ctx, uint8_t* data) {
-  const uint16_t connectionHandle = (uint16_t)data[2] << 8 | data[1];
+  const uint16_t connectionHandle = READ_UINT16_LE(data + 1);
   const uint8_t reason = data[3];
 
   if (ctx->onDisconnected != 0) {

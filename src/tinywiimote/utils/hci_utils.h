@@ -37,6 +37,29 @@
     {int ijk; for (ijk = 0; ijk < len; ijk++) *(p)++ = (uint8_t) a[ijk];}
 
 /**
+ * Byte extraction utilities
+ * Read multi-byte values from byte arrays
+ */
+
+/**
+ * Read 16-bit little-endian value (low byte first)
+ * @param data Pointer to byte array
+ * @return 16-bit value
+ */
+static inline uint16_t READ_UINT16_LE(const uint8_t* data) {
+    return ((uint16_t)data[1] << 8) | data[0];
+}
+
+/**
+ * Read 16-bit big-endian value (high byte first)
+ * @param data Pointer to byte array
+ * @return 16-bit value
+ */
+static inline uint16_t READ_UINT16_BE(const uint8_t* data) {
+    return ((uint16_t)data[0] << 8) | data[1];
+}
+
+/**
  * Bluetooth address structure
  */
 struct bd_addr_t {

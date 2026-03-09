@@ -8,6 +8,7 @@
 #include "wiimote_protocol.h"
 #include "../l2cap/l2cap_connection.h"
 #include "../l2cap/l2cap_packets.h"
+#include "../utils/payload_builder.h"
 #include <string.h>
 #include <Arduino.h>
 
@@ -65,6 +66,14 @@ void WiimoteProtocol::init(const L2capConnectionTable* connectionTable,
   sender = packetSender;
 }
 
+bool WiimoteProtocol::isValidMemorySize(uint16_t size, const char* operation) const {
+  if (size > EEPROM_DATA_SIZE) {
+    VERBOSE_PRINT("ERROR: %s size %d exceeds maximum %d\n", operation, size, EEPROM_DATA_SIZE);
+    return false;
+  }
+  return true;
+}
+
 /**
  * Set Wiimote player LEDs
  * 
@@ -84,13 +93,12 @@ void WiimoteProtocol::setLeds(uint16_t ch, uint8_t leds) {
   }
 
   // Build output report: A2 11 LL
-  uint8_t posi = 0;
-  payload[posi++] = HID_OUTPUT_REPORT;           // 0xA2
-  payload[posi++] = WIIMOTE_RPT_SET_LEDS;        // 0x11
-  payload[posi++] = (uint8_t)(leds << 4);        // LED bits in high nibble
+  PayloadBuilder pb(payload, sizeof(payload));
+  pb.append(HID_OUTPUT_REPORT);           // 0xA2
+  pb.append(WIIMOTE_RPT_SET_LEDS);        // 0x11
+  pb.append((uint8_t)(leds << 4));        // LED bits in high nibble
 
-  uint16_t dataLen = posi;
-  sender->sendAclL2capPacket(ch, remoteCID, payload, dataLen);
+  sender->sendAclL2capPacket(ch, remoteCID, payload, pb.length());
   VERBOSE_PRINT("queued acl_l2cap_packet(Set LEDs, leds=0x%02X)\n", leds);
 }
 
@@ -117,14 +125,13 @@ void WiimoteProtocol::setReportingMode(uint16_t ch, uint8_t mode, bool continuou
   uint8_t contReportIsDesired = continuous ? 0x04 : 0x00;
 
   // Build output report: A2 12 TT MM
-  uint8_t posi = 0;
-  payload[posi++] = HID_OUTPUT_REPORT;           // 0xA2
-  payload[posi++] = WIIMOTE_RPT_SET_REPORTING_MODE; // 0x12
-  payload[posi++] = contReportIsDesired;         // Continuous flag
-  payload[posi++] = mode;                        // Reporting mode
+  PayloadBuilder pb(payload, sizeof(payload));
+  pb.append(HID_OUTPUT_REPORT);           // 0xA2
+  pb.append(WIIMOTE_RPT_SET_REPORTING_MODE); // 0x12
+  pb.append(contReportIsDesired);         // Continuous flag
+  pb.append(mode);                        // Reporting mode
 
-  uint16_t dataLen = posi;
-  sender->sendAclL2capPacket(ch, remoteCID, payload, dataLen);
+  sender->sendAclL2capPacket(ch, remoteCID, payload, pb.length());
   VERBOSE_PRINTLN("queued acl_l2cap_packet(Set Reporting Mode)");
 }
 
@@ -144,8 +151,7 @@ void WiimoteProtocol::writeMemory(uint16_t ch, address_space_t address_space,
     return;
   }
   
-  if(length > EEPROM_DATA_SIZE) {
-    VERBOSE_PRINT("ERROR: Write length %d exceeds maximum %d\n", length, EEPROM_DATA_SIZE);
+  if (!isValidMemorySize(length, "Write")) {
     return;
   }
 
@@ -156,26 +162,18 @@ void WiimoteProtocol::writeMemory(uint16_t ch, address_space_t address_space,
   }
 
   // Build output report header
-  uint8_t posi = 0;
-  payload[posi++] = HID_OUTPUT_REPORT;           // 0xA2
-  payload[posi++] = WIIMOTE_RPT_WRITE_MEMORY;    // 0x16
-  payload[posi++] = get_address_space_byte(address_space); // MM
-  
-  // 24-bit offset (big-endian)
-  payload[posi++] = (uint8_t)((offset >> 16) & 0xFF);
-  payload[posi++] = (uint8_t)((offset >>  8) & 0xFF);
-  payload[posi++] = (uint8_t)((offset      ) & 0xFF);
-  
-  // Length of data to write
-  payload[posi++] = length;
+  PayloadBuilder pb(payload, sizeof(payload));
+  pb.append(HID_OUTPUT_REPORT);           // 0xA2
+  pb.append(WIIMOTE_RPT_WRITE_MEMORY);    // 0x16
+  pb.append(get_address_space_byte(address_space)); // MM
+  pb.appendU24BE(offset);                 // 24-bit offset (big-endian)
+  pb.append(length);                      // Length of data to write
   
   // Clear data area and copy user data
-  memset(&payload[posi], 0, EEPROM_DATA_SIZE);
-  memcpy(&payload[posi], data, length);
-  posi += EEPROM_DATA_SIZE;
+  pb.reserveZeroed(EEPROM_DATA_SIZE);
+  memcpy(&payload[pb.length() - EEPROM_DATA_SIZE], data, length);
 
-  uint16_t dataLen = posi;
-  sender->sendAclL2capPacket(ch, remoteCID, payload, dataLen);
+  sender->sendAclL2capPacket(ch, remoteCID, payload, pb.length());
   VERBOSE_PRINTLN("queued acl_l2cap_packet(Write Memory)");
 }
 
@@ -194,8 +192,7 @@ void WiimoteProtocol::readMemory(uint16_t ch, address_space_t address_space,
     return;
   }
   
-  if(size > EEPROM_DATA_SIZE) {
-    VERBOSE_PRINT("ERROR: Read size %d exceeds maximum %d\n", size, EEPROM_DATA_SIZE);
+  if (!isValidMemorySize(size, "Read")) {
     return;
   }
 
@@ -206,21 +203,13 @@ void WiimoteProtocol::readMemory(uint16_t ch, address_space_t address_space,
   }
 
   // Build output report
-  uint8_t posi = 0;
-  payload[posi++] = HID_OUTPUT_REPORT;           // 0xA2
-  payload[posi++] = WIIMOTE_RPT_READ_MEMORY;     // 0x17
-  payload[posi++] = get_address_space_byte(address_space); // MM
-  
-  // 24-bit offset (big-endian)
-  payload[posi++] = (uint8_t)((offset >> 16) & 0xFF);
-  payload[posi++] = (uint8_t)((offset >>  8) & 0xFF);
-  payload[posi++] = (uint8_t)((offset      ) & 0xFF);
-  
-  // 16-bit size (big-endian)
-  payload[posi++] = (uint8_t)((size >> 8) & 0xFF);
-  payload[posi++] = (uint8_t)((size     ) & 0xFF);
+  PayloadBuilder pb(payload, sizeof(payload));
+  pb.append(HID_OUTPUT_REPORT);           // 0xA2
+  pb.append(WIIMOTE_RPT_READ_MEMORY);     // 0x17
+  pb.append(get_address_space_byte(address_space)); // MM
+  pb.appendU24BE(offset);                 // 24-bit offset (big-endian)
+  pb.appendU16BE(size);                   // 16-bit size (big-endian)
 
-  uint16_t dataLen = posi;
-  sender->sendAclL2capPacket(ch, remoteCID, payload, dataLen);
+  sender->sendAclL2capPacket(ch, remoteCID, payload, pb.length());
   VERBOSE_PRINTLN("queued acl_l2cap_packet(Read Memory)");
 }

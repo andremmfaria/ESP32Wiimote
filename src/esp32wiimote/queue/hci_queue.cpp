@@ -52,9 +52,9 @@ bool HciQueueManager::createQueues(void)
     return true;
 }
 
-bool HciQueueManager::sendToTxQueue(uint8_t* data, size_t len)
+bool HciQueueManager::sendToQueue(xQueueHandle queue, uint8_t* data, size_t len, const char* debugLabel)
 {
-    VERBOSE_PRINTLN("sendToTxQueue");
+    VERBOSE_PRINTLN(debugLabel);
     
     if (!data || !len) {
         VERBOSE_PRINTLN("no data");
@@ -70,9 +70,7 @@ bool HciQueueManager::sendToTxQueue(uint8_t* data, size_t len)
     queuedata->len = len;
     memcpy(queuedata->data, data, len);
     
-    UNVERBOSE_PRINT("RECV <= %s\n", format2Hex(queuedata->data, queuedata->len));
-    
-    if (xQueueSend(_txQueue, &queuedata, portMAX_DELAY) != pdPASS) {
+    if (xQueueSend(queue, &queuedata, portMAX_DELAY) != pdPASS) {
         VERBOSE_PRINTLN("xQueueSend failed");
         free(queuedata);
         return false;
@@ -81,33 +79,22 @@ bool HciQueueManager::sendToTxQueue(uint8_t* data, size_t len)
     return true;
 }
 
+bool HciQueueManager::sendToTxQueue(uint8_t* data, size_t len)
+{
+    bool result = sendToQueue(_txQueue, data, len, "sendToTxQueue");
+    if (result && data && len) {
+        UNVERBOSE_PRINT("RECV <= %s\n", format2Hex(data, len));
+    }
+    return result;
+}
+
 bool HciQueueManager::sendToRxQueue(uint8_t* data, size_t len)
 {
-    VERBOSE_PRINTLN("sendToRxQueue");
-    
-    if (!data || !len) {
-        VERBOSE_PRINTLN("no data");
-        return true;
+    bool result = sendToQueue(_rxQueue, data, len, "sendToRxQueue");
+    if (result && data && len) {
+        UNVERBOSE_PRINT("SEND => %s\n", format2Hex(data, len));
     }
-    
-    HciQueueData* queuedata = (HciQueueData*)malloc(sizeof(HciQueueData) + len);
-    if (!queuedata) {
-        VERBOSE_PRINTLN("malloc failed");
-        return false;
-    }
-    
-    queuedata->len = len;
-    memcpy(queuedata->data, data, len);
-    
-    UNVERBOSE_PRINT("SEND => %s\n", format2Hex(queuedata->data, queuedata->len));
-    
-    if (xQueueSend(_rxQueue, &queuedata, portMAX_DELAY) != pdPASS) {
-        VERBOSE_PRINTLN("xQueueSend failed");
-        free(queuedata);
-        return false;
-    }
-    
-    return true;
+    return result;
 }
 
 void HciQueueManager::processTxQueue(void)

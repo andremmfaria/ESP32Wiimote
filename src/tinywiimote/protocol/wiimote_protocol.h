@@ -12,6 +12,7 @@
 #include <stdbool.h>
 
 #include "../l2cap/l2cap_connection.h"
+#include "../l2cap/l2cap_packets.h"
 
 /**
  * Wiimote Protocol - Wiimote-specific commands and operations
@@ -45,6 +46,14 @@ class WiimoteProtocol {
                                     uint16_t size);
 
  private:
+    /**
+     * Validate memory operation size
+     * @param size Size to validate
+     * @param operation Operation name for error message ("Write" or "Read")
+     * @return true if valid, false if exceeds maximum
+     */
+    bool isValidMemorySize(uint16_t size, const char* operation) const;
+
     const L2capConnectionTable* connections;
     L2capPacketSender* sender;
     uint8_t payload[64];

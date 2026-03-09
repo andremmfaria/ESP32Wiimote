@@ -1,4 +1,6 @@
 #include "l2cap_signaling.h"
+#include "../utils/hci_utils.h"
+#include "../utils/payload_builder.h"
 
 L2capSignaling::L2capSignaling() : connections(nullptr), sender(nullptr) {}
 
@@ -12,17 +14,14 @@ void L2capSignaling::sendConnectionRequest(uint16_t ch, uint16_t psm, uint16_t c
     return;
   }
 
-  uint8_t pos = 0;
-  payload[pos++] = 0x02;  // CONNECTION REQUEST
-  payload[pos++] = 0x01;  // Identifier
-  payload[pos++] = 0x04;
-  payload[pos++] = 0x00;
-  payload[pos++] = (uint8_t)(psm & 0xFF);
-  payload[pos++] = (uint8_t)(psm >> 8);
-  payload[pos++] = (uint8_t)(cid & 0xFF);
-  payload[pos++] = (uint8_t)(cid >> 8);
+  PayloadBuilder pb(payload, sizeof(payload));
+  pb.append(0x02);        // CONNECTION REQUEST
+  pb.append(0x01);        // Identifier
+  pb.appendU16LE(0x0004); // Length
+  pb.appendU16LE(psm);    // PSM
+  pb.appendU16LE(cid);    // Source CID
 
-  sender->sendAclL2capPacket(ch, 0x0001, payload, pos);
+  sender->sendAclL2capPacket(ch, 0x0001, payload, pb.length());
 }
 
 void L2capSignaling::handleConnectionResponse(uint16_t ch, uint8_t* data, uint16_t len) {
@@ -34,8 +33,8 @@ void L2capSignaling::handleConnectionResponse(uint16_t ch, uint8_t* data, uint16
     return;
   }
 
-  uint16_t dstCID = ((uint16_t)data[5] << 8) | data[4];
-  uint16_t result = ((uint16_t)data[9] << 8) | data[8];
+  uint16_t dstCID = READ_UINT16_LE(data + 4);
+  uint16_t result = READ_UINT16_LE(data + 8);
 
   if (result != 0x0000) {
     return;
@@ -46,21 +45,17 @@ void L2capSignaling::handleConnectionResponse(uint16_t ch, uint8_t* data, uint16
     return;
   }
 
-  uint8_t pos = 0;
-  payload[pos++] = 0x04;  // CONFIGURATION REQUEST
-  payload[pos++] = 0x02;  // Identifier
-  payload[pos++] = 0x08;
-  payload[pos++] = 0x00;
-  payload[pos++] = (uint8_t)(dstCID & 0xFF);
-  payload[pos++] = (uint8_t)(dstCID >> 8);
-  payload[pos++] = 0x00;
-  payload[pos++] = 0x00;
-  payload[pos++] = 0x01;
-  payload[pos++] = 0x02;
-  payload[pos++] = 0x40;
-  payload[pos++] = 0x00;
+  PayloadBuilder pb(payload, sizeof(payload));
+  pb.append(0x04);        // CONFIGURATION REQUEST
+  pb.append(0x02);        // Identifier
+  pb.appendU16LE(0x0008); // Length
+  pb.appendU16LE(dstCID); // Destination CID
+  pb.appendU16LE(0x0000); // Flags
+  pb.append(0x01);        // Option: MTU
+  pb.append(0x02);        // Option length
+  pb.appendU16LE(0x0040); // MTU value
 
-  sender->sendAclL2capPacket(ch, 0x0001, payload, pos);
+  sender->sendAclL2capPacket(ch, 0x0001, payload, pb.length());
 }
 
 void L2capSignaling::handleConfigurationRequest(uint16_t ch, uint8_t* data, uint16_t len) {
@@ -73,36 +68,31 @@ void L2capSignaling::handleConfigurationRequest(uint16_t ch, uint8_t* data, uint
   }
 
   uint8_t identifier = data[1];
-  uint16_t dataLen = ((uint16_t)data[3] << 8) | data[2];
-  uint16_t flags = ((uint16_t)data[7] << 8) | data[6];
+  uint16_t dataLen = READ_UINT16_LE(data + 2);
+  uint16_t flags = READ_UINT16_LE(data + 6);
 
   if (flags != 0x0000 || dataLen != 0x08 || data[8] != 0x01 || data[9] != 0x02) {
     return;
   }
 
-  uint16_t mtu = ((uint16_t)data[11] << 8) | data[10];
+  uint16_t mtu = READ_UINT16_LE(data + 10);
   uint16_t remoteCID = 0;
   if (connections->getRemoteCid(ch, &remoteCID) != 0) {
     return;
   }
 
-  uint8_t pos = 0;
-  payload[pos++] = 0x05;  // CONFIGURATION RESPONSE
-  payload[pos++] = identifier;
-  payload[pos++] = 0x0A;
-  payload[pos++] = 0x00;
-  payload[pos++] = (uint8_t)(remoteCID & 0xFF);
-  payload[pos++] = (uint8_t)(remoteCID >> 8);
-  payload[pos++] = 0x00;
-  payload[pos++] = 0x00;
-  payload[pos++] = 0x00;
-  payload[pos++] = 0x00;
-  payload[pos++] = 0x01;
-  payload[pos++] = 0x02;
-  payload[pos++] = (uint8_t)(mtu & 0xFF);
-  payload[pos++] = (uint8_t)(mtu >> 8);
+  PayloadBuilder pb(payload, sizeof(payload));
+  pb.append(0x05);        // CONFIGURATION RESPONSE
+  pb.append(identifier);  // Identifier
+  pb.appendU16LE(0x000A); // Length
+  pb.appendU16LE(remoteCID); // Source CID
+  pb.appendU16LE(0x0000); // Flags
+  pb.appendU16LE(0x0000); // Result: Success
+  pb.append(0x01);        // Option: MTU
+  pb.append(0x02);        // Option length
+  pb.appendU16LE(mtu);    // MTU value
 
-  sender->sendAclL2capPacket(ch, 0x0001, payload, pos);
+  sender->sendAclL2capPacket(ch, 0x0001, payload, pb.length());
 }
 
 void L2capSignaling::handleConfigurationResponse(uint8_t* data, uint16_t len) {

@@ -74,6 +74,16 @@ public:
     bool hasRxPending(void) const;
 
 private:
+    /**
+     * Internal helper to enqueue data to a specified queue
+     * @param queue Target queue handle
+     * @param data Pointer to packet data
+     * @param len Length of packet
+     * @param debugLabel Debug label for verbose logging
+     * @return true if successful, false otherwise
+     */
+    bool sendToQueue(xQueueHandle queue, uint8_t* data, size_t len, const char* debugLabel);
+
     xQueueHandle _txQueue;
     xQueueHandle _rxQueue;
     size_t _rxQueueSize;

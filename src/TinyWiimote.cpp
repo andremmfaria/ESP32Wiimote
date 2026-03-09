@@ -116,7 +116,7 @@ static void handleL2capData(uint16_t ch, uint16_t channelID, uint8_t* data, uint
       g_runtime.l2capSignaling.handleConfigurationResponse(data, len);
       break;
 
-    case BTCODE_HID:
+    case BTCODE_HID: {
       if (!g_runtime.wiimoteState.isConnected()) {
         g_runtime.wiimoteProtocol.setLeds(ch, 0b0001);
         UNVERBOSE_PRINT("Wiimote detected\n");
@@ -129,6 +129,7 @@ static void handleL2capData(uint16_t ch, uint16_t channelID, uint8_t* data, uint
       uint8_t idx = 0;  // Only one wiimote supported currently.
       g_runtime.wiimoteReports.put(idx, data, (uint8_t)len);
       break;
+    }
 
     default:
       VERBOSE_PRINT("L2CAP len=%d data=%s\n", len, format2Hex(data, len));
@@ -149,8 +150,8 @@ static void handleAclData(uint8_t* data, size_t len) {
     return;
   }
 
-  uint16_t l2capLen = ((uint16_t)data[5] << 8) | data[4];
-  uint16_t channelID = ((uint16_t)data[7] << 8) | data[6];
+  uint16_t l2capLen = READ_UINT16_LE(data + 4);
+  uint16_t channelID = READ_UINT16_LE(data + 6);
   if ((size_t)(8 + l2capLen) > len) {
     return;
   }
