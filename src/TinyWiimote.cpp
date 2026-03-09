@@ -124,6 +124,7 @@ static bool deviceInited = false;
 static bool wiimoteConnected = false;
 static bool nunchukConnected = false;
 static bool useAccelerometer = true;
+static uint8_t batteryLevel = 0;
 
 /**
  * Command Maker
@@ -583,6 +584,7 @@ static void handleDisconnectionCompleteEvent(uint8_t len, uint8_t* data) {
     UNVERBOSE_PRINT("Wiimote lost\n");
     wiimoteConnected = false;
     nunchukConnected = false;
+    batteryLevel = 0;
     resetDevice();
 }
 
@@ -891,6 +893,7 @@ static void handleExtensionControllerReports(uint16_t ch, uint16_t channelID, ui
     // data report(Status)
     // (a1) 20 BB BB LF 00 00 VV
     if(data[1] == 0x20){
+      batteryLevel = data[7];
       if(data[4] & 0x02){ // extension controller is connected
         UNVERBOSE_PRINT("Extension controller connected\n");
         writingEEPROM(ch, CONTROL_REGISTER, 0xA400F0, (const uint8_t[]){0x55}, 1);
@@ -1068,6 +1071,10 @@ bool TinyWiimoteDeviceIsInited(void) {
 
 bool TinyWiimoteIsConnected(void) {
   return wiimoteConnected;
+}
+
+uint8_t TinyWiimoteGetBatteryLevel(void) {
+  return batteryLevel;
 }
 
 int TinyWiimoteAvailable() {

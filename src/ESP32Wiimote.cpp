@@ -341,6 +341,11 @@ bool ESP32Wiimote::isConnected(void)
   return TinyWiimoteIsConnected();
 }
 
+uint8_t ESP32Wiimote::getBatteryLevel(void)
+{
+  return TinyWiimoteGetBatteryLevel();
+}
+
 void ESP32Wiimote::addFilter(int action, int filter) {
   if (action == ACTION_IGNORE) {
     _filter = _filter | filter;

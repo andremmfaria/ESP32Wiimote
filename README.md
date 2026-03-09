@@ -8,6 +8,7 @@ ESP32Wiimote is an Arduino library for ESP32 boards that connects to a Wii Remot
 - Wiimote accelerometer data
 - Nunchuk accelerometer and analog stick data
 - Connection state check via `isConnected()`
+- Battery level readout via `getBatteryLevel()`
 
 ## Requirements
 
@@ -67,6 +68,21 @@ void loop() {
   delay(1000);
 }
 ```
+
+## Battery Level
+
+Use `getBatteryLevel()` to read the Wiimote battery level.
+
+```cpp
+uint8_t level = wiimote.getBatteryLevel();
+float percent = (level / 255.0f) * 100.0f;
+
+Serial.printf("Battery: %u (%.1f%%)\n", level, percent);
+```
+
+Notes:
+- `getBatteryLevel()` returns a raw value from `0` to `255`.
+- The value is updated from Wiimote status reports while connected.
 
 ## License
 

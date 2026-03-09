@@ -78,6 +78,7 @@ public:
   AccelState getAccelState(void);
   NunchukState getNunchukState(void);
   bool isConnected(void);
+  uint8_t getBatteryLevel(void);
   void addFilter(int action, int filter);
 
 private:
