@@ -66,15 +66,18 @@ ESP32Wiimote is designed with a layered architecture separating hardware interfa
 **Purpose:** User-facing API with high-level methods
 
 **Key Classes:**
+
 - `ESP32Wiimote` - Main interface class
 
 **Responsibilities:**
+
 - Initialize all subsystems
 - Provide simple API (buttons, sensors, connection status)
 - Manage component lifecycle
 - Abstract implementation details
 
 **Usage:**
+
 ```cpp
 ESP32Wiimote wiimote;
 wiimote.init();
@@ -93,11 +96,13 @@ if (wiimote.available()) {
 **Purpose:** Track and parse Wiimote sensor/button data
 
 **Key Classes:**
+
 - `ButtonStateManager` - Button state tracking with change detection
 - `SensorStateManager` - Accelerometer and nunchuk state tracking
 - `WiimoteDataParser` - Parse HID reports into button/sensor states
 
 **Responsibilities:**
+
 - Decode HID input reports (0x30-0x37)
 - Track current vs previous state
 - Detect state changes
@@ -105,6 +110,7 @@ if (wiimote.available()) {
 - Implement filtering
 
 **Data Structures:**
+
 ```cpp
 struct AccelState {
     uint8_t xAxis, yAxis, zAxis;
@@ -126,12 +132,14 @@ struct NunchukState {
 **Purpose:** Wiimote-specific protocol implementation
 
 **Key Classes:**
+
 - `WiimoteProtocol` - Output reports (LEDs, reporting mode, memory R/W, status request)
 - `WiimoteExtensions` - Extension detection and Nunchuk handling
 - `WiimoteState` - Connection state and battery level
 - `WiimoteReports` - Input report buffering/queue
 
 **Responsibilities:**
+
 - Build Wiimote output reports (0xA2 prefix)
 - Parse input reports (0xA1 prefix)
 - Handle extension controller detection
@@ -139,6 +147,7 @@ struct NunchukState {
 - Queue incoming HID data
 
 **Output Reports:**
+
 ```
 0x11 - Set LEDs
 0x12 - Set Reporting Mode
@@ -148,6 +157,7 @@ struct NunchukState {
 ```
 
 **Input Reports:**
+
 ```
 0x20 - Status Information (battery, extensions)
 0x21 - Read Memory Response
@@ -166,18 +176,21 @@ struct NunchukState {
 **Purpose:** Bluetooth L2CAP protocol handling
 
 **Key Classes:**
+
 - `L2capSignaling` - Connection request/response, configuration
 - `L2capConnection` - Connection state tracking
 - `L2capConnectionTable` - Multiple connection management
 - `L2capPacketSender` - ACL packet construction
 
 **Responsibilities:**
+
 - L2CAP channel establishment
 - MTU negotiation
 - Channel ID tracking
 - Encapsulate HID data in L2CAP frames
 
 **Connection Sequence:**
+
 ```
 1. CONNECTION REQUEST  (0x02) → PSM 0x0013 (HID Control)
 2. CONNECTION RESPONSE (0x03) ← Remote CID assigned
@@ -194,12 +207,14 @@ struct NunchukState {
 **Purpose:** Low-level Bluetooth HCI operations
 
 **Key Classes:**
+
 - `HciEventContext` - Event handling state machine
 - `HciCommands` - Build HCI command packets
 - `HciQueueManager` - TX/RX packet queuing (FreeRTOS queues)
 - `HciCallbacksHandler` - VHCI callback wrappers
 
 **Responsibilities:**
+
 - HCI command/event handling
 - Device inquiry and discovery
 - ACL connection management
@@ -207,6 +222,7 @@ struct NunchukState {
 - VHCI interface integration
 
 **Connection Flow:**
+
 ```
 1. RESET (0x03 0x0C)
 2. READ_BD_ADDR (0x09 0x10)
@@ -227,15 +243,18 @@ struct NunchukState {
 **Purpose:** Hardware Bluetooth radio
 
 **Key Components:**
+
 - ESP32 Bluetooth Classic controller
 - VHCI (Virtual HCI) interface
 
 **Responsibilities:**
+
 - Radio transmission/reception
 - Baseband processing
 - Hardware-accelerated Bluetooth stack
 
 **Interface:**
+
 ```cpp
 esp_vhci_host_register_callback(&callbacks);
 esp_vhci_host_send_packet(data, len);
@@ -385,6 +404,7 @@ void loop() {
 ### Critical Sections
 
 Minimal locking needed:
+
 - VHCI callbacks → RX queue (FreeRTOS queue handles sync)
 - Main loop → TX queue (single-threaded producer)
 
@@ -395,6 +415,7 @@ Minimal locking needed:
 ### Static Allocation
 
 Most structures use stack or static allocation:
+
 - HCI/L2CAP packet buffers
 - State structures
 - Connection tables
@@ -402,12 +423,14 @@ Most structures use stack or static allocation:
 ### Dynamic Allocation
 
 Limited dynamic allocation:
+
 - `HciQueueData` allocated per packet (freed after processing)
 - Component managers created once in ESP32Wiimote constructor
 
 ### Queue Memory
 
 FreeRTOS queues store pointers to `HciQueueData`:
+
 ```cpp
 struct HciQueueData {
     size_t len;
@@ -422,6 +445,7 @@ struct HciQueueData {
 ### Logging
 
 `src/utils/serial_logging.h`:
+
 ```cpp
 #define WIIMOTE_VERBOSE 2  // 0-3
 ```
@@ -429,6 +453,7 @@ struct HciQueueData {
 ### Queue Sizes
 
 `ESP32Wiimote.cpp`:
+
 ```cpp
 _queueManager = new HciQueueManager(32, 32); // TX, RX size
 ```
@@ -436,6 +461,7 @@ _queueManager = new HciQueueManager(32, 32); // TX, RX size
 ### Nunchuk Threshold
 
 `ESP32Wiimote` constructor:
+
 ```cpp
 ESP32Wiimote wiimote(5);  // Stick sensitivity
 ```
@@ -472,6 +498,7 @@ ESP32Wiimote wiimote(5);  // Stick sensitivity
 ### Separation of Concerns
 
 Each layer handles one responsibility:
+
 - Hardware: Radio
 - HCI: Commands/events
 - L2CAP: Channels
@@ -482,12 +509,14 @@ Each layer handles one responsibility:
 ### Dependency Inversion
 
 High-level code depends on abstractions:
+
 - `WiimoteProtocol` uses `L2capPacketSender` interface
 - `L2capSignaling` uses connection table abstraction
 
 ### Single Responsibility
 
 Each class has one job:
+
 - `ButtonStateManager`: Only buttons
 - `WiimoteProtocol`: Only Wiimote output reports
 - `HciQueueManager`: Only queue operations
@@ -495,6 +524,7 @@ Each class has one job:
 ### Testability
 
 Components can be tested independently:
+
 - State managers tested without hardware
 - Protocol layer tested with mocks
 - Native tests run on PC

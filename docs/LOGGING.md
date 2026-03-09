@@ -18,6 +18,7 @@ Set logging level in `src/utils/serial_logging.h`:
 **When to use:** Initialization failures, null pointers, connection errors
 
 **Example output:**
+
 ```
 [ERROR] HCI: Reset failed with status=0x05
 [ERROR] L2CAP: sendCallback is null
@@ -25,6 +26,7 @@ Set logging level in `src/utils/serial_logging.h`:
 ```
 
 **Code example:**
+
 ```cpp
 if (!initialized) {
     LOG_ERROR("Component initialization failed\n");
@@ -40,6 +42,7 @@ if (!initialized) {
 **When to use:** Capacity limits, fallback behavior, deprecated features
 
 **Example output:**
+
 ```
 [WARN] L2CAP: Connection table full, cannot add connection
 [WARN] HciCallback: Queue manager not set, cannot send packet
@@ -47,6 +50,7 @@ if (!initialized) {
 ```
 
 **Code example:**
+
 ```cpp
 if (queueFull) {
     LOG_WARN("Queue at capacity, dropping packet\n");
@@ -61,6 +65,7 @@ if (queueFull) {
 **When to use:** Connections, detections, initialization complete
 
 **Example output:**
+
 ```
 [INFO] ESP32Wiimote: Starting initialization...
 [INFO] HCI: Device initialized, starting inquiry
@@ -73,6 +78,7 @@ if (queueFull) {
 ```
 
 **Code example:**
+
 ```cpp
 LOG_INFO("Connection established to device 0x%04x\n", handle);
 ```
@@ -85,6 +91,7 @@ LOG_INFO("Connection established to device 0x%04x\n", handle);
 **When to use:** Deep debugging, protocol analysis, packet inspection
 
 **Example output:**
+
 ```
 [DEBUG] TinyWiimote: Initializing TinyWiimote core...
 [DEBUG] TinyWiimote: Resetting wiimote state...
@@ -100,6 +107,7 @@ LOG_INFO("Connection established to device 0x%04x\n", handle);
 ```
 
 **Code example:**
+
 ```cpp
 LOG_DEBUG("Processing packet: type=0x%02x len=%d\n", type, len);
 ```
@@ -214,6 +222,7 @@ LOG_INFO("Battery level: %d%%\n", percentage);
 ### Level 0: ERROR Only
 
 Minimal output, only critical failures:
+
 ```
 [ERROR] Bluetooth controller initialization failed!
 ```
@@ -221,6 +230,7 @@ Minimal output, only critical failures:
 ### Level 1: WARN
 
 Adds warnings:
+
 ```
 [WARN] HCI packet queue at 90% capacity
 [ERROR] Failed to allocate memory for packet
@@ -229,6 +239,7 @@ Adds warnings:
 ### Level 2: INFO (Default)
 
 Shows the story of what's happening:
+
 ```
 [INFO] ESP32Wiimote: Starting initialization...
 [INFO] HCI: Device initialized, starting inquiry
@@ -245,6 +256,7 @@ Shows the story of what's happening:
 ### Level 3: DEBUG (Full Verbose)
 
 All internal operations visible:
+
 ```
 [DEBUG] TinyWiimote: Initializing TinyWiimote core...
 [DEBUG] TinyWiimote: Resetting wiimote state...
@@ -271,6 +283,7 @@ All internal operations visible:
 ### "No output at all"
 
 Check:
+
 1. Serial initialized: `Serial.begin(115200);`
 2. Log level set correctly in `serial_logging.h`
 3. Recompile after changing log level
@@ -278,6 +291,7 @@ Check:
 ### "Too much output"
 
 Lower the log level:
+
 ```cpp
 #define WIIMOTE_VERBOSE 1  // or 0
 ```
@@ -285,6 +299,7 @@ Lower the log level:
 ### "Missing some logs"
 
 Raise the log level:
+
 ```cpp
 #define WIIMOTE_VERBOSE 3
 ```
@@ -292,6 +307,7 @@ Raise the log level:
 ### "Compile-time errors about LOG_*"
 
 Include the header:
+
 ```cpp
 #include "utils/serial_logging.h"
 ```
@@ -308,6 +324,7 @@ Include the header:
 | 3 (DEBUG) | Moderate | Deep debugging only |
 
 **Notes:**
+
 - Disabled log macros compile to `do {} while(0)` (zero overhead)
 - Level 3 generates significant serial traffic
 - Use level 3 only when needed for specific debugging

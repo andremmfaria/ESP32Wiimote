@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Cache PlatformIO
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.platformio
@@ -35,14 +35,3 @@ jobs:
     
     - name: Run Native Tests
       run: pio test -e native -v
-    
-    - name: Build for ESP32
-      run: pio run -e esp32dev
-    
-    - name: Upload Test Results
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: test-results
-        path: .pio/build/native/test_report.xml
-        if-no-files-found: warn

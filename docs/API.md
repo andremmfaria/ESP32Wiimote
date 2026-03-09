@@ -22,9 +22,11 @@ ESP32Wiimote(int NUNCHUK_STICK_THRESHOLD = 1)
 Creates a new ESP32Wiimote instance.
 
 **Parameters:**
+
 - `NUNCHUK_STICK_THRESHOLD` - Sensitivity threshold for nunchuk stick change detection (default: 1)
 
 **Example:**
+
 ```cpp
 ESP32Wiimote wiimote;           // Default threshold
 ESP32Wiimote wiimote(5);        // Custom threshold
@@ -39,6 +41,7 @@ ESP32Wiimote wiimote(5);        // Custom threshold
 Initializes Bluetooth controller and HCI interface. Must be called once in `setup()`.
 
 **Example:**
+
 ```cpp
 void setup() {
     Serial.begin(115200);
@@ -47,6 +50,7 @@ void setup() {
 ```
 
 **Notes:**
+
 - Initializes Bluetooth in non-discoverable mode
 - Starts HCI packet queues
 - Registers VHCI callbacks
@@ -59,6 +63,7 @@ void setup() {
 Processes HCI packet queues. Must be called regularly in `loop()`.
 
 **Example:**
+
 ```cpp
 void loop() {
     wiimote.task();
@@ -67,6 +72,7 @@ void loop() {
 ```
 
 **Notes:**
+
 - Handles incoming/outgoing Bluetooth packets
 - Should be called as frequently as possible
 - Non-blocking operation
@@ -82,6 +88,7 @@ Checks if Wiimote is currently connected.
 **Returns:** `true` if connected, `false` otherwise
 
 **Example:**
+
 ```cpp
 if (wiimote.isConnected()) {
     Serial.println("Wiimote ready");
@@ -96,11 +103,13 @@ if (wiimote.isConnected()) {
 
 Checks if new sensor or button data is available.
 
-**Returns:** 
+**Returns:**
+
 - `1` if data has changed since last check
 - `0` if no new data
 
 **Example:**
+
 ```cpp
 void loop() {
     wiimote.task();
@@ -113,6 +122,7 @@ void loop() {
 ```
 
 **Notes:**
+
 - Automatically parses incoming HCI reports
 - Resets change flags after reading
 - Filters are applied before returning
@@ -128,6 +138,7 @@ Gets current button state.
 **Returns:** `ButtonState` enum value (see [Button States](#button-states))
 
 **Example:**
+
 ```cpp
 ButtonState btn = wiimote.getButtonState();
 
@@ -152,6 +163,7 @@ Gets current Wiimote accelerometer state.
 **Returns:** `AccelState` struct with x, y, z values (0-255)
 
 **Example:**
+
 ```cpp
 AccelState accel = wiimote.getAccelState();
 
@@ -160,6 +172,7 @@ Serial.printf("Accel: X=%d Y=%d Z=%d\n",
 ```
 
 **Notes:**
+
 - Values are raw 8-bit accelerometer readings
 - Typical rest position: ~128 for each axis
 - Requires accelerometer mode enabled (see demo)
@@ -173,6 +186,7 @@ Gets current Nunchuk state (if connected).
 **Returns:** `NunchukState` struct with stick position, accelerometer, and buttons
 
 **Example:**
+
 ```cpp
 NunchukState nunchuk = wiimote.getNunchukState();
 
@@ -186,6 +200,7 @@ if (nunchuk.zBtn) Serial.println("Z button");
 ```
 
 **Notes:**
+
 - Returns default values if Nunchuk not connected
 - Stick: 0-255 (center ~128)
 - Accelerometer: 0-255 (rest ~128)
@@ -201,12 +216,14 @@ Gets battery level percentage.
 **Returns:** Battery level in range 0-100 (percentage)
 
 **Example:**
+
 ```cpp
 uint8_t battery = wiimote.getBatteryLevel();
 Serial.printf("Battery: %d%%\n", battery);
 ```
 
 **Notes:**
+
 - Returns 0-100 (percentage, not raw value)
 - Updated automatically when Wiimote connects
 - Call `requestBatteryUpdate()` for manual refresh
@@ -218,6 +235,7 @@ Serial.printf("Battery: %d%%\n", battery);
 Requests a battery status update from the Wiimote.
 
 **Example:**
+
 ```cpp
 // Refresh battery level every 60 seconds
 static unsigned long lastUpdate = 0;
@@ -228,6 +246,7 @@ if (millis() - lastUpdate > 60000) {
 ```
 
 **Notes:**
+
 - Asynchronous - battery value updates when response is received
 - Only works when connected
 - Battery is automatically requested on initial connection
@@ -241,15 +260,18 @@ if (millis() - lastUpdate > 60000) {
 Configures data filters to reduce update frequency.
 
 **Parameters:**
+
 - `action` - Filter action (currently only `ACTION_IGNORE`)
 - `filter` - Data type to filter
 
 **Available Filters:**
+
 - `FILTER_BUTTON` - Ignore button changes
 - `FILTER_ACCEL` - Ignore Wiimote accelerometer changes
 - `FILTER_NUNCHUK_STICK` - Ignore Nunchuk stick changes
 
 **Example:**
+
 ```cpp
 void setup() {
     wiimote.init();
@@ -261,6 +283,7 @@ void setup() {
 ```
 
 **Notes:**
+
 - Filters are applied in `available()`
 - Can be combined (multiple filters active)
 - Does not affect raw data reading
@@ -299,6 +322,7 @@ enum ButtonState {
 ### Checking Button States
 
 **Single Button:**
+
 ```cpp
 if (btn == BUTTON_A) {
     // Only A pressed
@@ -306,6 +330,7 @@ if (btn == BUTTON_A) {
 ```
 
 **Button Combinations:**
+
 ```cpp
 if ((btn & BUTTON_A) && (btn & BUTTON_B)) {
     // A and B pressed together
@@ -313,6 +338,7 @@ if ((btn & BUTTON_A) && (btn & BUTTON_B)) {
 ```
 
 **Any of Multiple:**
+
 ```cpp
 if (btn & (BUTTON_UP | BUTTON_DOWN | BUTTON_LEFT | BUTTON_RIGHT)) {
     // Any D-Pad pressed

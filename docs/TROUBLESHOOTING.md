@@ -17,6 +17,7 @@ Common issues and solutions for ESP32Wiimote.
 ### Wiimote Won't Connect
 
 **Symptoms:**
+
 - `isConnected()` always returns `false`
 - No "Wiimote detected" message in serial output
 - Wiimote LEDs keep blinking
@@ -24,6 +25,7 @@ Common issues and solutions for ESP32Wiimote.
 **Solutions:**
 
 1. **Check button press timing**
+
    ```
    - Press 1 + 2 simultaneously
    - Hold for 2-3 seconds
@@ -31,6 +33,7 @@ Common issues and solutions for ESP32Wiimote.
    ```
 
 2. **Verify Bluetooth initialization**
+
    ```cpp
    void setup() {
        Serial.begin(115200);
@@ -39,11 +42,12 @@ Common issues and solutions for ESP32Wiimote.
    ```
 
 3. **Check serial output for errors**
+
    ```cpp
    // Set WIIMOTE_VERBOSE to 2 or 3 in serial_logging.h
    #define WIIMOTE_VERBOSE 3
    ```
-   
+
    Look for:
    - `[ERROR] Bluetooth controller initialization failed!`
    - `[ERROR] HCI: Reset failed`
@@ -64,6 +68,7 @@ Common issues and solutions for ESP32Wiimote.
 ### Connection Drops Frequently
 
 **Symptoms:**
+
 - Connected but disconnects after a few seconds
 - `isConnected()` flickers true/false
 - "Wiimote lost" messages
@@ -71,6 +76,7 @@ Common issues and solutions for ESP32Wiimote.
 **Solutions:**
 
 1. **Check battery level**
+
    ```cpp
    uint8_t battery = wiimote.getBatteryLevel();
    Serial.printf("Battery: %d%%\n", battery);
@@ -83,6 +89,7 @@ Common issues and solutions for ESP32Wiimote.
    - Avoid metal interference
 
 3. **Call task() regularly**
+
    ```cpp
    void loop() {
        wiimote.task();  // MUST be called!
@@ -91,6 +98,7 @@ Common issues and solutions for ESP32Wiimote.
    ```
 
 4. **Check for long blocking operations**
+
    ```cpp
    // Bad: Blocks task() from running
    void loop() {
@@ -111,12 +119,14 @@ Common issues and solutions for ESP32Wiimote.
 ### Can't Find Wiimote After First Connection
 
 **Symptoms:**
+
 - Works once, then never connects again
 - ESP32 reset doesn't help
 
 **Solution:**
 
 Remove Wiimote sync:
+
 ```
 1. Open Wiimote battery cover
 2. Press red SYNC button (inside battery compartment)
@@ -133,6 +143,7 @@ Remove Wiimote sync:
 **Cause:** Library not installed correctly
 
 **Solution:**
+
 ```bash
 # Arduino IDE
 Sketch > Include Library > Add .ZIP Library...
@@ -149,6 +160,7 @@ lib_deps =
 **Cause:** Missing logging header include
 
 **Solution:**
+
 ```cpp
 #include "utils/serial_logging.h"
 
@@ -165,6 +177,7 @@ lib_deps =
 **Solution:**
 
 For ESP32 builds, you need a sketch file:
+
 ```cpp
 // main.cpp or YourSketch.ino
 #include <ESP32Wiimote.h>
@@ -190,6 +203,7 @@ For native tests, this is expected - tests provide setup/loop.
 **Cause:** Including .cpp files instead of .h files
 
 **Solution:**
+
 ```cpp
 // Wrong
 #include "TinyWiimote.cpp"
@@ -205,12 +219,14 @@ For native tests, this is expected - tests provide setup/loop.
 ### No Serial Output
 
 **Symptoms:**
+
 - Serial monitor empty
 - No logs appear
 
 **Solutions:**
 
 1. **Check serial initialization**
+
    ```cpp
    void setup() {
        Serial.begin(115200);  // Must be called first!
@@ -220,11 +236,13 @@ For native tests, this is expected - tests provide setup/loop.
    ```
 
 2. **Check baud rate**
+
    ```
    Serial Monitor must be set to 115200 baud
    ```
 
 3. **Check log level**
+
    ```cpp
    // In src/utils/serial_logging.h
    #define WIIMOTE_VERBOSE 2  // Increase to 2 or 3
@@ -239,6 +257,7 @@ For native tests, this is expected - tests provide setup/loop.
 ### ESP32 Crashes/Reboots
 
 **Symptoms:**
+
 - ESP32 resets during operation
 - "Brownout detector" messages
 - Watchdog timeout errors
@@ -251,11 +270,13 @@ For native tests, this is expected - tests provide setup/loop.
    - Try different USB port
 
 2. **Reduce log level**
+
    ```cpp
    #define WIIMOTE_VERBOSE 1  // Less serial traffic
    ```
 
 3. **Check stack size**
+
    ```cpp
    // In platformio.ini, if needed
    board_build.f_cpu = 240000000L
@@ -263,6 +284,7 @@ For native tests, this is expected - tests provide setup/loop.
    ```
 
 4. **Check for infinite loops**
+
    ```cpp
    void loop() {
        wiimote.task();  // Must not block
@@ -275,12 +297,14 @@ For native tests, this is expected - tests provide setup/loop.
 ### Memory Allocation Failures
 
 **Symptoms:**
+
 - `[ERROR] malloc failed` logs
 - Crashes under load
 
 **Solutions:**
 
 1. **Check available heap**
+
    ```cpp
    void loop() {
        static unsigned long lastCheck = 0;
@@ -293,12 +317,14 @@ For native tests, this is expected - tests provide setup/loop.
    ```
 
 2. **Reduce queue sizes**
+
    ```cpp
    // In ESP32Wiimote constructor
    _queueManager = new HciQueueManager(16, 16);  // Smaller queues
    ```
 
 3. **Avoid dynamic allocation in loop**
+
    ```cpp
    // Bad
    void loop() {
@@ -319,12 +345,14 @@ For native tests, this is expected - tests provide setup/loop.
 ### Battery Always Shows 0%
 
 **Symptoms:**
+
 - `getBatteryLevel()` returns 0
 - Battery never updates
 
 **Solutions:**
 
 1. **Request battery update**
+
    ```cpp
    void loop() {
        if (wiimote.isConnected()) {
@@ -338,6 +366,7 @@ For native tests, this is expected - tests provide setup/loop.
    ```
 
 2. **Check connection**
+
    ```cpp
    if (wiimote.isConnected()) {
        uint8_t battery = wiimote.getBatteryLevel();
@@ -355,12 +384,14 @@ For native tests, this is expected - tests provide setup/loop.
 ### Buttons Not Responding
 
 **Symptoms:**
+
 - `getButtonState()` always returns `BUTTON_NONE`
 - No button events detected
 
 **Solutions:**
 
 1. **Check available() return**
+
    ```cpp
    if (wiimote.available()) {  // Must check this!
        ButtonState btn = wiimote.getButtonState();
@@ -368,12 +399,14 @@ For native tests, this is expected - tests provide setup/loop.
    ```
 
 2. **Check filters**
+
    ```cpp
    // If you set this, buttons are ignored!
    wiimote.addFilter(ACTION_IGNORE, FILTER_BUTTON);
    ```
 
 3. **Check button comparison**
+
    ```cpp
    // Wrong: Checks exact match
    if (btn == BUTTON_A && btn == BUTTON_B) {  // Never true!
@@ -383,6 +416,7 @@ For native tests, this is expected - tests provide setup/loop.
    ```
 
 4. **Enable debug logging**
+
    ```cpp
    #define WIIMOTE_VERBOSE 3
    // Watch for "BTCODE_HID" in logs
@@ -393,12 +427,14 @@ For native tests, this is expected - tests provide setup/loop.
 ### Accelerometer Data All Zeros
 
 **Symptoms:**
+
 - `getAccelState()` returns 0,0,0
 - No motion detected
 
 **Solutions:**
 
 1. **Enable accelerometer mode**
+
    ```cpp
    // Accelerometer reporting must be enabled
    // Library does this automatically on connection
@@ -410,6 +446,7 @@ For native tests, this is expected - tests provide setup/loop.
    - Mode 0x35: Buttons + accel + extensions ✓
 
 3. **Wait for connection**
+
    ```cpp
    if (!wiimote.isConnected()) {
        return;  // No data when disconnected
@@ -417,6 +454,7 @@ For native tests, this is expected - tests provide setup/loop.
    ```
 
 4. **Check for data updates**
+
    ```cpp
    if (wiimote.available()) {
        AccelState accel = wiimote.getAccelState();
@@ -430,6 +468,7 @@ For native tests, this is expected - tests provide setup/loop.
 ### Nunchuk Not Detected
 
 **Symptoms:**
+
 - `getNunchukState()` returns default values
 - "Extension controller NOT connected" log
 
@@ -446,6 +485,7 @@ For native tests, this is expected - tests provide setup/loop.
    - Look for "Extension controller connected" log
 
 3. **Enable debug logging**
+
    ```cpp
    #define WIIMOTE_VERBOSE 3
    // Look for extension detection sequence
@@ -462,17 +502,20 @@ For native tests, this is expected - tests provide setup/loop.
 ### High CPU Usage
 
 **Symptoms:**
+
 - ESP32 runs hot
 - Other tasks slow down
 
 **Solutions:**
 
 1. **Reduce log level**
+
    ```cpp
    #define WIIMOTE_VERBOSE 1  // Less logging
    ```
 
 2. **Add small delays**
+
    ```cpp
    void loop() {
        wiimote.task();
@@ -482,6 +525,7 @@ For native tests, this is expected - tests provide setup/loop.
    ```
 
 3. **Rate-limit data processing**
+
    ```cpp
    if (wiimote.available()) {
        static unsigned long lastProcess = 0;
@@ -497,12 +541,14 @@ For native tests, this is expected - tests provide setup/loop.
 ### Slow Button Response
 
 **Symptoms:**
+
 - Button presses delayed
 - Laggy input
 
 **Solutions:**
 
 1. **Call task() more frequently**
+
    ```cpp
    void loop() {
        wiimote.task();  // Top of loop, no long delays after
@@ -514,6 +560,7 @@ For native tests, this is expected - tests provide setup/loop.
    ```
 
 2. **Remove long delays**
+
    ```cpp
    // Bad
    void loop() {
@@ -535,6 +582,7 @@ For native tests, this is expected - tests provide setup/loop.
    ```
 
 3. **Profile your code**
+
    ```cpp
    unsigned long start = micros();
    expensiveFunction();
@@ -548,12 +596,14 @@ For native tests, this is expected - tests provide setup/loop.
 ### Native Tests Fail to Compile
 
 **Symptoms:**
+
 - `Arduino.h: No such file`
 - Undefined symbols during native test compilation
 
 **Solution:**
 
 Add platform guards:
+
 ```cpp
 #ifndef NATIVE_TEST
     #include <Arduino.h>
@@ -570,12 +620,14 @@ Or use existing guards in library headers.
 ### Integration Tests Can't See Output
 
 **Symptoms:**
+
 - Test prompts don't appear
 - Action messages missing
 
 **Solution:**
 
 Use `-v` flag with PlatformIO:
+
 ```bash
 pio test -e esp32dev -v
 ```
@@ -589,10 +641,11 @@ Without `-v`, PlatformIO filters test output.
 Still stuck? Try these resources:
 
 1. **Enable full logging**
+
    ```cpp
    #define WIIMOTE_VERBOSE 3
    ```
-   
+
 2. **Check documentation**
    - [API Reference](API.md)
    - [Architecture](ARCHITECTURE.md)
@@ -603,6 +656,7 @@ Still stuck? Try these resources:
    - Look for similar problems
 
 4. **Create minimal reproduction**
+
    ```cpp
    #include <ESP32Wiimote.h>
    ESP32Wiimote wiimote;

@@ -24,6 +24,7 @@ Thank you for considering contributing to ESP32Wiimote! This document provides g
 - **Wiimote** (Nintendo RVL-CNT-01) for integration tests
 
 Install PlatformIO:
+
 ```bash
 pip install platformio
 ```
@@ -32,12 +33,14 @@ pip install platformio
 
 1. Fork the repository on GitHub
 2. Clone your fork:
+
    ```bash
    git clone https://github.com/YOUR_USERNAME/ESP32Wiimote.git
    cd ESP32Wiimote
    ```
 
 3. Add upstream remote:
+
    ```bash
    git remote add upstream https://github.com/ORIGINAL_OWNER/ESP32Wiimote.git
    ```
@@ -56,6 +59,7 @@ pio lib install
 ### Verify Setup
 
 Run native tests:
+
 ```bash
 pio test -e native
 ```
@@ -104,6 +108,7 @@ git checkout -b fix/issue-description
 ```
 
 Branch naming conventions:
+
 - `feature/` - New features
 - `fix/` - Bug fixes
 - `docs/` - Documentation changes
@@ -216,11 +221,13 @@ See [Testing Guide](docs/TESTING.md) for more details.
 ### Before Submitting
 
 1. **Run all tests**
+
    ```bash
    pio test -e native
    ```
 
 2. **Check compilation**
+
    ```bash
    pio run -e esp32dev
    ```
@@ -242,6 +249,7 @@ See [Testing Guide](docs/TESTING.md) for more details.
 ### Submit Pull Request
 
 1. **Push to your fork**
+
    ```bash
    git push origin feature/your-feature-name
    ```
@@ -252,6 +260,7 @@ See [Testing Guide](docs/TESTING.md) for more details.
    - Reference related issues
 
 3. **PR Description Template**
+
    ```markdown
    ## Description
    Brief description of changes
@@ -321,6 +330,7 @@ enum ButtonState {
 ### Code Style
 
 **Indentation:**
+
 ```cpp
 // 4 spaces, no tabs
 void myFunction() {
@@ -331,6 +341,7 @@ void myFunction() {
 ```
 
 **Braces:**
+
 ```cpp
 // K&R style - opening brace same line
 if (condition) {
@@ -347,10 +358,12 @@ void myFunction()
 ```
 
 **Line Length:**
+
 - Prefer < 100 characters
 - Break long lines at logical points
 
 **Whitespace:**
+
 ```cpp
 // Spaces around operators
 int result = a + b;
@@ -445,7 +458,7 @@ if (initFailed) {
 
 ## Documentation
 
-### Update Documentation for:
+### Update Documentation for
 
 - **New API methods** → [API.md](docs/API.md)
 - **Common issues** → [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
