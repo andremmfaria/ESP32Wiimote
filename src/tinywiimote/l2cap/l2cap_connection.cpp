@@ -48,3 +48,12 @@ int L2capConnectionTable::getRemoteCid(uint16_t ch, uint16_t* remoteCID) const {
   *remoteCID = list[idx].remoteCID;
   return 0;
 }
+
+int L2capConnectionTable::getFirstConnectionHandle(uint16_t* ch) const {
+  if (size == 0 || ch == 0) {
+    return -1;
+  }
+  
+  *ch = list[0].ch;
+  return 0;
+}

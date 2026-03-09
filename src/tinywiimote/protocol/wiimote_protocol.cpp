@@ -18,6 +18,7 @@
  */
 #define WIIMOTE_RPT_SET_LEDS              0x11
 #define WIIMOTE_RPT_SET_REPORTING_MODE    0x12
+#define WIIMOTE_RPT_REQUEST_STATUS        0x15
 #define WIIMOTE_RPT_WRITE_MEMORY          0x16
 #define WIIMOTE_RPT_READ_MEMORY           0x17
 
@@ -123,6 +124,35 @@ void WiimoteProtocol::setReportingMode(uint16_t ch, uint8_t mode, bool continuou
 
   sender->sendAclL2capPacket(ch, remoteCID, payload, pb.length());
   LOG_DEBUG("queued acl_l2cap_packet(Set Reporting Mode)\n");
+}
+
+/**
+ * Request Wiimote status report
+ * 
+ * Sends output report (0xA2 0x15 00) to request status information
+ * Response comes as input report (0x20) with battery level and extension info
+ */
+void WiimoteProtocol::requestStatus(uint16_t ch) {
+  LOG_DEBUG("wiimote_request_status\n");
+
+  if (connections == nullptr || sender == nullptr) {
+    return;
+  }
+
+  uint16_t remoteCID = 0;
+  if (connections->getRemoteCid(ch, &remoteCID) != 0) {
+    LOG_ERROR("L2CAP connection not found\n");
+    return;
+  }
+
+  // Build output report: A2 15 00
+  PayloadBuilder pb(payload, sizeof(payload));
+  pb.append(HID_OUTPUT_REPORT);           // 0xA2
+  pb.append(WIIMOTE_RPT_REQUEST_STATUS);  // 0x15
+  pb.append(0x00);                        // No rumble
+
+  sender->sendAclL2capPacket(ch, remoteCID, payload, pb.length());
+  LOG_DEBUG("queued acl_l2cap_packet(Request Status)\n");
 }
 
 /**

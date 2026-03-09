@@ -33,6 +33,7 @@ void TinyWiimoteResetDevice(void);
 bool TinyWiimoteDeviceIsInited(void);
 bool TinyWiimoteIsConnected(void);
 uint8_t TinyWiimoteGetBatteryLevel(void);
+void TinyWiimoteRequestBatteryUpdate(void);
 
 void TinyWiimoteReqAccelerometer(bool use);
 

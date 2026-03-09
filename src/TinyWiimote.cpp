@@ -114,6 +114,7 @@ static void handleL2capData(uint16_t ch, uint16_t channelID, uint8_t* data, uint
       if (!g_runtime.wiimoteState.isConnected()) {
         LOG_INFO("TinyWiimote: Wiimote detected! Setting LED and marking as connected\n");
         g_runtime.wiimoteProtocol.setLeds(ch, 0b0001);
+        g_runtime.wiimoteProtocol.requestStatus(ch);
         LOG_INFO("Wiimote detected\n");
         g_runtime.wiimoteState.setConnected(true);
         if (g_runtime.wiimoteState.getUseAccelerometer()) {
@@ -202,6 +203,22 @@ bool TinyWiimoteIsConnected(void) {
 
 uint8_t TinyWiimoteGetBatteryLevel(void) {
   return g_runtime.wiimoteState.getBatteryLevel();
+}
+
+void TinyWiimoteRequestBatteryUpdate(void) {
+  if (!g_runtime.wiimoteState.isConnected()) {
+    LOG_WARN("TinyWiimote: Cannot request battery update - not connected\n");
+    return;
+  }
+  
+  uint16_t ch = 0;
+  if (g_runtime.l2capConnections.getFirstConnectionHandle(&ch) != 0) {
+    LOG_ERROR("TinyWiimote: Cannot request battery update - no L2CAP connection\n");
+    return;
+  }
+  
+  LOG_DEBUG("TinyWiimote: Requesting battery status update\n");
+  g_runtime.wiimoteProtocol.requestStatus(ch);
 }
 
 int TinyWiimoteAvailable(void) {

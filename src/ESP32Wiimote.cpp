@@ -115,6 +115,14 @@ uint8_t ESP32Wiimote::getBatteryLevel(void)
 }
 
 /**
+ * Request battery status update
+ */
+void ESP32Wiimote::requestBatteryUpdate(void)
+{
+    TinyWiimoteRequestBatteryUpdate();
+}
+
+/**
  * Add filter to ignore certain data types
  */
 void ESP32Wiimote::addFilter(int action, int filter)

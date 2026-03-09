@@ -40,6 +40,7 @@ class WiimoteProtocol {
 
     void setLeds(uint16_t ch, uint8_t leds);
     void setReportingMode(uint16_t ch, uint8_t mode, bool continuous);
+    void requestStatus(uint16_t ch);
     void writeMemory(uint16_t ch, address_space_t address_space, uint32_t offset,
                                      const uint8_t* data, uint8_t length);
     void readMemory(uint16_t ch, address_space_t address_space, uint32_t offset,

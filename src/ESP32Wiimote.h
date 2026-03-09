@@ -92,6 +92,12 @@ public:
     uint8_t getBatteryLevel(void);
     
     /**
+     * Request battery status update from Wiimote
+     * Battery level will be updated when response is received
+     */
+    void requestBatteryUpdate(void);
+    
+    /**
      * Add filter to ignore certain data types
      * @param action Filter action (ACTION_IGNORE)
      * @param filter Filter type (FILTER_BUTTON, FILTER_ACCEL, etc.)

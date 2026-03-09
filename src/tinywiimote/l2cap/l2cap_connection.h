@@ -29,6 +29,7 @@ class L2capConnectionTable {
   int findConnection(uint16_t ch) const;
   int addConnection(const L2capConnection& connection);
   int getRemoteCid(uint16_t ch, uint16_t* remoteCID) const;
+  int getFirstConnectionHandle(uint16_t* ch) const;
 
  private:
   L2capConnection list[L2CAP_CONNECTION_LIST_SIZE];
