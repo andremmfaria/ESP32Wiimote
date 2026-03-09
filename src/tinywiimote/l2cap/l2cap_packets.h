@@ -12,18 +12,26 @@
 #include <stddef.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-typedef void (*L2capRawSendFunc)(uint8_t* data, size_t len);
+    typedef void (*L2capRawSendFunc)(uint8_t *data, size_t len);
 
-void l2cap_set_send_callback(L2capRawSendFunc callback);
+    typedef struct
+    {
+        L2capRawSendFunc sendCallback;
+        uint8_t tmpQueueData[256];
+    } L2capPacketSender;
 
-uint16_t make_l2cap_packet(uint8_t* buf, uint16_t channelID, uint8_t* data, uint16_t len);
-uint16_t make_acl_l2cap_packet(uint8_t* buf, uint16_t ch, uint8_t pbf, uint8_t bf,
-                               uint16_t channelID, uint8_t* data, uint8_t len);
+    void l2cap_packet_sender_init(L2capPacketSender *sender, L2capRawSendFunc callback);
 
-void send_acl_l2cap_packet(uint16_t ch, uint16_t remoteCID, uint8_t* payload, uint16_t payloadLen);
+    uint16_t make_l2cap_packet(uint8_t *buf, uint16_t channelID, uint8_t *data, uint16_t len);
+    uint16_t make_acl_l2cap_packet(uint8_t *buf, uint16_t ch, uint8_t pbf, uint8_t bf,
+                                   uint16_t channelID, uint8_t *data, uint8_t len);
+
+    void send_acl_l2cap_packet(L2capPacketSender *sender, uint16_t ch, uint16_t remoteCID,
+                               uint8_t *payload, uint16_t payloadLen);
 
 #ifdef __cplusplus
 }

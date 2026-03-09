@@ -48,14 +48,24 @@
 #define L2CAP_CONFIG_RES 0x05
 #define BTCODE_HID 0xA1
 
-static TwHciInterface g_hciInterface;
-static HciEventContext g_hciEventContext;
+typedef struct {
+  TwHciInterface hciInterface;
+  HciEventContext hciEventContext;
+  L2capConnectionTable l2capConnections;
+  L2capPacketSender packetSender;
+  L2capSignaling l2capSignaling;
+  WiimoteState wiimoteState;
+  WiimoteReports wiimoteReports;
+  WiimoteExtensions wiimoteExtensions;
+} TinyWiimoteRuntime;
+
+static TinyWiimoteRuntime g_runtime;
 
 static void resetDeviceInternal(void);
 
 static void send_hci_packet_raw(uint8_t* data, size_t len) {
-  if (g_hciInterface.hci_send_packet != 0) {
-    g_hciInterface.hci_send_packet(data, len);
+  if (g_runtime.hciInterface.hci_send_packet != 0) {
+    g_runtime.hciInterface.hci_send_packet(data, len);
   }
 }
 
@@ -66,7 +76,7 @@ static void hci_send_packet_adapter(uint8_t* data, size_t len, void* userData) {
 
 static void on_acl_connected(uint16_t connectionHandle, void* userData) {
   (void)userData;
-  l2cap_signaling_send_connection_request(connectionHandle, 0x0013, 0x0045);
+  l2cap_signaling_send_connection_request(&g_runtime.l2capSignaling, connectionHandle, 0x0013, 0x0045);
 }
 
 static void on_disconnected(uint16_t connectionHandle, uint8_t reason, void* userData) {
@@ -75,7 +85,7 @@ static void on_disconnected(uint16_t connectionHandle, uint8_t reason, void* use
   (void)userData;
 
   UNVERBOSE_PRINT("Wiimote lost\n");
-  wiimote_state_reset();
+  wiimote_state_reset(&g_runtime.wiimoteState);
   resetDeviceInternal();
 }
 
@@ -91,32 +101,33 @@ static void handleL2capData(uint16_t ch, uint16_t channelID, uint8_t* data, uint
       if (len < 12) {
         return;
       }
-      l2cap_signaling_handle_connection_response(ch, data, len);
+      l2cap_signaling_handle_connection_response(&g_runtime.l2capSignaling, ch, data, len);
       break;
 
     case L2CAP_CONFIG_REQ:
       if (len < 12) {
         return;
       }
-      l2cap_signaling_handle_configuration_request(ch, data, len);
+      l2cap_signaling_handle_configuration_request(&g_runtime.l2capSignaling, ch, data, len);
       break;
 
     case L2CAP_CONFIG_RES:
-      l2cap_signaling_handle_configuration_response(data, len);
+      l2cap_signaling_handle_configuration_response(&g_runtime.l2capSignaling, data, len);
       break;
 
     case BTCODE_HID:
-      if (!wiimote_state_is_connected()) {
-        wiimote_set_leds(ch, 0b0001);
+      if (!wiimote_state_is_connected(&g_runtime.wiimoteState)) {
+        wiimote_set_leds(&g_runtime.l2capConnections, &g_runtime.packetSender, ch, 0b0001);
         UNVERBOSE_PRINT("Wiimote detected\n");
-        wiimote_state_set_connected(true);
-        if (wiimote_state_get_use_accelerometer()) {
-          wiimote_set_reporting_mode(ch, 0x31, false);
+        wiimote_state_set_connected(&g_runtime.wiimoteState, true);
+        if (wiimote_state_get_use_accelerometer(&g_runtime.wiimoteState)) {
+          wiimote_set_reporting_mode(&g_runtime.l2capConnections, &g_runtime.packetSender,
+                                     ch, 0x31, false);
         }
       }
-      wiimote_extensions_handle_report(ch, data, len);
+      wiimote_extensions_handle_report(&g_runtime.wiimoteExtensions, ch, data, len);
       uint8_t idx = 0;  // Only one wiimote supported currently.
-      wiimote_reports_put(idx, data, (uint8_t)len);
+      wiimote_reports_put(&g_runtime.wiimoteReports, idx, data, (uint8_t)len);
       break;
 
     default:
@@ -155,7 +166,7 @@ void handleHciData(uint8_t* data, size_t len) {
   switch (data[0]) {
     case H4_TYPE_EVENT:
       if (len >= 3 && (size_t)(3 + data[2]) <= len) {
-        hci_events_handle_event(&g_hciEventContext, data[1], data[2], data + 3);
+        hci_events_handle_event(&g_runtime.hciEventContext, data[1], data[2], data + 3);
       }
       break;
 
@@ -172,50 +183,54 @@ void handleHciData(uint8_t* data, size_t len) {
 }
 
 static void resetDeviceInternal(void) {
-  l2cap_clear_connections();
-  hci_events_reset_device(&g_hciEventContext);
-  wiimote_extensions_init();
+  l2cap_clear_connections(&g_runtime.l2capConnections);
+  hci_events_reset_device(&g_runtime.hciEventContext);
+  wiimote_extensions_init(&g_runtime.wiimoteExtensions, &g_runtime.wiimoteState,
+                          &g_runtime.l2capConnections, &g_runtime.packetSender);
 }
 
 void TinyWiimoteResetDevice(void) {
   resetDeviceInternal();
-  g_hciEventContext.deviceInited = true;
+  g_runtime.hciEventContext.deviceInited = true;
 }
 
 bool TinyWiimoteDeviceIsInited(void) {
-  return g_hciEventContext.deviceInited;
+  return g_runtime.hciEventContext.deviceInited;
 }
 
 bool TinyWiimoteIsConnected(void) {
-  return wiimote_state_is_connected();
+  return wiimote_state_is_connected(&g_runtime.wiimoteState);
 }
 
 uint8_t TinyWiimoteGetBatteryLevel(void) {
-  return wiimote_state_get_battery_level();
+  return wiimote_state_get_battery_level(&g_runtime.wiimoteState);
 }
 
 int TinyWiimoteAvailable(void) {
-  return wiimote_reports_available();
+  return wiimote_reports_available(&g_runtime.wiimoteReports);
 }
 
 TinyWiimoteData TinyWiimoteRead(void) {
-  return wiimote_reports_read();
+  return wiimote_reports_read(&g_runtime.wiimoteReports);
 }
 
 void TinyWiimoteInit(TwHciInterface hciInterface) {
-  g_hciInterface = hciInterface;
+  g_runtime.hciInterface = hciInterface;
   
-  wiimote_state_init();
-  wiimote_reports_init();
-  wiimote_extensions_init();
+  wiimote_state_init(&g_runtime.wiimoteState);
+  wiimote_reports_init(&g_runtime.wiimoteReports);
+  l2cap_packet_sender_init(&g_runtime.packetSender, send_hci_packet_raw);
+  l2cap_signaling_init(&g_runtime.l2capSignaling, &g_runtime.l2capConnections,
+                       &g_runtime.packetSender);
+  wiimote_extensions_init(&g_runtime.wiimoteExtensions, &g_runtime.wiimoteState,
+                          &g_runtime.l2capConnections, &g_runtime.packetSender);
 
-  l2cap_clear_connections();
-  l2cap_set_send_callback(send_hci_packet_raw);
+  l2cap_clear_connections(&g_runtime.l2capConnections);
 
-  hci_events_init(&g_hciEventContext, hci_send_packet_adapter, 0);
-  hci_events_set_callbacks(&g_hciEventContext, on_acl_connected, on_disconnected);
+  hci_events_init(&g_runtime.hciEventContext, hci_send_packet_adapter, 0);
+  hci_events_set_callbacks(&g_runtime.hciEventContext, on_acl_connected, on_disconnected);
 }
 
 void TinyWiimoteReqAccelerometer(bool use) {
-  wiimote_state_set_use_accelerometer(use);
+  wiimote_state_set_use_accelerometer(&g_runtime.wiimoteState, use);
 }

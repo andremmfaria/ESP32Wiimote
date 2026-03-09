@@ -1,51 +1,67 @@
 #include "wiimote_state.h"
 
-static bool wiimoteConnected = false;
-static bool nunchukConnected = false;
-static uint8_t batteryLevel = 0;
-static bool useAccelerometer = true;
-
-void wiimote_state_init(void) {
-  wiimoteConnected = false;
-  nunchukConnected = false;
-  batteryLevel = 0;
-  useAccelerometer = true;
+void wiimote_state_init(WiimoteState* state) {
+  if (state == 0) {
+    return;
+  }
+  state->wiimoteConnected = false;
+  state->nunchukConnected = false;
+  state->batteryLevel = 0;
+  state->useAccelerometer = true;
 }
 
-void wiimote_state_reset(void) {
-  wiimoteConnected = false;
-  nunchukConnected = false;
-  batteryLevel = 0;
+void wiimote_state_reset(WiimoteState* state) {
+  if (state == 0) {
+    return;
+  }
+  state->wiimoteConnected = false;
+  state->nunchukConnected = false;
+  state->batteryLevel = 0;
 }
 
-void wiimote_state_set_connected(bool connected) {
-  wiimoteConnected = connected;
+void wiimote_state_set_connected(WiimoteState* state, bool connected) {
+  if (state == 0) {
+    return;
+  }
+  state->wiimoteConnected = connected;
 }
 
-bool wiimote_state_is_connected(void) {
-  return wiimoteConnected;
+bool wiimote_state_is_connected(const WiimoteState* state) {
+  return state != 0 && state->wiimoteConnected;
 }
 
-void wiimote_state_set_nunchuk_connected(bool connected) {
-  nunchukConnected = connected;
+void wiimote_state_set_nunchuk_connected(WiimoteState* state, bool connected) {
+  if (state == 0) {
+    return;
+  }
+  state->nunchukConnected = connected;
 }
 
-bool wiimote_state_is_nunchuk_connected(void) {
-  return nunchukConnected;
+bool wiimote_state_is_nunchuk_connected(const WiimoteState* state) {
+  return state != 0 && state->nunchukConnected;
 }
 
-void wiimote_state_set_battery_level(uint8_t level) {
-  batteryLevel = level;
+void wiimote_state_set_battery_level(WiimoteState* state, uint8_t level) {
+  if (state == 0) {
+    return;
+  }
+  state->batteryLevel = level;
 }
 
-uint8_t wiimote_state_get_battery_level(void) {
-  return batteryLevel;
+uint8_t wiimote_state_get_battery_level(const WiimoteState* state) {
+  if (state == 0) {
+    return 0;
+  }
+  return state->batteryLevel;
 }
 
-void wiimote_state_set_use_accelerometer(bool use) {
-  useAccelerometer = use;
+void wiimote_state_set_use_accelerometer(WiimoteState* state, bool use) {
+  if (state == 0) {
+    return;
+  }
+  state->useAccelerometer = use;
 }
 
-bool wiimote_state_get_use_accelerometer(void) {
-  return useAccelerometer;
+bool wiimote_state_get_use_accelerometer(const WiimoteState* state) {
+  return state != 0 && state->useAccelerometer;
 }

@@ -1,50 +1,53 @@
 #include "wiimote_reports.h"
 #include <string.h>
 
-#define RECIEVED_DATA_MAX_NUM (5)
-
-struct recv_data_rb {
-  uint8_t wp;
-  uint8_t rp;
-  uint8_t cnt;
-};
-
-static recv_data_rb receivedDataRb;
-static TinyWiimoteData receivedData[RECIEVED_DATA_MAX_NUM];
-
-void wiimote_reports_init(void) {
-  receivedDataRb.cnt = 0;
-  receivedDataRb.wp = 0;
-  receivedDataRb.rp = 0;
+void wiimote_reports_init(WiimoteReports* reports) {
+  if (reports == 0) {
+    return;
+  }
+  reports->rb.cnt = 0;
+  reports->rb.wp = 0;
+  reports->rb.rp = 0;
 }
 
-void wiimote_reports_put(uint8_t number, uint8_t* data, uint8_t len) {
-  if (receivedDataRb.cnt < RECIEVED_DATA_MAX_NUM) {
-    TinyWiimoteData* target = &(receivedData[receivedDataRb.wp]);
-    if (len > RECIEVED_DATA_MAX_LEN) {
-      len = RECIEVED_DATA_MAX_LEN;
+void wiimote_reports_put(WiimoteReports* reports, uint8_t number, uint8_t* data, uint8_t len) {
+  if (reports == 0 || data == 0) {
+    return;
+  }
+
+  if (reports->rb.cnt < RECEIVED_DATA_MAX_NUM) {
+    TinyWiimoteData* target = &(reports->data[reports->rb.wp]);
+    if (len > RECEIVED_DATA_MAX_LEN) {
+      len = RECEIVED_DATA_MAX_LEN;
     }
     memcpy(target->data, data, len);
     target->number = number;
     target->len = len;
-    receivedDataRb.wp = (receivedDataRb.wp + 1) % RECIEVED_DATA_MAX_NUM;
-    receivedDataRb.cnt++;
+    reports->rb.wp = (reports->rb.wp + 1) % RECEIVED_DATA_MAX_NUM;
+    reports->rb.cnt++;
   }
 }
 
-int wiimote_reports_available(void) {
-  return receivedDataRb.cnt;
+int wiimote_reports_available(const WiimoteReports* reports) {
+  if (reports == 0) {
+    return 0;
+  }
+  return reports->rb.cnt;
 }
 
-TinyWiimoteData wiimote_reports_read(void) {
+TinyWiimoteData wiimote_reports_read(WiimoteReports* reports) {
   TinyWiimoteData target;
   target.number = 0;
   target.len = 0;
 
-  if (receivedDataRb.cnt > 0) {
-    target = receivedData[receivedDataRb.rp];
-    receivedDataRb.rp = (receivedDataRb.rp + 1) % RECIEVED_DATA_MAX_NUM;
-    receivedDataRb.cnt--;
+  if (reports == 0) {
+    return target;
+  }
+
+  if (reports->rb.cnt > 0) {
+    target = reports->data[reports->rb.rp];
+    reports->rb.rp = (reports->rb.rp + 1) % RECEIVED_DATA_MAX_NUM;
+    reports->rb.cnt--;
   }
 
   return target;

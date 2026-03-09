@@ -2,13 +2,28 @@
 #define WIIMOTE_EXTENSIONS_H
 
 #include <stdint.h>
+#include "wiimote_state.h"
+#include "../l2cap/l2cap_connection.h"
+#include "../l2cap/l2cap_packets.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-void wiimote_extensions_init(void);
-void wiimote_extensions_handle_report(uint16_t ch, uint8_t* data, uint16_t len);
+    typedef struct
+    {
+        int controllerReportState;
+        WiimoteState *state;
+        const L2capConnectionTable *connections;
+        L2capPacketSender *sender;
+    } WiimoteExtensions;
+
+    void wiimote_extensions_init(WiimoteExtensions *extensions, WiimoteState *state,
+                                 const L2capConnectionTable *connections,
+                                 L2capPacketSender *sender);
+    void wiimote_extensions_handle_report(WiimoteExtensions *extensions, uint16_t ch,
+                                          uint8_t *data, uint16_t len);
 
 #ifdef __cplusplus
 }
