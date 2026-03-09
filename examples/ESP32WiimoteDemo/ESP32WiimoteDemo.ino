@@ -61,10 +61,16 @@ void setup()
     Serial.begin(115200);
     delay(200);
 
-    Serial.println("ESP32Wiimote Demo");
+    Serial.println("\n\n===== ESP32Wiimote Demo =====");
     Serial.println("Features: connection, battery, buttons, accel, nunchuk, filters");
+    Serial.println("Initializing Bluetooth controller...");
 
-    wiimote.init();
+    if (!wiimote.init()) {
+        Serial.println("FATAL: Bluetooth initialization failed! Halting.");
+        while (1) { delay(1000); }
+    }
+    
+    Serial.println("Bluetooth initialized successfully!");
 
     if (IGNORE_ACCEL) {
         wiimote.addFilter(ACTION_IGNORE, FILTER_ACCEL);
@@ -79,7 +85,7 @@ void setup()
     lastStatsMs = millis();
     lastBatteryMs = millis();
 
-    Serial.println("Press 1 + 2 on the Wiimote to connect.");
+    Serial.println("Ready! Press 1 + 2 on the Wiimote to connect.");
 }
 
 void loop()

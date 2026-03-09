@@ -11,12 +11,17 @@
 #include "TinyWiimote.h"
 #include "Arduino.h"
 #include "esp_bt.h"
+#include "esp_bt_main.h"
+#include "esp32-hal-bt.h"
 #include "../utils/serial_logging.h"
 
-BluetoothController::BluetoothController()
-    : _initialized(false)
-{
+// Keep BT memory reserved on cores that weak-link btInUse().
+// This avoids relying on esp32-hal-bt-mem.h being present.
+extern "C" __attribute__((weak)) bool btInUse(void) {
+    return true;
 }
+
+BluetoothController::BluetoothController(): _initialized(false) {}
 
 bool BluetoothController::init(HciCallbacksHandler* hciCallbacks, HciQueueManager* queueManager)
 {
@@ -28,12 +33,25 @@ bool BluetoothController::init(HciCallbacksHandler* hciCallbacks, HciQueueManage
     }
     
     // Start Bluetooth controller FIRST (must be done before VHCI registration)
-    LOG_DEBUG("BtController: Starting Bluetooth controller with btStart()...\n");
+    LOG_DEBUG("BtController: About to initialize Bluetooth controller...\n");
+    LOG_DEBUG("BtController: Free heap before init: %d bytes\n", ESP.getFreeHeap());
+    
+    // Get and display detailed status info
+    esp_bt_controller_status_t status = esp_bt_controller_get_status();
+    LOG_DEBUG("BtController: Initial controller status: %d (0=IDLE, 1=INITED, 2=ENABLED)\n", status);
+
+    // Initialize Bluetooth controller using Arduino core function
+    LOG_DEBUG("BtController: Calling btStart()...\n");
+    LOG_DEBUG("BtController: Controller status before btStart: %d\n", esp_bt_controller_get_status());
+    
     if (!btStart()) {
         LOG_ERROR("BtController: btStart() failed!\n");
         return false;
     }
-    LOG_DEBUG("BtController: Bluetooth controller started successfully!\n");
+    
+    LOG_DEBUG("BtController: btStart() succeeded!\n");
+    LOG_DEBUG("BtController: Controller status after btStart: %d\n", esp_bt_controller_get_status());
+    LOG_DEBUG("BtController: Free heap after init: %d bytes\n", ESP.getFreeHeap());
     
     // Initialize TinyWiimote with HCI interface
     LOG_DEBUG("BtController: Initializing TinyWiimote...\n");

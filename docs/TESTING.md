@@ -44,7 +44,7 @@ pio test -e native -v
 Upload and run tests on ESP32:
 
 ```bash
-pio test -e esp32dev --upload-port /dev/ttyUSB0
+pio test -e esp32dev --upload-port /dev/ttyUSB0 -v
 ```
 
 **Requirements:**
@@ -144,7 +144,6 @@ Tests run automatically on every push via GitHub Actions:
 
 - ✅ All native tests
 - ✅ ESP32 compilation check
-- 📊 Test reports uploaded as artifacts
 
 See [.github/workflows/platformio-ci.yml](.github/workflows/platformio-ci.yml)
 

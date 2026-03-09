@@ -25,8 +25,8 @@ ESP32Wiimote is an Arduino library for ESP32 boards that connects to a Wii Remot
 ## Requirements
 
 - ESP32 board (any)
-- Arduino IDE `>= 1.8.5`
-- ESP32 core package: `esp32:esp32@2.0.17`
+- Arduino CLI `>= 1.4.1`
+- ESP32 core package: `esp32:esp32@3.3.7`
 - Wii Remote (RVL-CNT-01)
 - Wii Nunchuk (optional)
 
@@ -203,11 +203,6 @@ pio test -e esp32dev --upload-port /dev/ttyUSB0 -v
 ```
 
 Hardware tests with a real Wiimote. The `-v` flag shows test action prompts.
-
-### Test Results
-
-- ✅ 28 native unit tests passing
-- ✅ 7 integration tests (2 pass without Wiimote, 5 need connection)
 
 See [Testing Guide](docs/TESTING.md) for complete instructions.
 

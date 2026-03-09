@@ -47,7 +47,7 @@ public:
      * Initialize Bluetooth and HCI queues
      * Must be called before using other methods
      */
-    void init(void);
+    bool init(void);
     
     /**
      * Process HCI tasks
