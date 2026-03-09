@@ -125,6 +125,49 @@ struct NunchukState {
 
 ---
 
+---
+
+### Test Infrastructure Layer
+
+**Location:** `test/mocks/`
+
+**Purpose:** Provide minimal mocks for native testing without modifying production code
+
+**Key Files:**
+
+- `test_mocks.h/cpp` - Mock implementations and state
+- `Arduino.h` - Arduino framework stub
+
+**Responsibilities:**
+
+- Simulate TinyWiimote hardware input (inject test HID reports)
+- Capture and validate L2CAP packet output
+- Implement packet framing for test environment
+- Provide Arduino API stubs for native compilation
+- Track mock state for test assertions
+
+**Mock Boundaries:**
+
+```cpp
+// Input boundary - inject test data
+int TinyWiimoteAvailable(void);  // Returns mockHasData
+TinyWiimoteData TinyWiimoteRead(void);  // Returns mockData
+
+// Output boundary - capture and validate
+void mockL2capRawSendCallback(uint8_t* data, size_t len);
+// Validates: H4 type, ACL handle/length, L2CAP CID/length
+// Captures: Wiimote HID payload in mockLastPacket[]
+```
+
+**Design Principles:**
+
+- ✅ Production code remains clean (no test conditionals)
+- ✅ Tests exercise real implementations
+- ✅ Automatic validation of packet framing
+- ✅ Minimal mock surface area (boundaries only)
+
+---
+
 ### Protocol Layer (TinyWiimote)
 
 **Location:** `src/tinywiimote/protocol/`

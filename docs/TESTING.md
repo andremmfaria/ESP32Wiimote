@@ -68,10 +68,38 @@ test/
 ├── native/              # Fast unit tests (PC)
 │   ├── test_button_state/
 │   ├── test_sensor_state/
-│   └── test_data_parser/
-└── embedded/            # Hardware integration tests (ESP32)
-    └── test_integration/
+│   ├── test_data_parser/
+│   └── test_protocol/
+├── embedded/            # Hardware integration tests (ESP32)
+│   └── test_integration/
+└── mocks/               # Test infrastructure (native tests only)
+    ├── test_mocks.h     # Mock state and inline validation callback
+    ├── test_mocks.cpp   # TinyWiimote stubs, L2CAP packet framing
+    └── Arduino.h        # Arduino API stub for native builds
 ```
+
+### Test Mock Infrastructure
+
+Native tests use a minimal mock layer in `test/mocks/` to isolate hardware dependencies:
+
+**`test_mocks.h/cpp`:**
+
+- **TinyWiimote boundary mocks** - `TinyWiimoteAvailable()`, `TinyWiimoteRead()` allow injecting test HID reports
+- **L2CAP packet capture** - `mockL2capRawSendCallback()` validates ACL/L2CAP framing and captures payloads
+- **Packet framing implementation** - `make_acl_l2cap_packet()`, `make_l2cap_packet()` provide real packet construction
+- **Mock state variables** - Track last packet, call counts, connection handles for assertions
+
+**`Arduino.h`:**
+
+- Minimal Arduino API stub (Serial, delay, millis) for native compilation
+- Required by `wiimote_protocol.cpp` include (unused but needed for compilation)
+
+**Key Design:**
+
+- ✅ **Production code is clean** - no `#ifdef NATIVE_TEST` or test stubs in `src/`
+- ✅ **Validates real behavior** - tests exercise actual parser/protocol/connection implementations
+- ✅ **Automatic packet validation** - every L2CAP packet checked for correct ACL/L2CAP headers
+- ✅ **Boundary-only mocking** - only hardware input/output boundaries are mocked
 
 ## Writing Your First Test
 
@@ -174,8 +202,15 @@ export PATH=$PATH:~/.local/bin
 
 **Native tests fail with missing Arduino.h**
 
-- Add `#ifndef NATIVE_TEST` guards around Arduino-specific code
-- Use mocks for hardware dependencies
+- Ensure `test/mocks/Arduino.h` exists (provides Arduino API stub)
+- Check `platformio.ini` includes `-I test/mocks` in build_flags
+- Already configured in this project ✓
+
+**Tests pass but changes to production code don't fail tests**
+
+- Verify `platformio.ini` build_src_filter includes real source files (not stubs)
+- Check tests use real implementations from `src/`, not full mocks
+- Current setup: tests exercise production code ✓
 
 ## Resources
 

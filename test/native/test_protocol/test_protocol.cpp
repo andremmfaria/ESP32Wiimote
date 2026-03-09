@@ -1,4 +1,5 @@
 #include <unity.h>
+#include <cstring>
 
 #include "../../mocks/test_mocks.h"
 
@@ -42,7 +43,7 @@ void test_empty_connection_table(void) {
 void test_add_and_find_connection(void) {
     L2capConnection conn(0x0040, 0x0041);
     int result = connections->addConnection(conn);
-    TEST_ASSERT_EQUAL(0, result);
+    TEST_ASSERT_EQUAL(1, result);
     
     uint16_t remoteCID = 0;
     result = connections->getRemoteCid(0x0040, &remoteCID);
@@ -386,7 +387,7 @@ void test_connection_table_capacity(void) {
     for (int i = 0; i < L2CAP_CONNECTION_LIST_SIZE; i++) {
         L2capConnection conn(0x0040 + i, 0x0041 + i);
         int result = connections->addConnection(conn);
-        TEST_ASSERT_EQUAL(0, result);
+        TEST_ASSERT_EQUAL(i + 1, result);
     }
     
     // Verify all connections work

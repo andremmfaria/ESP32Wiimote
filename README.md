@@ -159,6 +159,7 @@ uint8_t battery = wiimote.getBatteryLevel();
 Battery level is automatically requested when the Wiimote first connects.
 
 **Notes:**
+
 - Returns 0-100 (percentage)
 - Updated from Wiimote status reports (0x20)
 - `requestBatteryUpdate()` only works when connected
@@ -176,6 +177,7 @@ wiimote.addFilter(ACTION_IGNORE, FILTER_BUTTON);
 ```
 
 Available filters:
+
 - `FILTER_ACCEL`
 - `FILTER_NUNCHUK_STICK`
 - `FILTER_BUTTON`
@@ -214,15 +216,18 @@ See [Testing Guide](docs/TESTING.md) for complete instructions.
 ### Connection Issues
 
 **Wiimote won't connect?**
+
 - Press and hold 1 + 2 buttons simultaneously
 - Wait for LEDs to blink
 - Keep ESP32 within 5 meters
 
 **Battery shows 0%?**
+
 - Call `wiimote.requestBatteryUpdate()` after connection
 - Battery updates asynchronously - check after 100ms
 
 **Buttons not responding?**
+
 - Always check `wiimote.available()` before reading data
 - Make sure `wiimote.task()` is called in `loop()`
 
@@ -237,6 +242,7 @@ Control debug output by setting the log level in `src/utils/serial_logging.h`:
 ```
 
 **Log Levels:**
+
 - **0**: Errors only (production)
 - **1**: + Warnings
 - **2**: + Info messages (default - shows connection events)
@@ -257,6 +263,7 @@ Contributions are welcome! Whether it's bug fixes, new features, or documentatio
 5. Submit a pull request
 
 See [Contributing Guide](docs/CONTRIBUTING.md) for detailed instructions on:
+
 - Development setup
 - Code organization
 - Coding standards

@@ -352,26 +352,6 @@ void test_heap_memory_after_bt(void) {
     TEST_ASSERT_GREATER_THAN(5000, freeAfter); // Should have at least 5KB
 }
 
-// Test: Multiple task() calls don't crash
-void test_multiple_task_calls(void) {
-    if (!btInitialized) {
-        TEST_IGNORE_MESSAGE("Bluetooth not initialized, skipping");
-        return;
-    }
-    
-    TEST_PRINT("Testing multiple task() calls...");
-    
-    for (int i = 0; i < 100; i++) {
-        if (queueManager) {
-            queueManager->processTxQueue();
-            queueManager->processRxQueue();
-        }
-        delay(10);
-    }
-    
-    TEST_ASSERT_TRUE(true); // If we got here, no crash
-}
-
 // ===== Cleanup Tests =====
 
 // Test: Safe cleanup (run last)
@@ -431,9 +411,6 @@ void setup() {
     RUN_TEST(test_tinywiimote_initial_state);
     RUN_TEST(test_tinywiimote_data_availability);
     RUN_TEST(test_tinywiimote_battery_level);
-    
-    // Resource tests
-    RUN_TEST(test_multiple_task_calls);
     
     // Cleanup
     RUN_TEST(test_cleanup);

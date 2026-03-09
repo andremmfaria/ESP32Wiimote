@@ -64,7 +64,7 @@ Run native tests:
 pio test -e native
 ```
 
-Expected output: `28 test cases: 28 succeeded`
+Expected output: `78 test cases: 78 succeeded`
 
 ---
 
@@ -88,7 +88,10 @@ ESP32Wiimote/
 │       └── serial_logging.h       # Logging system
 ├── test/
 │   ├── native/                    # PC unit tests
-│   └── embedded/                  # ESP32 integration tests
+│   ├── embedded/                  # ESP32 integration tests
+│   └── mocks/                     # Test infrastructure
+│       ├── test_mocks.{h,cpp}     # Mock implementations
+│       └── Arduino.h              # Arduino API stub
 ├── docs/                          # Documentation
 └── examples/                      # Arduino examples
 ```
@@ -211,6 +214,84 @@ void loop() {}
 - ✅ Keep tests independent (setUp/tearDown)
 - ❌ Don't test implementation details
 - ❌ Don't rely on test execution order
+
+### Working with Test Mocks
+
+Native tests use mocks in `test/mocks/` to isolate hardware dependencies:
+
+**Injecting Test Data (TinyWiimote boundary):**
+
+```cpp
+#include "../../mocks/test_mocks.h"
+
+void test_parse_button_a(void) {
+    // Set up mock HID report data
+    mockData.address = 0x0042;
+    mockData.buffer[0] = 0xA1;  // HID Input Report
+    mockData.buffer[1] = 0x30;  // Report type: Core Buttons
+    mockData.buffer[2] = 0x08;  // Button A pressed (little-endian)
+    mockData.buffer[3] = 0x00;
+    mockData.bufferLength = 4;
+    mockHasData = true;
+    
+    // Exercise real parser
+    parser->parseData();
+    
+    // Verify behavior
+    TEST_ASSERT_TRUE(parser->getButtonState().current & BUTTON_A);
+}
+```
+
+**Validating Output (L2CAP boundary):**
+
+```cpp
+void test_set_leds(void) {
+    // Reset mock state
+    mockSendCallCount = 0;
+    mockLastPacketLen = 0;
+    
+    // Exercise real protocol code
+    protocol->setLeds(0x0040, 0x01);
+    
+    // Verify packet was sent
+    TEST_ASSERT_EQUAL(1, mockSendCallCount);
+    
+    // Verify Wiimote HID payload (ACL/L2CAP headers already validated)
+    TEST_ASSERT_EQUAL(3, mockLastPacketLen);
+    TEST_ASSERT_EQUAL_UINT8(0xA2, mockLastPacket[0]); // HID Output
+    TEST_ASSERT_EQUAL_UINT8(0x11, mockLastPacket[1]); // Set LEDs
+    TEST_ASSERT_EQUAL_UINT8(0x10, mockLastPacket[2]); // LED 1
+}
+```
+
+**Mock Boundaries:**
+
+- **DO mock:** Hardware input/output (TinyWiimote, L2CAP transport)
+- **DON'T mock:** Production logic (parser, protocol, connections)
+- **Automatic validation:** `mockL2capRawSendCallback` validates all packet framing
+
+**Key Mock Variables:**
+
+```cpp
+// Input simulation
+extern bool mockHasData;
+extern TinyWiimoteData mockData;
+
+// Output capture
+extern uint8_t mockLastPacket[256];      // Wiimote HID payload (headers stripped)
+extern int mockLastPacketLen;            // Payload length
+extern int mockSendCallCount;            // Number of packets sent
+extern uint16_t mockLastChannelHandle;   // ACL connection handle
+extern uint16_t mockLastRemoteCID;       // L2CAP channel ID
+```
+
+**Modifying Mocks:**
+
+Do **NOT** add test conditionals to production code (`src/`). If you need new mock behavior:
+
+1. Add to `test/mocks/test_mocks.h` or `test/mocks/test_mocks.cpp`
+2. Keep mocks minimal (boundary-only)
+3. Ensure tests exercise real production implementations
 
 See [Testing Guide](docs/TESTING.md) for more details.
 
