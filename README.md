@@ -4,11 +4,23 @@ ESP32Wiimote is an Arduino library for ESP32 boards that connects to a Wii Remot
 
 ## Features
 
-- Button input (A/B/C/Z/1/2/Minus/Home/Plus/D-Pad)
-- Wiimote accelerometer data
-- Nunchuk accelerometer and analog stick data
-- Connection state check via `isConnected()`
-- Battery level readout via `getBatteryLevel()`
+- ✅ Button input (A/B/C/Z/1/2/Minus/Home/Plus/D-Pad)
+- ✅ Wiimote accelerometer data
+- ✅ Nunchuk accelerometer and analog stick data
+- ✅ Connection state check via `isConnected()`
+- ✅ Battery level readout (0-100%) via `getBatteryLevel()`
+- ✅ Battery status requests via `requestBatteryUpdate()`
+- ✅ Comprehensive 4-level logging system (ERROR/WARN/INFO/DEBUG)
+- ✅ Unit tests with PlatformIO (28 passing tests)
+- ✅ Hardware integration tests
+
+## Documentation
+
+- 📖 **[API Reference](docs/API.md)** - Complete API documentation with examples
+- 🔧 **[Testing Guide](docs/TESTING.md)** - Run unit tests and integration tests
+- 📊 **[Logging System](docs/LOGGING.md)** - Configure debug output (4 levels)
+- 🏗️ **[Architecture](docs/ARCHITECTURE.md)** - System design and data flow
+- 🔍 **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 
 ## Requirements
 
@@ -23,6 +35,39 @@ ESP32Wiimote is an Arduino library for ESP32 boards that connects to a Wii Remot
 1. Download this repository as a `.zip`.
 2. In Arduino IDE, go to `Sketch > Include Library > Add .ZIP Library...`.
 3. Select the downloaded `.zip` file.
+
+## Quick Start
+
+```cpp
+#include "ESP32Wiimote.h"
+
+ESP32Wiimote wiimote;
+
+void setup() {
+    Serial.begin(115200);
+    wiimote.init();
+}
+
+void loop() {
+    wiimote.task();  // Must be called regularly
+    
+    // Check for new data
+    if (wiimote.available()) {
+        ButtonState btn = wiimote.getButtonState();
+        
+        if (btn == BUTTON_A) {
+            Serial.println("A button pressed!");
+        }
+        
+        // Read sensors
+        AccelState accel = wiimote.getAccelState();
+        Serial.printf("Accel: %d, %d, %d\n", 
+            accel.xAxis, accel.yAxis, accel.zAxis);
+    }
+}
+```
+
+For complete examples, see [API Reference](docs/API.md).
 
 ## Example
 
@@ -92,18 +137,33 @@ void loop() {
 
 ## Battery Level
 
-Use `getBatteryLevel()` to read the Wiimote battery level.
+Use `getBatteryLevel()` to read the Wiimote battery level (percentage).
 
 ```cpp
-uint8_t level = wiimote.getBatteryLevel();
-float percent = (level / 255.0f) * 100.0f;
-
-Serial.printf("Battery: %u (%.1f%%)\n", level, percent);
+uint8_t battery = wiimote.getBatteryLevel();
+Serial.printf("Battery: %d%%\n", battery);
 ```
 
-Notes:
-- `getBatteryLevel()` returns a raw value from `0` to `255`.
-- The value is updated from Wiimote status reports while connected.
+**Manual Updates:**
+
+Request a battery status refresh:
+
+```cpp
+wiimote.requestBatteryUpdate();  // Async - check after delay
+delay(100);
+uint8_t battery = wiimote.getBatteryLevel();
+```
+
+**Auto-Update:**
+
+Battery level is automatically requested when the Wiimote first connects.
+
+**Notes:**
+- Returns 0-100 (percentage)
+- Updated from Wiimote status reports (0x20)
+- `requestBatteryUpdate()` only works when connected
+
+See [API Reference](docs/API.md#battery-management) for details.
 
 ## Filters
 
@@ -119,6 +179,89 @@ Available filters:
 - `FILTER_ACCEL`
 - `FILTER_NUNCHUK_STICK`
 - `FILTER_BUTTON`
+
+See [API Reference](docs/API.md#filtering) for details.
+
+## Testing
+
+ESP32Wiimote includes comprehensive unit tests and integration tests.
+
+### Run Native Tests (No Hardware)
+
+```bash
+pio test -e native
+```
+
+Fast unit tests run on your PC in ~1.5 seconds. No ESP32 required!
+
+### Run Integration Tests (ESP32 + Wiimote)
+
+```bash
+pio test -e esp32dev --upload-port /dev/ttyUSB0 -v
+```
+
+Hardware tests with a real Wiimote. The `-v` flag shows test action prompts.
+
+### Test Results
+
+- ✅ 28 native unit tests passing
+- ✅ 7 integration tests (2 pass without Wiimote, 5 need connection)
+
+See [Testing Guide](docs/TESTING.md) for complete instructions.
+
+## Troubleshooting
+
+### Connection Issues
+
+**Wiimote won't connect?**
+- Press and hold 1 + 2 buttons simultaneously
+- Wait for LEDs to blink
+- Keep ESP32 within 5 meters
+
+**Battery shows 0%?**
+- Call `wiimote.requestBatteryUpdate()` after connection
+- Battery updates asynchronously - check after 100ms
+
+**Buttons not responding?**
+- Always check `wiimote.available()` before reading data
+- Make sure `wiimote.task()` is called in `loop()`
+
+See [Troubleshooting Guide](docs/TROUBLESHOOTING.md) for more solutions.
+
+## Logging
+
+Control debug output by setting the log level in `src/utils/serial_logging.h`:
+
+```cpp
+#define WIIMOTE_VERBOSE 2  // 0=Errors, 1=+Warnings, 2=+Info, 3=+Debug
+```
+
+**Log Levels:**
+- **0**: Errors only (production)
+- **1**: + Warnings
+- **2**: + Info messages (default - shows connection events)
+- **3**: + Debug traces (packet dumps, detailed flow)
+
+See [Logging System](docs/LOGGING.md) for complete documentation.
+
+## Contributing
+
+Contributions are welcome! Whether it's bug fixes, new features, or documentation improvements.
+
+### Quick Start for Contributors
+
+1. Fork and clone the repository
+2. Run tests: `pio test -e native`
+3. Make your changes
+4. Add tests for new features
+5. Submit a pull request
+
+See [Contributing Guide](docs/CONTRIBUTING.md) for detailed instructions on:
+- Development setup
+- Code organization
+- Coding standards
+- Testing requirements
+- Pull request process
 
 ## License
 

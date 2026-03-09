@@ -1,0 +1,508 @@
+# System Architecture
+
+ESP32Wiimote is designed with a layered architecture separating hardware interface, protocol handling, and application API.
+
+## Table of Contents
+
+- [Architecture Overview](#architecture-overview)
+- [Layer Details](#layer-details)
+- [Component Responsibilities](#component-responsibilities)
+- [Data Flow](#data-flow)
+- [Threading Model](#threading-model)
+
+---
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                     Application Layer                    │
+│              (ESP32Wiimote public API)                   │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          ↓
+┌─────────────────────────────────────────────────────────┐
+│                    State Management                      │
+│    ButtonStateManager │ SensorStateManager               │
+│    WiimoteDataParser                                     │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          ↓
+┌─────────────────────────────────────────────────────────┐
+│                   Protocol Layer                         │
+│    WiimoteProtocol │ WiimoteExtensions                   │
+│    WiimoteState │ WiimoteReports                         │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          ↓
+┌─────────────────────────────────────────────────────────┐
+│                   L2CAP Layer                            │
+│    L2capSignaling │ L2capConnection                      │
+│    L2capPacketSender                                     │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          ↓
+┌─────────────────────────────────────────────────────────┐
+│                   HCI Layer                              │
+│    HciEventContext │ HciCommands                         │
+│    HciQueueManager (TX/RX queues)                        │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          ↓
+┌─────────────────────────────────────────────────────────┐
+│                   Hardware Layer                         │
+│    ESP32 Bluetooth Controller (VHCI)                    │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Layer Details
+
+### Application Layer
+
+**Location:** `src/ESP32Wiimote.{h,cpp}`
+
+**Purpose:** User-facing API with high-level methods
+
+**Key Classes:**
+- `ESP32Wiimote` - Main interface class
+
+**Responsibilities:**
+- Initialize all subsystems
+- Provide simple API (buttons, sensors, connection status)
+- Manage component lifecycle
+- Abstract implementation details
+
+**Usage:**
+```cpp
+ESP32Wiimote wiimote;
+wiimote.init();
+wiimote.task();
+if (wiimote.available()) {
+    ButtonState btn = wiimote.getButtonState();
+}
+```
+
+---
+
+### State Management Layer
+
+**Location:** `src/esp32wiimote/state/`, `src/esp32wiimote/data_parser.cpp`
+
+**Purpose:** Track and parse Wiimote sensor/button data
+
+**Key Classes:**
+- `ButtonStateManager` - Button state tracking with change detection
+- `SensorStateManager` - Accelerometer and nunchuk state tracking
+- `WiimoteDataParser` - Parse HID reports into button/sensor states
+
+**Responsibilities:**
+- Decode HID input reports (0x30-0x37)
+- Track current vs previous state
+- Detect state changes
+- Apply threshold logic for analog sensors
+- Implement filtering
+
+**Data Structures:**
+```cpp
+struct AccelState {
+    uint8_t xAxis, yAxis, zAxis;
+};
+
+struct NunchukState {
+    uint8_t xStick, yStick;
+    uint8_t xAccel, yAccel, zAccel;
+    bool cBtn, zBtn;
+};
+```
+
+---
+
+### Protocol Layer (TinyWiimote)
+
+**Location:** `src/tinywiimote/protocol/`
+
+**Purpose:** Wiimote-specific protocol implementation
+
+**Key Classes:**
+- `WiimoteProtocol` - Output reports (LEDs, reporting mode, memory R/W, status request)
+- `WiimoteExtensions` - Extension detection and Nunchuk handling
+- `WiimoteState` - Connection state and battery level
+- `WiimoteReports` - Input report buffering/queue
+
+**Responsibilities:**
+- Build Wiimote output reports (0xA2 prefix)
+- Parse input reports (0xA1 prefix)
+- Handle extension controller detection
+- Manage battery status reports (0x20)
+- Queue incoming HID data
+
+**Output Reports:**
+```
+0x11 - Set LEDs
+0x12 - Set Reporting Mode
+0x15 - Request Status
+0x16 - Write Memory
+0x17 - Read Memory
+```
+
+**Input Reports:**
+```
+0x20 - Status Information (battery, extensions)
+0x21 - Read Memory Response
+0x30 - Core Buttons
+0x31 - Core Buttons + Accelerometer
+0x32 - Core Buttons + 8 Extension Bytes
+0x35 - Core Buttons + Accelerometer + 16 Extension Bytes
+```
+
+---
+
+### L2CAP Layer
+
+**Location:** `src/tinywiimote/l2cap/`
+
+**Purpose:** Bluetooth L2CAP protocol handling
+
+**Key Classes:**
+- `L2capSignaling` - Connection request/response, configuration
+- `L2capConnection` - Connection state tracking
+- `L2capConnectionTable` - Multiple connection management
+- `L2capPacketSender` - ACL packet construction
+
+**Responsibilities:**
+- L2CAP channel establishment
+- MTU negotiation
+- Channel ID tracking
+- Encapsulate HID data in L2CAP frames
+
+**Connection Sequence:**
+```
+1. CONNECTION REQUEST  (0x02) → PSM 0x0013 (HID Control)
+2. CONNECTION RESPONSE (0x03) ← Remote CID assigned
+3. CONFIGURATION REQ   (0x04) → MTU, flags
+4. CONFIGURATION RESP  (0x05) ← Success
+```
+
+---
+
+### HCI Layer
+
+**Location:** `src/tinywiimote/hci/`, `src/esp32wiimote/`
+
+**Purpose:** Low-level Bluetooth HCI operations
+
+**Key Classes:**
+- `HciEventContext` - Event handling state machine
+- `HciCommands` - Build HCI command packets
+- `HciQueueManager` - TX/RX packet queuing (FreeRTOS queues)
+- `HciCallbacksHandler` - VHCI callback wrappers
+
+**Responsibilities:**
+- HCI command/event handling
+- Device inquiry and discovery
+- ACL connection management
+- Packet queueing for async operation
+- VHCI interface integration
+
+**Connection Flow:**
+```
+1. RESET (0x03 0x0C)
+2. READ_BD_ADDR (0x09 0x10)
+3. WRITE_SCAN_ENABLE (0x1A 0x0C)
+4. INQUIRY (0x01 0x04) - Search for Wiimote
+5. INQUIRY_RESULT - Device found
+6. REMOTE_NAME_REQUEST (0x19 0x04) - "Nintendo RVL-CNT-01"
+7. CREATE_CONNECTION (0x05 0x04)
+8. CONNECTION_COMPLETE
+```
+
+---
+
+### Hardware Layer
+
+**Location:** ESP32 Bluetooth Controller
+
+**Purpose:** Hardware Bluetooth radio
+
+**Key Components:**
+- ESP32 Bluetooth Classic controller
+- VHCI (Virtual HCI) interface
+
+**Responsibilities:**
+- Radio transmission/reception
+- Baseband processing
+- Hardware-accelerated Bluetooth stack
+
+**Interface:**
+```cpp
+esp_vhci_host_register_callback(&callbacks);
+esp_vhci_host_send_packet(data, len);
+esp_vhci_host_check_send_available();
+```
+
+---
+
+## Component Responsibilities
+
+### ESP32Wiimote
+
+- Initialize subsystems
+- Coordinate component interaction
+- Provide user API
+- Manage filters
+
+### BluetoothController
+
+- ESP32 Bluetooth initialization
+- Start/stop BT controller
+- VHCI registration
+
+### HciQueueManager
+
+- TX/RX FreeRTOS queues
+- Queue data structures
+- Packet buffering
+
+### HciCallbacksHandler
+
+- VHCI callback registration
+- Route packets to queues
+- Bridge VHCI ↔ TinyWiimote
+
+### TinyWiimote (Core)
+
+- Low-level protocol state machine
+- Coordinate all protocol layers
+- Route packets between layers
+
+### ButtonStateManager
+
+- Button state tracking
+- Change detection
+- Previous/current state
+
+### SensorStateManager
+
+- Accelerometer tracking
+- Nunchuk stick tracking
+- Threshold-based change detection
+
+### WiimoteDataParser
+
+- Parse HID input reports
+- Update state managers
+- Apply filters
+
+---
+
+## Data Flow
+
+### Outgoing (TX - ESP32 → Wiimote)
+
+```
+Application
+  ↓ wiimote.requestBatteryUpdate()
+ESP32Wiimote
+  ↓ TinyWiimoteRequestBatteryUpdate()
+TinyWiimote Runtime (g_runtime)
+  ↓ g_runtime.wiimoteProtocol.requestStatus(ch)
+WiimoteProtocol
+  ↓ sender->sendAclL2capPacket(ch, remoteCID, payload, len)
+L2capPacketSender
+  ↓ make_acl_l2cap_packet() → sendCallback()
+HCI Send Callback
+  ↓ HciQueueManager->sendToTxQueue(data, len)
+HciQueueManager TX Queue
+  ↓ (processed by task loop)
+processTxQueue()
+  ↓ esp_vhci_host_send_packet(data, len)
+ESP32 Bluetooth Controller
+  ↓ (radio transmission)
+Wiimote
+```
+
+### Incoming (RX - Wiimote → ESP32)
+
+```
+Wiimote
+  ↓ (radio reception)
+ESP32 Bluetooth Controller
+  ↓ VHCI callback: notify_host_recv(data, len)
+HciCallbacksHandler::notifyHostRecv()
+  ↓ queueManager->sendToRxQueue(data, len)
+HciQueueManager RX Queue
+  ↓ (processed by task loop)
+processRxQueue()
+  ↓ handleHciData(data, len)
+TinyWiimote Event Dispatcher
+  ↓ parse packet type (HCI Event vs ACL Data)
+HciEvents or L2CAP Handler
+  ↓ route to appropriate handler
+WiimoteExtensions::handleReport()
+  ↓ parse input report, update WiimoteState
+WiimoteReports Queue
+  ↓ buffer HID data
+WiimoteDataParser::parseData()
+  ↓ TinyWiimoteRead() → parse buttons/sensors
+ButtonStateManager & SensorStateManager
+  ↓ update current state, set change flags
+Application
+  ↓ wiimote.available() returns true
+  ↓ wiimote.getButtonState() / getAccelState()
+```
+
+---
+
+## Threading Model
+
+### Main Thread
+
+All operations run in the main Arduino loop:
+
+```cpp
+void loop() {
+    wiimote.task();           // Process queues
+    if (wiimote.available()) { // Parse data
+        // Handle input
+    }
+}
+```
+
+### Queue Processing
+
+- **TX Queue:** Drained by `processTxQueue()` when VHCI ready
+- **RX Queue:** Filled by VHCI callback, drained by `processRxQueue()`
+
+### FreeRTOS Integration
+
+- Uses FreeRTOS queues (`xQueueCreate`, `xQueueSend`, `xQueueReceive`)
+- No separate tasks created
+- VHCI callbacks may run in BT controller task context
+- Queues provide thread-safe handoff
+
+### Critical Sections
+
+Minimal locking needed:
+- VHCI callbacks → RX queue (FreeRTOS queue handles sync)
+- Main loop → TX queue (single-threaded producer)
+
+---
+
+## Memory Management
+
+### Static Allocation
+
+Most structures use stack or static allocation:
+- HCI/L2CAP packet buffers
+- State structures
+- Connection tables
+
+### Dynamic Allocation
+
+Limited dynamic allocation:
+- `HciQueueData` allocated per packet (freed after processing)
+- Component managers created once in ESP32Wiimote constructor
+
+### Queue Memory
+
+FreeRTOS queues store pointers to `HciQueueData`:
+```cpp
+struct HciQueueData {
+    size_t len;
+    uint8_t data[]; // Flexible array
+};
+```
+
+---
+
+## Configuration Points
+
+### Logging
+
+`src/utils/serial_logging.h`:
+```cpp
+#define WIIMOTE_VERBOSE 2  // 0-3
+```
+
+### Queue Sizes
+
+`ESP32Wiimote.cpp`:
+```cpp
+_queueManager = new HciQueueManager(32, 32); // TX, RX size
+```
+
+### Nunchuk Threshold
+
+`ESP32Wiimote` constructor:
+```cpp
+ESP32Wiimote wiimote(5);  // Stick sensitivity
+```
+
+---
+
+## Extensibility
+
+### Adding New Input Reports
+
+1. Add report ID constant in `wiimote_protocol.cpp`
+2. Handle in `WiimoteDataParser::parseData()`
+3. Extract data fields
+4. Update state managers
+
+### Adding New Output Reports
+
+1. Add opcode constant in `wiimote_protocol.cpp`
+2. Add method to `WiimoteProtocol`
+3. Build packet with `PayloadBuilder`
+4. Send via `L2capPacketSender`
+
+### Adding New Sensors
+
+1. Add state struct in `sensor_state.h`
+2. Add getter/setter in `SensorStateManager`
+3. Parse data in `WiimoteDataParser`
+4. Expose via `ESP32Wiimote` API
+
+---
+
+## Design Principles
+
+### Separation of Concerns
+
+Each layer handles one responsibility:
+- Hardware: Radio
+- HCI: Commands/events
+- L2CAP: Channels
+- Protocol: Wiimote specifics
+- State: Data tracking
+- API: User interface
+
+### Dependency Inversion
+
+High-level code depends on abstractions:
+- `WiimoteProtocol` uses `L2capPacketSender` interface
+- `L2capSignaling` uses connection table abstraction
+
+### Single Responsibility
+
+Each class has one job:
+- `ButtonStateManager`: Only buttons
+- `WiimoteProtocol`: Only Wiimote output reports
+- `HciQueueManager`: Only queue operations
+
+### Testability
+
+Components can be tested independently:
+- State managers tested without hardware
+- Protocol layer tested with mocks
+- Native tests run on PC
+
+---
+
+## See Also
+
+- [API Reference](API.md) - Public API documentation
+- [Testing Guide](TESTING.md) - Running tests
+- [Logging System](LOGGING.md) - Debug output
