@@ -4,116 +4,108 @@
 // - Creative Commons Attribution-NonCommercial 3.0 Unported
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
-//
-// The short of it is...
-//   You are free to:
-//     Share — copy and redistribute the material in any medium or format
-//     Adapt — remix, transform, and build upon the material
-//   Under the following terms:
-//     NonCommercial — You may not use the material for commercial purposes.
 
 #ifndef __ESP32_WIIMOTE_H__
 #define __ESP32_WIIMOTE_H__
 
-#include "esp_bt.h"
 #include "TinyWiimote.h"
+#include "esp32wiimote/state/button_state.h"
+#include "esp32wiimote/state/sensor_state.h"
+#include "esp32wiimote/queue/hci_queue.h"
+#include "esp32wiimote/hci_callbacks.h"
+#include "esp32wiimote/bt_controller.h"
+#include "esp32wiimote/data_parser.h"
 
-typedef struct {
-    uint8_t xAxis;
-    uint8_t yAxis;
-    uint8_t zAxis;
-} AccelState;
-
-typedef enum {
-    BUTTON_Z          = 0x00020000, // nunchuk
-    BUTTON_C          = 0x00010000, // nunchuk
-    BUTTON_PLUS       = 0x00001000,
-    BUTTON_UP         = 0x00000800, // vertical orientation
-    BUTTON_DOWN       = 0x00000400,
-    BUTTON_RIGHT      = 0x00000200,
-    BUTTON_LEFT       = 0x00000100,
-    BUTTON_HOME       = 0x00000080,
-    BUTTON_MINUS      = 0x00000010,
-    BUTTON_A          = 0x00000008,
-    BUTTON_B          = 0x00000004,
-    BUTTON_ONE        = 0x00000002,
-    BUTTON_TWO        = 0x00000001,
-    NO_BUTTON         = 0x00000000
-} ButtonState;
-
-typedef struct {
-        uint8_t xStick;
-        uint8_t yStick;
-        uint8_t xAxis;
-        uint8_t yAxis;
-        uint8_t zAxis;
-// moved to ButtonState
-//      uint8_t cBtn;
-//      uint8_t zBtn;
-} NunchukState;
-
-enum
-{
-  FILTER_NONE                = 0x0000,
-  FILTER_BUTTON              = 0x0001,
-//FILTER_NUNCHUK_BUTTON      = 0x0002,
-  FILTER_NUNCHUK_STICK       = 0x0004,
-  FILTER_ACCEL               = 0x0008,
+/**
+ * Action types for filters
+ */
+enum {
+    ACTION_IGNORE,
 };
 
-enum
-{
-  ACTION_IGNORE,
-};
-
-class ESP32Wiimote
-{
+/**
+ * ESP32Wiimote - Main Wiimote controller interface for ESP32
+ * Provides high-level API for Wiimote button, sensor, and nunchuk data
+ * 
+ * Delegates responsibilities to:
+ * - BluetoothController: BT initialization
+ * - HciCallbacksHandler: HCI callbacks
+ * - HciQueueManager: Packet queuing
+ * - ButtonStateManager: Button state tracking
+ * - SensorStateManager: Sensor data tracking
+ * - WiimoteDataParser: Data parsing
+ */
+class ESP32Wiimote {
 public:
-  ESP32Wiimote(int NUNCHUK_STICK_THRESHOLD = 1); // was 2
+    /**
+     * Create ESP32Wiimote instance
+     * @param NUNCHUK_STICK_THRESHOLD Sensitivity threshold for nunchuk stick changes (default: 1)
+     */
+    ESP32Wiimote(int NUNCHUK_STICK_THRESHOLD = 1);
 
-  void init(void);
-  void task(void);
-  int available(void);
-  ButtonState getButtonState(void);
-  AccelState getAccelState(void);
-  NunchukState getNunchukState(void);
-  bool isConnected(void);
-  uint8_t getBatteryLevel(void);
-  void addFilter(int action, int filter);
+    /**
+     * Initialize Bluetooth and HCI queues
+     * Must be called before using other methods
+     */
+    void init(void);
+    
+    /**
+     * Process HCI tasks
+     * Must be called regularly (e.g., in main loop)
+     */
+    void task(void);
+    
+    /**
+     * Check if new data is available
+     * @return 1 if data changed, 0 otherwise
+     */
+    int available(void);
+    
+    /**
+     * Get current button state
+     * @return ButtonState enum value
+     */
+    ButtonState getButtonState(void);
+    
+    /**
+     * Get current accelerometer state
+     * @return AccelState with x, y, z values
+     */
+    AccelState getAccelState(void);
+    
+    /**
+     * Get current nunchuk state
+     * @return NunchukState with stick and accelerometer values
+     */
+    NunchukState getNunchukState(void);
+    
+    /**
+     * Check if Wiimote is connected
+     * @return true if connected, false otherwise
+     */
+    bool isConnected(void);
+    
+    /**
+     * Get battery level
+     * @return Battery level (0-100)
+     */
+    uint8_t getBatteryLevel(void);
+    
+    /**
+     * Add filter to ignore certain data types
+     * @param action Filter action (ACTION_IGNORE)
+     * @param filter Filter type (FILTER_BUTTON, FILTER_ACCEL, etc.)
+     */
+    void addFilter(int action, int filter);
 
 private:
-
-  typedef struct {
-          size_t len;
-          uint8_t data[];
-  } queuedata_t;
-
-  ButtonState _buttonState;
-  ButtonState _oldButtonState;
-
-  AccelState _accelState;
-  AccelState _oldAccelState;
-
-  NunchukState _nunchukState;
-  NunchukState _oldNunchukState;
-
-  int _nunStickThreshold;
-
-  int _filter;
-
-  static const TwHciInterface tinywii_hci_interface;
-  static esp_vhci_host_callback_t vhci_callback;
-  static xQueueHandle txQueue;
-  static xQueueHandle rxQueue;
-
-  static void createQueue(void);
-  static void handleTxQueue(void);
-  static void handleRxQueue(void);
-  static esp_err_t sendQueueData(xQueueHandle queue, uint8_t *data, size_t len);
-  static void notifyHostSendAvailable(void);
-  static int notifyHostRecv(uint8_t *data, uint16_t len);
-  static void hciHostSendPacket(uint8_t *data, size_t len);
-
+    // Component managers
+    BluetoothController* _btController;
+    HciCallbacksHandler* _hciCallbacks;
+    HciQueueManager* _queueManager;
+    ButtonStateManager* _buttonState;
+    SensorStateManager* _sensorState;
+    WiimoteDataParser* _dataParser;
 };
 
 #endif // __ESP32_WIIMOTE_H__
