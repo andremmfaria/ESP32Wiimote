@@ -28,10 +28,15 @@ ESP32Wiimote is an Arduino library for ESP32 boards that connects to a Wii Remot
 
 See: [ESP32WiimoteDemo.ino](./examples/ESP32WiimoteDemo/ESP32WiimoteDemo.ino)
 
-Notes:
+The demo now covers all available features:
 
-- Accelerometer output can be verbose.
-- You can reduce events with `wiimote.addFilter(ACTION_IGNORE, FILTER_ACCEL)`.
+- connection state changes
+- periodic battery reporting
+- button decoding
+- Wiimote and Nunchuk accelerometer output
+- Nunchuk stick output
+- update-rate statistics
+- optional filter configuration
 
 ## Usage
 
@@ -69,6 +74,22 @@ void loop() {
 }
 ```
 
+For less serial spam, print only on state change:
+
+```cpp
+static bool wasConnected = false;
+
+void loop() {
+  wiimote.task();
+  bool connected = wiimote.isConnected();
+
+  if (connected != wasConnected) {
+    Serial.println(connected ? "CONNECTED" : "DISCONNECTED");
+    wasConnected = connected;
+  }
+}
+```
+
 ## Battery Level
 
 Use `getBatteryLevel()` to read the Wiimote battery level.
@@ -83,6 +104,21 @@ Serial.printf("Battery: %u (%.1f%%)\n", level, percent);
 Notes:
 - `getBatteryLevel()` returns a raw value from `0` to `255`.
 - The value is updated from Wiimote status reports while connected.
+
+## Filters
+
+You can reduce update volume by ignoring selected categories:
+
+```cpp
+wiimote.addFilter(ACTION_IGNORE, FILTER_ACCEL);
+wiimote.addFilter(ACTION_IGNORE, FILTER_NUNCHUK_STICK);
+wiimote.addFilter(ACTION_IGNORE, FILTER_BUTTON);
+```
+
+Available filters:
+- `FILTER_ACCEL`
+- `FILTER_NUNCHUK_STICK`
+- `FILTER_BUTTON`
 
 ## License
 
