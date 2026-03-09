@@ -26,11 +26,11 @@ int WiimoteDataParser::parseData(void)
     TinyWiimoteData rd = TinyWiimoteRead();
 
     if (rd.len < 4) {
-        VERBOSE_PRINT("[DataParser] Data too short: len=%d\n", rd.len);
+        LOG_DEBUG("DataParser: Data too short: len=%d\n", rd.len);
         return 0;
     }
     if (rd.data[0] != 0xA1) { // HID data report type
-        VERBOSE_PRINT("[DataParser] Invalid report type: 0x%02x\n", rd.data[0]);
+        LOG_DEBUG("DataParser: Invalid report type: 0x%02x\n", rd.data[0]);
         return 0;
     }
 

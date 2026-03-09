@@ -30,11 +30,11 @@ int L2capConnectionTable::findConnection(uint16_t ch) const {
 
 int L2capConnectionTable::addConnection(const L2capConnection& connection) {
   if (size >= L2CAP_CONNECTION_LIST_SIZE) {
-    VERBOSE_PRINT("[L2CAP] Connection table full, cannot add connection\n");
+    LOG_WARN("L2CAP: Connection table full, cannot add connection\n");
     return -1;
   }
 
-  VERBOSE_PRINT("[L2CAP] Adding connection: ch=0x%04x remoteCID=0x%04x\n", connection.ch, connection.remoteCID);
+  LOG_DEBUG("L2CAP: Adding connection: ch=0x%04x remoteCID=0x%04x\n", connection.ch, connection.remoteCID);
   list[size++] = connection;
   return size;
 }

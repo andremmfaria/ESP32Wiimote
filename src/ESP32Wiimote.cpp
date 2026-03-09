@@ -38,16 +38,16 @@ ESP32Wiimote::ESP32Wiimote(int NUNCHUK_STICK_THRESHOLD)
  */
 void ESP32Wiimote::init(void)
 {
-    VERBOSE_PRINTLN("[ESP32Wiimote] Starting initialization...");
+    LOG_INFO("ESP32Wiimote: Starting initialization...\n");
     
     // Initialize Bluetooth controller (which initializes TinyWiimote, queues, and VHCI callbacks)
-    VERBOSE_PRINTLN("[ESP32Wiimote] Calling BluetoothController::init()...");
+    LOG_DEBUG("ESP32Wiimote: Calling BluetoothController::init()...\n");
     if (!_btController->init(_hciCallbacks, _queueManager)) {
-        UNVERBOSE_PRINT("[ESP32Wiimote] ERROR: Bluetooth controller initialization failed!\n");
+        LOG_ERROR("ESP32Wiimote: Bluetooth controller initialization failed!\n");
         return;
     }
     
-    VERBOSE_PRINTLN("[ESP32Wiimote] Initialization complete!");
+    LOG_INFO("ESP32Wiimote: Initialization complete!\n");
 }
 
 /**

@@ -12,11 +12,11 @@ void L2capSignaling::init(L2capConnectionTable* connectionTable, L2capPacketSend
 
 void L2capSignaling::sendConnectionRequest(uint16_t ch, uint16_t psm, uint16_t cid) {
   if (sender == nullptr) {
-    VERBOSE_PRINT("[L2CAP] sendConnectionRequest failed: sender is null\n");
+    LOG_ERROR("L2CAP: sendConnectionRequest failed: sender is null\n");
     return;
   }
   
-  VERBOSE_PRINT("[L2CAP] Sending connection request: ch=0x%04x psm=0x%04x cid=0x%04x\n", ch, psm, cid);
+  LOG_DEBUG("L2CAP: Sending connection request: ch=0x%04x psm=0x%04x cid=0x%04x\n", ch, psm, cid);
 
   PayloadBuilder pb(payload, sizeof(payload));
   pb.append(0x02);        // CONNECTION REQUEST
@@ -30,32 +30,32 @@ void L2capSignaling::sendConnectionRequest(uint16_t ch, uint16_t psm, uint16_t c
 
 void L2capSignaling::handleConnectionResponse(uint16_t ch, uint8_t* data, uint16_t len) {
   if (len < 12) {
-    VERBOSE_PRINT("[L2CAP] Connection response too short: len=%d\n", len);
+    LOG_DEBUG("L2CAP: Connection response too short: len=%d\n", len);
     return;
   }
 
   if (connections == nullptr || sender == nullptr) {
-    VERBOSE_PRINT("[L2CAP] Connection response failed: null objects\n");
+    LOG_ERROR("L2CAP: Connection response failed: null objects\n");
     return;
   }
 
   uint16_t dstCID = READ_UINT16_LE(data + 4);
   uint16_t result = READ_UINT16_LE(data + 8);
 
-  VERBOSE_PRINT("[L2CAP] Connection response: ch=0x%04x dstCID=0x%04x result=0x%04x\n", ch, dstCID, result);
+  LOG_DEBUG("L2CAP: Connection response: ch=0x%04x dstCID=0x%04x result=0x%04x\n", ch, dstCID, result);
 
   if (result != 0x0000) {
-    VERBOSE_PRINT("[L2CAP] Connection failed with result=0x%04x\n", result);
+    LOG_WARN("L2CAP: Connection failed with result=0x%04x\n", result);
     return;
   }
 
   const L2capConnection connection(ch, dstCID);
   if (connections->addConnection(connection) < 0) {
-    VERBOSE_PRINT("[L2CAP] Failed to add connection to table\n");
+    LOG_ERROR("L2CAP: Failed to add connection to table\n");
     return;
   }
   
-  VERBOSE_PRINT("[L2CAP] Connection established successfully\n");
+  LOG_INFO("L2CAP: Connection established successfully\n");
 
   PayloadBuilder pb(payload, sizeof(payload));
   pb.append(0x04);        // CONFIGURATION REQUEST
@@ -72,12 +72,12 @@ void L2capSignaling::handleConnectionResponse(uint16_t ch, uint8_t* data, uint16
 
 void L2capSignaling::handleConfigurationRequest(uint16_t ch, uint8_t* data, uint16_t len) {
   if (len < 12) {
-    VERBOSE_PRINT("[L2CAP] Config request too short: len=%d\n", len);
+    LOG_DEBUG("L2CAP: Config request too short: len=%d\n", len);
     return;
   }
 
   if (connections == nullptr || sender == nullptr) {
-    VERBOSE_PRINT("[L2CAP] Config request failed: null objects\n");
+    LOG_ERROR("L2CAP: Config request failed: null objects\n");
     return;
   }
 
@@ -92,11 +92,11 @@ void L2capSignaling::handleConfigurationRequest(uint16_t ch, uint8_t* data, uint
   uint16_t mtu = READ_UINT16_LE(data + 10);
   uint16_t remoteCID = 0;
   if (connections->getRemoteCid(ch, &remoteCID) != 0) {
-    VERBOSE_PRINT("[L2CAP] Failed to get remote CID for ch=0x%04x\n", ch);
+    LOG_DEBUG("L2CAP: Failed to get remote CID for ch=0x%04x\n", ch);
     return;
   }
   
-  VERBOSE_PRINT("[L2CAP] Config request: ch=0x%04x mtu=%d remoteCID=0x%04x\n", ch, mtu, remoteCID);
+  LOG_DEBUG("L2CAP: Config request: ch=0x%04x mtu=%d remoteCID=0x%04x\n", ch, mtu, remoteCID);
 
   PayloadBuilder pb(payload, sizeof(payload));
   pb.append(0x05);        // CONFIGURATION RESPONSE

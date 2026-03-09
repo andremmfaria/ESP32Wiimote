@@ -26,35 +26,35 @@ HciQueueManager::~HciQueueManager()
 
 bool HciQueueManager::createQueues(void)
 {
-    VERBOSE_PRINTLN("[HciQueue] Creating TX and RX queues...");
+    LOG_DEBUG("HciQueue: Creating TX and RX queues...\n");
     _txQueue = xQueueCreate(_txQueueSize, sizeof(struct HciQueueData*));
     if (_txQueue == NULL) {
-        UNVERBOSE_PRINT("[HciQueue] ERROR: xQueueCreate(txQueue) failed\n");
+        LOG_ERROR("HciQueue: xQueueCreate(txQueue) failed\n");
         return false;
     }
     
     _rxQueue = xQueueCreate(_rxQueueSize, sizeof(struct HciQueueData*));
     if (_rxQueue == NULL) {
-        UNVERBOSE_PRINT("[HciQueue] ERROR: xQueueCreate(rxQueue) failed\n");
+        LOG_ERROR("HciQueue: xQueueCreate(rxQueue) failed\n");
         return false;
     }
     
-    VERBOSE_PRINTLN("[HciQueue] Queues created successfully");
+    LOG_DEBUG("HciQueue: Queues created successfully\n");
     return true;
 }
 
 bool HciQueueManager::sendToQueue(xQueueHandle queue, uint8_t* data, size_t len, const char* debugLabel)
 {
-    VERBOSE_PRINTLN(debugLabel);
+    LOG_DEBUG("%s\n", debugLabel);
     
     if (!data || !len) {
-        VERBOSE_PRINT("[HciQueue] No data to send (len=%d)\n", len);
+        LOG_DEBUG("HciQueue: No data to send (len=%d)\n", len);
         return true;
     }
     
     HciQueueData* queuedata = (HciQueueData*)malloc(sizeof(HciQueueData) + len);
     if (!queuedata) {
-        UNVERBOSE_PRINT("[HciQueue] ERROR: malloc failed for %d bytes\n", sizeof(HciQueueData) + len);
+        LOG_ERROR("HciQueue: malloc failed for %d bytes\n", sizeof(HciQueueData) + len);
         return false;
     }
     
@@ -62,7 +62,7 @@ bool HciQueueManager::sendToQueue(xQueueHandle queue, uint8_t* data, size_t len,
     memcpy(queuedata->data, data, len);
     
     if (xQueueSend(queue, &queuedata, portMAX_DELAY) != pdPASS) {
-        UNVERBOSE_PRINT("[HciQueue] ERROR: xQueueSend failed\n");
+        LOG_ERROR("HciQueue: xQueueSend failed\n");
         free(queuedata);
         return false;
     }
@@ -74,7 +74,7 @@ bool HciQueueManager::sendToTxQueue(uint8_t* data, size_t len)
 {
     bool result = sendToQueue(_txQueue, data, len, "sendToTxQueue");
     if (result && data && len) {
-        VERBOSE_PRINT("RECV <= %s\n", format2Hex(data, len));
+        LOG_DEBUG("RECV <= %s\n", format2Hex(data, len));
     }
     return result;
 }
@@ -83,7 +83,7 @@ bool HciQueueManager::sendToRxQueue(uint8_t* data, size_t len)
 {
     bool result = sendToQueue(_rxQueue, data, len, "sendToRxQueue");
     if (result && data && len) {
-        VERBOSE_PRINT("SEND => %s\n", format2Hex(data, len));
+        LOG_DEBUG("SEND => %s\n", format2Hex(data, len));
     }
     return result;
 }
@@ -92,13 +92,13 @@ void HciQueueManager::processTxQueue(void)
 {
     if (uxQueueMessagesWaiting(_txQueue)) {
         bool ok = esp_vhci_host_check_send_available();
-        VERBOSE_PRINT("esp_vhci_host_check_send_available=%d", ok);
+        LOG_DEBUG("esp_vhci_host_check_send_available=%d\n", ok);
         
         if (ok) {
             HciQueueData* queuedata = NULL;
             if (xQueueReceive(_txQueue, &queuedata, 0) == pdTRUE) {
                 esp_vhci_host_send_packet(queuedata->data, queuedata->len);
-                VERBOSE_PRINT("SEND => %s\n", format2Hex(queuedata->data, queuedata->len));
+                LOG_DEBUG("SEND => %s\n", format2Hex(queuedata->data, queuedata->len));
                 free(queuedata);
             }
         }

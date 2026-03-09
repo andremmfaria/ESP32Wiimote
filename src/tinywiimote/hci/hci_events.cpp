@@ -78,11 +78,11 @@ static void handle_command_complete(struct HciEventContext* ctx, uint8_t* data) 
   switch (cmdOpcode) {
     case HCI_OPCODE_RESET: {
       if (data[3] == 0x00) {
-        VERBOSE_PRINT("[HCI] Reset successful\n");
+        LOG_DEBUG("HCI: Reset successful\n");
         const uint16_t txLen = make_cmd_read_bd_addr(g_hciTxBuffer);
         hci_send(ctx, txLen);
       } else {
-        VERBOSE_PRINT("[HCI] Reset failed with status=0x%02x\n", data[3]);
+        LOG_ERROR("HCI: Reset failed with status=0x%02x\n", data[3]);
       }
       break;
     }
@@ -115,7 +115,7 @@ static void handle_command_complete(struct HciEventContext* ctx, uint8_t* data) 
 
     case HCI_OPCODE_WRITE_SCAN_ENABLE: {
       if (data[3] == 0x00) {
-        VERBOSE_PRINT("[HCI] Device initialized, starting inquiry\n");
+        LOG_INFO("HCI: Device initialized, starting inquiry\n");
         clear_scanned_devices(ctx);
         const uint16_t txLen = make_cmd_inquiry(g_hciTxBuffer, 0x9E8B33, 0x05, 0x00);
         hci_send(ctx, txLen);
@@ -144,7 +144,7 @@ static void handle_inquiry_complete(struct HciEventContext* ctx, uint8_t* data) 
 
 static void handle_inquiry_result(struct HciEventContext* ctx, uint8_t* data) {
   const uint8_t num = data[0];
-  VERBOSE_PRINT("[HCI] Inquiry result: found %d device(s)\n", num);
+  LOG_DEBUG("HCI: Inquiry result: found %d device(s)\n", num);
 
   for (int i = 0; i < num; i++) {
     const int pos = 1 + (6 + 1 + 2 + 3 + 2) * i;
@@ -169,7 +169,7 @@ static void handle_inquiry_result(struct HciEventContext* ctx, uint8_t* data) {
 
     // Filter for Wiimote class-of-device: [04 25 00]
     if (data[pos + 9] == 0x04 && data[pos + 10] == 0x25 && data[pos + 11] == 0x00) {
-      VERBOSE_PRINT("[HCI] Wiimote detected! Requesting remote name...\n");
+      LOG_INFO("HCI: Wiimote detected! Requesting remote name...\n");
       const uint16_t txLen = make_cmd_remote_name_request(g_hciTxBuffer, scanned.bdAddr,
                                                            scanned.psrm, scanned.clkofs);
       hci_send(ctx, txLen);
@@ -183,7 +183,7 @@ static void handle_remote_name_request_complete(struct HciEventContext* ctx, uin
 
   char* name = (char*)(data + 7);
 
-  VERBOSE_PRINT("[HCI] Remote name: %s\n", name);
+  LOG_DEBUG("HCI: Remote name: %s\n", name);
 
   const int idx = find_scanned_device(ctx, bdAddr);
   if (idx < 0) {
@@ -191,7 +191,7 @@ static void handle_remote_name_request_complete(struct HciEventContext* ctx, uin
   }
 
   if (strcmp("Nintendo RVL-CNT-01", name) == 0) {
-    VERBOSE_PRINT("[HCI] Nintendo Wiimote confirmed! Initiating connection...\n");
+    LOG_INFO("HCI: Nintendo Wiimote confirmed! Initiating connection...\n");
     const uint16_t cancelLen = make_cmd_inquiry_cancel(g_hciTxBuffer);
     hci_send(ctx, cancelLen);
 
@@ -208,7 +208,7 @@ static void handle_remote_name_request_complete(struct HciEventContext* ctx, uin
 
 static void handle_connection_complete(struct HciEventContext* ctx, uint8_t* data) {
   const uint16_t connectionHandle = READ_UINT16_LE(data + 1);
-  VERBOSE_PRINT("[HCI] Connection complete! Handle: 0x%04x\n", connectionHandle);
+  LOG_INFO("HCI: Connection complete! Handle: 0x%04x\n", connectionHandle);
   if (ctx->onAclConnected != 0) {
     ctx->onAclConnected(connectionHandle, ctx->userData);
   }
@@ -218,7 +218,7 @@ static void handle_disconnection_complete(struct HciEventContext* ctx, uint8_t* 
   const uint16_t connectionHandle = READ_UINT16_LE(data + 1);
   const uint8_t reason = data[3];
 
-  VERBOSE_PRINT("[HCI] Disconnection complete! Handle: 0x%04x, Reason: 0x%02x\n", connectionHandle, reason);
+  LOG_INFO("HCI: Disconnection complete! Handle: 0x%04x, Reason: 0x%02x\n", connectionHandle, reason);
 
   if (ctx->onDisconnected != 0) {
     ctx->onDisconnected(connectionHandle, reason, ctx->userData);

@@ -10,18 +10,57 @@
 
 #include "Arduino.h"
 
-// Set to 1 to enable verbose debug logging, 0 to disable
-#define WIIMOTE_VERBOSE 0
+/**
+ * Logging Level Configuration
+ * 
+ * Set WIIMOTE_VERBOSE to control logging verbosity:
+ *   0 = Errors only (always shown)
+ *   1 = Errors + Warnings
+ *   2 = Errors + Warnings + Info
+ *   3 = Errors + Warnings + Info + Debug (full verbose)
+ */
+#define WIIMOTE_VERBOSE 2
 
-#if WIIMOTE_VERBOSE
-#define VERBOSE_PRINT(...) Serial.printf(__VA_ARGS__)
-#define VERBOSE_PRINTLN(...) Serial.println(__VA_ARGS__)
+// Log level thresholds
+#define LOG_LEVEL_ERROR   0
+#define LOG_LEVEL_WARNING 1
+#define LOG_LEVEL_INFO    2
+#define LOG_LEVEL_DEBUG   3
+
+/**
+ * ERROR: Critical errors that always need attention
+ * Always shown regardless of verbose setting
+ */
+#define LOG_ERROR(...) Serial.printf("[ERROR] " __VA_ARGS__)
+
+/**
+ * WARNING: Important issues that should be noted
+ * Shown when WIIMOTE_VERBOSE >= 1
+ */
+#if WIIMOTE_VERBOSE >= LOG_LEVEL_WARNING
+#define LOG_WARN(...) Serial.printf("[WARN] " __VA_ARGS__)
 #else
-#define VERBOSE_PRINT(...) do {} while(0)
-#define VERBOSE_PRINTLN(...) do {} while(0)
+#define LOG_WARN(...) do {} while(0)
 #endif
 
-// UNVERBOSE_PRINT is always enabled for critical messages and errors
-#define UNVERBOSE_PRINT(...) Serial.printf(__VA_ARGS__)
+/**
+ * INFO: General informational messages
+ * Shown when WIIMOTE_VERBOSE >= 2
+ */
+#if WIIMOTE_VERBOSE >= LOG_LEVEL_INFO
+#define LOG_INFO(...) Serial.printf("[INFO] " __VA_ARGS__)
+#else
+#define LOG_INFO(...) do {} while(0)
+#endif
+
+/**
+ * DEBUG: Detailed debug information
+ * Shown when WIIMOTE_VERBOSE >= 3
+ */
+#if WIIMOTE_VERBOSE >= LOG_LEVEL_DEBUG
+#define LOG_DEBUG(...) Serial.printf("[DEBUG] " __VA_ARGS__)
+#else
+#define LOG_DEBUG(...) do {} while(0)
+#endif
 
 #endif // WIIMOTE_VERBOSE_H
