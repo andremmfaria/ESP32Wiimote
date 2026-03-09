@@ -13,48 +13,49 @@ enum {
   REPORT_STATE_WAIT_READ_RESPONSE,
 };
 
-void wiimote_extensions_init(WiimoteExtensions* extensions, WiimoteState* state,
-                             const L2capConnectionTable* connections,
-                             L2capPacketSender* sender) {
-  if (extensions == 0) {
-    return;
-  }
-  extensions->state = state;
-  extensions->connections = connections;
-  extensions->sender = sender;
-  extensions->controllerReportState = REPORT_STATE_INIT;
+WiimoteExtensions::WiimoteExtensions()
+    : controllerReportState(REPORT_STATE_INIT),
+      state(nullptr),
+      connections(nullptr),
+      sender(nullptr) {}
+
+void WiimoteExtensions::init(WiimoteState* wiimoteState,
+                             const L2capConnectionTable* connectionTable,
+                             L2capPacketSender* packetSender) {
+  state = wiimoteState;
+  connections = connectionTable;
+  sender = packetSender;
+  controllerReportState = REPORT_STATE_INIT;
 }
 
-void wiimote_extensions_handle_report(WiimoteExtensions* extensions, uint16_t ch,
-                                      uint8_t* data, uint16_t len) {
-  if (extensions == 0 || extensions->state == 0 || extensions->connections == 0 ||
-      extensions->sender == 0) {
+void WiimoteExtensions::handleReport(uint16_t ch, uint8_t* data, uint16_t len) {
+  if (state == nullptr || connections == nullptr || sender == nullptr) {
     return;
   }
+
+  WiimoteProtocol protocol;
+  protocol.init(connections, sender);
 
   if (len < 8) {
     return;
   }
 
-  switch (extensions->controllerReportState) {
+  switch (controllerReportState) {
     case REPORT_STATE_INIT:
       if (data[1] == 0x20) {
-        wiimote_state_set_battery_level(extensions->state, data[7]);
+        state->setBatteryLevel(data[7]);
         if (data[4] & 0x02) {
           UNVERBOSE_PRINT("Extension controller connected\n");
-          wiimote_write_memory(extensions->connections, extensions->sender,
-                               ch, CONTROL_REGISTER, 0xA400F0,
+          protocol.writeMemory(ch, CONTROL_REGISTER, 0xA400F0,
                                (const uint8_t[]){0x55}, 1);
-          extensions->controllerReportState = REPORT_STATE_WAIT_ACK_OUT_REPORT;
+          controllerReportState = REPORT_STATE_WAIT_ACK_OUT_REPORT;
         } else {
           UNVERBOSE_PRINT("Extension controller NOT connected\n");
-          wiimote_state_set_nunchuk_connected(extensions->state, false);
-          if (wiimote_state_get_use_accelerometer(extensions->state)) {
-            wiimote_set_reporting_mode(extensions->connections, extensions->sender,
-                                       ch, 0x31, false);
+          state->setNunchukConnected(false);
+          if (state->getUseAccelerometer()) {
+            protocol.setReportingMode(ch, 0x31, false);
           } else {
-            wiimote_set_reporting_mode(extensions->connections, extensions->sender,
-                                       ch, 0x30, false);
+            protocol.setReportingMode(ch, 0x30, false);
           }
         }
       }
@@ -66,12 +67,11 @@ void wiimote_extensions_handle_report(WiimoteExtensions* extensions, uint16_t ch
       }
       if ((data[1] == 0x22) && (data[4] == 0x16)) {
         if (data[5] == 0x00) {
-          wiimote_write_memory(extensions->connections, extensions->sender,
-                               ch, CONTROL_REGISTER, 0xA400FB,
+          protocol.writeMemory(ch, CONTROL_REGISTER, 0xA400FB,
                                (const uint8_t[]){0x00}, 1);
-          extensions->controllerReportState = REPORT_STATE_WAIT_READ_COTRLLER_TYPE;
+          controllerReportState = REPORT_STATE_WAIT_READ_COTRLLER_TYPE;
         } else {
-          extensions->controllerReportState = REPORT_STATE_INIT;
+          controllerReportState = REPORT_STATE_INIT;
         }
       }
       break;
@@ -82,11 +82,10 @@ void wiimote_extensions_handle_report(WiimoteExtensions* extensions, uint16_t ch
       }
       if ((data[1] == 0x22) && (data[4] == 0x16)) {
         if (data[5] == 0x00) {
-          wiimote_read_memory(extensions->connections, extensions->sender,
-                              ch, CONTROL_REGISTER, 0xA400FA, 6);
-          extensions->controllerReportState = REPORT_STATE_WAIT_READ_RESPONSE;
+          protocol.readMemory(ch, CONTROL_REGISTER, 0xA400FA, 6);
+          controllerReportState = REPORT_STATE_WAIT_READ_RESPONSE;
         } else {
-          extensions->controllerReportState = REPORT_STATE_INIT;
+          controllerReportState = REPORT_STATE_INIT;
         }
       }
       break;
@@ -99,22 +98,20 @@ void wiimote_extensions_handle_report(WiimoteExtensions* extensions, uint16_t ch
         if (memcmp(data + 5, (const uint8_t[]){0x00, 0xFA}, 2) == 0) {
           if (memcmp(data + 7, (const uint8_t[]){0x00, 0x00, 0xA4, 0x20, 0x00, 0x00}, 6) == 0) {
             UNVERBOSE_PRINT("Nunchuk detected\n");
-            wiimote_state_set_nunchuk_connected(extensions->state, true);
-            if (wiimote_state_get_use_accelerometer(extensions->state)) {
-              wiimote_set_reporting_mode(extensions->connections, extensions->sender,
-                                         ch, 0x35, false);
+            state->setNunchukConnected(true);
+            if (state->getUseAccelerometer()) {
+              protocol.setReportingMode(ch, 0x35, false);
             } else {
-              wiimote_set_reporting_mode(extensions->connections, extensions->sender,
-                                         ch, 0x32, false);
+              protocol.setReportingMode(ch, 0x32, false);
             }
           }
-          extensions->controllerReportState = REPORT_STATE_INIT;
+          controllerReportState = REPORT_STATE_INIT;
         }
       }
       break;
 
     default:
-      extensions->controllerReportState = REPORT_STATE_INIT;
+      controllerReportState = REPORT_STATE_INIT;
       break;
   }
 }

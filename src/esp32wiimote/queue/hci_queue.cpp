@@ -37,13 +37,13 @@ HciQueueManager::~HciQueueManager()
 
 bool HciQueueManager::createQueues(void)
 {
-    _txQueue = xQueueCreate(_txQueueSize, sizeof(HciQueueData*));
+    _txQueue = xQueueCreate(_txQueueSize, sizeof(struct HciQueueData*));
     if (_txQueue == NULL) {
         VERBOSE_PRINTLN("xQueueCreate(txQueue) failed");
         return false;
     }
     
-    _rxQueue = xQueueCreate(_rxQueueSize, sizeof(HciQueueData*));
+    _rxQueue = xQueueCreate(_rxQueueSize, sizeof(struct HciQueueData*));
     if (_rxQueue == NULL) {
         VERBOSE_PRINTLN("xQueueCreate(rxQueue) failed");
         return false;

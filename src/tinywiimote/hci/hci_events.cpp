@@ -14,11 +14,11 @@
 
 static uint8_t g_hciTxBuffer[256];
 
-static void clear_scanned_devices(HciEventContext* ctx) {
+static void clear_scanned_devices(struct HciEventContext* ctx) {
   ctx->scannedDeviceCount = 0;
 }
 
-static int find_scanned_device(HciEventContext* ctx, struct bd_addr_t bdAddr) {
+static int find_scanned_device(struct HciEventContext* ctx, struct bd_addr_t bdAddr) {
   for (int i = 0; i < ctx->scannedDeviceCount; i++) {
     if (memcmp(ctx->scannedDevices[i].bdAddr.addr, bdAddr.addr, BD_ADDR_LEN) == 0) {
       return i;
@@ -27,7 +27,7 @@ static int find_scanned_device(HciEventContext* ctx, struct bd_addr_t bdAddr) {
   return -1;
 }
 
-static int add_scanned_device(HciEventContext* ctx, hci_scanned_device_t scanned) {
+static int add_scanned_device(struct HciEventContext* ctx, struct HciScannedDevice scanned) {
   if (ctx->scannedDeviceCount >= HCI_SCANNED_DEVICE_LIST_SIZE) {
     return -1;
   }
@@ -35,13 +35,13 @@ static int add_scanned_device(HciEventContext* ctx, hci_scanned_device_t scanned
   return ctx->scannedDeviceCount;
 }
 
-static void hci_send(HciEventContext* ctx, uint16_t len) {
+static void hci_send(struct HciEventContext* ctx, uint16_t len) {
   if (ctx->sendPacket != 0) {
     ctx->sendPacket(g_hciTxBuffer, len, ctx->userData);
   }
 }
 
-void hci_events_init(HciEventContext* ctx, HciSendPacketFunc sendPacket, void* userData) {
+void hci_events_init(struct HciEventContext* ctx, HciSendPacketFunc sendPacket, void* userData) {
   if (ctx == 0) {
     return;
   }
@@ -51,7 +51,7 @@ void hci_events_init(HciEventContext* ctx, HciSendPacketFunc sendPacket, void* u
   ctx->userData = userData;
 }
 
-void hci_events_set_callbacks(HciEventContext* ctx, HciAclConnectedFunc onAclConnected,
+void hci_events_set_callbacks(struct HciEventContext* ctx, HciAclConnectedFunc onAclConnected,
                               HciDisconnectedFunc onDisconnected) {
   if (ctx == 0) {
     return;
@@ -61,7 +61,7 @@ void hci_events_set_callbacks(HciEventContext* ctx, HciAclConnectedFunc onAclCon
   ctx->onDisconnected = onDisconnected;
 }
 
-void hci_events_reset_device(HciEventContext* ctx) {
+void hci_events_reset_device(struct HciEventContext* ctx) {
   if (ctx == 0) {
     return;
   }
@@ -71,7 +71,7 @@ void hci_events_reset_device(HciEventContext* ctx) {
   hci_send(ctx, txLen);
 }
 
-static void handle_command_complete(HciEventContext* ctx, uint8_t* data) {
+static void handle_command_complete(struct HciEventContext* ctx, uint8_t* data) {
   const uint16_t cmdOpcode = (uint16_t)data[1] | ((uint16_t)data[2] << 8);
 
   switch (cmdOpcode) {
@@ -127,17 +127,17 @@ static void handle_command_complete(HciEventContext* ctx, uint8_t* data) {
   }
 }
 
-static void handle_command_status(HciEventContext* ctx, uint8_t* data) {
+static void handle_command_status(struct HciEventContext* ctx, uint8_t* data) {
   (void)ctx;
   (void)data;
 }
 
-static void handle_inquiry_complete(HciEventContext* ctx, uint8_t* data) {
+static void handle_inquiry_complete(struct HciEventContext* ctx, uint8_t* data) {
   (void)data;
   hci_events_reset_device(ctx);
 }
 
-static void handle_inquiry_result(HciEventContext* ctx, uint8_t* data) {
+static void handle_inquiry_result(struct HciEventContext* ctx, uint8_t* data) {
   const uint8_t num = data[0];
 
   for (int i = 0; i < num; i++) {
@@ -151,7 +151,7 @@ static void handle_inquiry_result(HciEventContext* ctx, uint8_t* data) {
       continue;
     }
 
-    hci_scanned_device_t scanned;
+    struct HciScannedDevice scanned;
     scanned.bdAddr = bdAddr;
     scanned.psrm = data[pos + 6];
     scanned.clkofs = ((0x80 | data[pos + 12]) << 8) | (data[pos + 13]);
@@ -170,7 +170,7 @@ static void handle_inquiry_result(HciEventContext* ctx, uint8_t* data) {
   }
 }
 
-static void handle_remote_name_request_complete(HciEventContext* ctx, uint8_t* data) {
+static void handle_remote_name_request_complete(struct HciEventContext* ctx, uint8_t* data) {
   struct bd_addr_t bdAddr;
   STREAM_TO_BDADDR(bdAddr.addr, data + 1);
 
@@ -185,7 +185,7 @@ static void handle_remote_name_request_complete(HciEventContext* ctx, uint8_t* d
     const uint16_t cancelLen = make_cmd_inquiry_cancel(g_hciTxBuffer);
     hci_send(ctx, cancelLen);
 
-    const hci_scanned_device_t scanned = ctx->scannedDevices[idx];
+    const struct HciScannedDevice scanned = ctx->scannedDevices[idx];
     const uint16_t packetType = 0x0008;
     const uint8_t allowRoleSwitch = 0x00;
 
@@ -196,14 +196,14 @@ static void handle_remote_name_request_complete(HciEventContext* ctx, uint8_t* d
   }
 }
 
-static void handle_connection_complete(HciEventContext* ctx, uint8_t* data) {
+static void handle_connection_complete(struct HciEventContext* ctx, uint8_t* data) {
   const uint16_t connectionHandle = (uint16_t)data[2] << 8 | data[1];
   if (ctx->onAclConnected != 0) {
     ctx->onAclConnected(connectionHandle, ctx->userData);
   }
 }
 
-static void handle_disconnection_complete(HciEventContext* ctx, uint8_t* data) {
+static void handle_disconnection_complete(struct HciEventContext* ctx, uint8_t* data) {
   const uint16_t connectionHandle = (uint16_t)data[2] << 8 | data[1];
   const uint8_t reason = data[3];
 
@@ -212,7 +212,7 @@ static void handle_disconnection_complete(HciEventContext* ctx, uint8_t* data) {
   }
 }
 
-void hci_events_handle_event(HciEventContext* ctx, uint8_t eventCode, uint8_t len, uint8_t* data) {
+void hci_events_handle_event(struct HciEventContext* ctx, uint8_t eventCode, uint8_t len, uint8_t* data) {
   (void)len;
 
   if (ctx == 0 || data == 0) {

@@ -1,38 +1,36 @@
 #include "l2cap_signaling.h"
 
-void l2cap_signaling_init(L2capSignaling* signaling, L2capConnectionTable* connections,
-                          L2capPacketSender* sender) {
-  if (signaling == 0) {
-    return;
-  }
-  signaling->connections = connections;
-  signaling->sender = sender;
+L2capSignaling::L2capSignaling() : connections(nullptr), sender(nullptr) {}
+
+void L2capSignaling::init(L2capConnectionTable* connectionTable, L2capPacketSender* packetSender) {
+  connections = connectionTable;
+  sender = packetSender;
 }
 
-void l2cap_signaling_send_connection_request(L2capSignaling* signaling, uint16_t ch, uint16_t psm, uint16_t cid) {
-  if (signaling == 0) {
+void L2capSignaling::sendConnectionRequest(uint16_t ch, uint16_t psm, uint16_t cid) {
+  if (sender == nullptr) {
     return;
   }
 
   uint8_t pos = 0;
-  signaling->payload[pos++] = 0x02;  // CONNECTION REQUEST
-  signaling->payload[pos++] = 0x01;  // Identifier
-  signaling->payload[pos++] = 0x04;
-  signaling->payload[pos++] = 0x00;
-  signaling->payload[pos++] = (uint8_t)(psm & 0xFF);
-  signaling->payload[pos++] = (uint8_t)(psm >> 8);
-  signaling->payload[pos++] = (uint8_t)(cid & 0xFF);
-  signaling->payload[pos++] = (uint8_t)(cid >> 8);
+  payload[pos++] = 0x02;  // CONNECTION REQUEST
+  payload[pos++] = 0x01;  // Identifier
+  payload[pos++] = 0x04;
+  payload[pos++] = 0x00;
+  payload[pos++] = (uint8_t)(psm & 0xFF);
+  payload[pos++] = (uint8_t)(psm >> 8);
+  payload[pos++] = (uint8_t)(cid & 0xFF);
+  payload[pos++] = (uint8_t)(cid >> 8);
 
-  send_acl_l2cap_packet(signaling->sender, ch, 0x0001, signaling->payload, pos);
+  sender->sendAclL2capPacket(ch, 0x0001, payload, pos);
 }
 
-void l2cap_signaling_handle_connection_response(L2capSignaling* signaling, uint16_t ch, uint8_t* data, uint16_t len) {
+void L2capSignaling::handleConnectionResponse(uint16_t ch, uint8_t* data, uint16_t len) {
   if (len < 12) {
     return;
   }
 
-  if (signaling == 0 || signaling->connections == 0 || signaling->sender == 0) {
+  if (connections == nullptr || sender == nullptr) {
     return;
   }
 
@@ -43,36 +41,34 @@ void l2cap_signaling_handle_connection_response(L2capSignaling* signaling, uint1
     return;
   }
 
-  l2cap_connection_t connection;
-  connection.ch = ch;
-  connection.remoteCID = dstCID;
-  if (l2cap_add_connection(signaling->connections, connection) < 0) {
+  const L2capConnection connection(ch, dstCID);
+  if (connections->addConnection(connection) < 0) {
     return;
   }
 
   uint8_t pos = 0;
-  signaling->payload[pos++] = 0x04;  // CONFIGURATION REQUEST
-  signaling->payload[pos++] = 0x02;  // Identifier
-  signaling->payload[pos++] = 0x08;
-  signaling->payload[pos++] = 0x00;
-  signaling->payload[pos++] = (uint8_t)(dstCID & 0xFF);
-  signaling->payload[pos++] = (uint8_t)(dstCID >> 8);
-  signaling->payload[pos++] = 0x00;
-  signaling->payload[pos++] = 0x00;
-  signaling->payload[pos++] = 0x01;
-  signaling->payload[pos++] = 0x02;
-  signaling->payload[pos++] = 0x40;
-  signaling->payload[pos++] = 0x00;
+  payload[pos++] = 0x04;  // CONFIGURATION REQUEST
+  payload[pos++] = 0x02;  // Identifier
+  payload[pos++] = 0x08;
+  payload[pos++] = 0x00;
+  payload[pos++] = (uint8_t)(dstCID & 0xFF);
+  payload[pos++] = (uint8_t)(dstCID >> 8);
+  payload[pos++] = 0x00;
+  payload[pos++] = 0x00;
+  payload[pos++] = 0x01;
+  payload[pos++] = 0x02;
+  payload[pos++] = 0x40;
+  payload[pos++] = 0x00;
 
-  send_acl_l2cap_packet(signaling->sender, ch, 0x0001, signaling->payload, pos);
+  sender->sendAclL2capPacket(ch, 0x0001, payload, pos);
 }
 
-void l2cap_signaling_handle_configuration_request(L2capSignaling* signaling, uint16_t ch, uint8_t* data, uint16_t len) {
+void L2capSignaling::handleConfigurationRequest(uint16_t ch, uint8_t* data, uint16_t len) {
   if (len < 12) {
     return;
   }
 
-  if (signaling == 0 || signaling->connections == 0 || signaling->sender == 0) {
+  if (connections == nullptr || sender == nullptr) {
     return;
   }
 
@@ -86,31 +82,30 @@ void l2cap_signaling_handle_configuration_request(L2capSignaling* signaling, uin
 
   uint16_t mtu = ((uint16_t)data[11] << 8) | data[10];
   uint16_t remoteCID = 0;
-  if (l2cap_get_remote_cid(signaling->connections, ch, &remoteCID) != 0) {
+  if (connections->getRemoteCid(ch, &remoteCID) != 0) {
     return;
   }
 
   uint8_t pos = 0;
-  signaling->payload[pos++] = 0x05;  // CONFIGURATION RESPONSE
-  signaling->payload[pos++] = identifier;
-  signaling->payload[pos++] = 0x0A;
-  signaling->payload[pos++] = 0x00;
-  signaling->payload[pos++] = (uint8_t)(remoteCID & 0xFF);
-  signaling->payload[pos++] = (uint8_t)(remoteCID >> 8);
-  signaling->payload[pos++] = 0x00;
-  signaling->payload[pos++] = 0x00;
-  signaling->payload[pos++] = 0x00;
-  signaling->payload[pos++] = 0x00;
-  signaling->payload[pos++] = 0x01;
-  signaling->payload[pos++] = 0x02;
-  signaling->payload[pos++] = (uint8_t)(mtu & 0xFF);
-  signaling->payload[pos++] = (uint8_t)(mtu >> 8);
+  payload[pos++] = 0x05;  // CONFIGURATION RESPONSE
+  payload[pos++] = identifier;
+  payload[pos++] = 0x0A;
+  payload[pos++] = 0x00;
+  payload[pos++] = (uint8_t)(remoteCID & 0xFF);
+  payload[pos++] = (uint8_t)(remoteCID >> 8);
+  payload[pos++] = 0x00;
+  payload[pos++] = 0x00;
+  payload[pos++] = 0x00;
+  payload[pos++] = 0x00;
+  payload[pos++] = 0x01;
+  payload[pos++] = 0x02;
+  payload[pos++] = (uint8_t)(mtu & 0xFF);
+  payload[pos++] = (uint8_t)(mtu >> 8);
 
-  send_acl_l2cap_packet(signaling->sender, ch, 0x0001, signaling->payload, pos);
+  sender->sendAclL2capPacket(ch, 0x0001, payload, pos);
 }
 
-void l2cap_signaling_handle_configuration_response(L2capSignaling* signaling, uint8_t* data, uint16_t len) {
-  (void)signaling;
+void L2capSignaling::handleConfigurationResponse(uint8_t* data, uint16_t len) {
   (void)data;
   (void)len;
 }

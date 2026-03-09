@@ -1,39 +1,31 @@
 #ifndef WIIMOTE_STATE_H
 #define WIIMOTE_STATE_H
 
-#include <stdbool.h>
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+class WiimoteState {
+ public:
+  WiimoteState();
 
-    typedef struct
-    {
-        bool wiimoteConnected;
-        bool nunchukConnected;
-        uint8_t batteryLevel;
-        bool useAccelerometer;
-    } WiimoteState;
+  void reset();
 
-    void wiimote_state_init(WiimoteState *state);
-    void wiimote_state_reset(WiimoteState *state);
+  void setConnected(bool connected);
+  bool isConnected() const;
 
-    void wiimote_state_set_connected(WiimoteState *state, bool connected);
-    bool wiimote_state_is_connected(const WiimoteState *state);
+  void setNunchukConnected(bool connected);
+  bool isNunchukConnected() const;
 
-    void wiimote_state_set_nunchuk_connected(WiimoteState *state, bool connected);
-    bool wiimote_state_is_nunchuk_connected(const WiimoteState *state);
+  void setBatteryLevel(uint8_t level);
+  uint8_t getBatteryLevel() const;
 
-    void wiimote_state_set_battery_level(WiimoteState *state, uint8_t level);
-    uint8_t wiimote_state_get_battery_level(const WiimoteState *state);
+  void setUseAccelerometer(bool use);
+  bool getUseAccelerometer() const;
 
-    void wiimote_state_set_use_accelerometer(WiimoteState *state, bool use);
-    bool wiimote_state_get_use_accelerometer(const WiimoteState *state);
-
-#ifdef __cplusplus
-}
-#endif
+ private:
+  bool wiimoteConnected;
+  bool nunchukConnected;
+  uint8_t batteryLevel;
+  bool useAccelerometer;
+};
 
 #endif

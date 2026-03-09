@@ -31,63 +31,23 @@ typedef enum
     CONTROL_REGISTER = 0x04
 } address_space_t;
 
-/**
- * Set Wiimote player LEDs
- *
- * Sends LED output report (0x11) to control the four player LEDs
- *
- * @param ch Connection handle
- * @param leds 4-bit LED mask (bits 0-3 for LEDs 1-4)
- */
-void wiimote_set_leds(const L2capConnectionTable *connections, L2capPacketSender *sender,
-                      uint16_t ch, uint8_t leds);
+class WiimoteProtocol {
+ public:
+    WiimoteProtocol();
 
-/**
- * Set Wiimote data reporting mode
- *
- * Configures which data the Wiimote sends in reports
- * Common modes:
- * - 0x30: Core Buttons (5 bytes)
- * - 0x31: Core Buttons and Accelerometer (7 bytes)
- * - 0x32: Core Buttons with 8 Extension bytes
- * - 0x35: Core Buttons and Accel with 16 Extension bytes
- *
- * @param ch Connection handle
- * @param mode Report mode byte
- * @param continuous True for continuous reporting, false for on-demand
- */
-void wiimote_set_reporting_mode(const L2capConnectionTable *connections, L2capPacketSender *sender,
-                                uint16_t ch, uint8_t mode, bool continuous);
+    void init(const L2capConnectionTable* connections, L2capPacketSender* sender);
 
-/**
- * Write to Wiimote memory or control registers
- *
- * Sends write memory output report (0x16)
- * Writes up to 16 bytes at a time
- *
- * @param ch Connection handle
- * @param address_space EEPROM_MEMORY or CONTROL_REGISTER
- * @param offset 24-bit memory offset
- * @param data Pointer to data to write
- * @param length Length of data (1-16 bytes)
- */
-void wiimote_write_memory(const L2capConnectionTable *connections, L2capPacketSender *sender,
-                          uint16_t ch, address_space_t address_space, uint32_t offset,
-                          const uint8_t *data, uint8_t length);
+    void setLeds(uint16_t ch, uint8_t leds);
+    void setReportingMode(uint16_t ch, uint8_t mode, bool continuous);
+    void writeMemory(uint16_t ch, address_space_t address_space, uint32_t offset,
+                                     const uint8_t* data, uint8_t length);
+    void readMemory(uint16_t ch, address_space_t address_space, uint32_t offset,
+                                    uint16_t size);
 
-/**
- * Read from Wiimote memory or control registers
- *
- * Sends read memory output report (0x17)
- * Returns data via input reports (0x21)
- *
- * @param ch Connection handle
- * @param address_space EEPROM_MEMORY or CONTROL_REGISTER
- * @param offset 24-bit memory offset
- * @param size Number of bytes to read (1-16)
- */
-void wiimote_read_memory(const L2capConnectionTable *connections, L2capPacketSender *sender,
-                         uint16_t ch, address_space_t address_space, uint32_t offset,
-                         uint16_t size);
+ private:
+    const L2capConnectionTable* connections;
+    L2capPacketSender* sender;
+    uint8_t payload[64];
+};
 
 #endif // __WIIMOTE_PROTOCOL_H__

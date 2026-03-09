@@ -8,11 +8,10 @@
 #include "l2cap_packets.h"
 #include "../utils/hci_utils.h"
 
-void l2cap_packet_sender_init(L2capPacketSender* sender, L2capRawSendFunc callback) {
-  if (sender == 0) {
-    return;
-  }
-  sender->sendCallback = callback;
+L2capPacketSender::L2capPacketSender() : sendCallback(nullptr) {}
+
+void L2capPacketSender::setSendCallback(L2capRawSendFunc callback) {
+  sendCallback = callback;
 }
 
 uint16_t make_l2cap_packet(uint8_t* buf, uint16_t channelID, uint8_t* data, uint16_t len) {
@@ -35,16 +34,16 @@ uint16_t make_acl_l2cap_packet(uint8_t* buf, uint16_t ch, uint8_t pbf, uint8_t b
   return HCI_H4_ACL_PREAMBLE_SIZE + l2capLen;
 }
 
-void send_acl_l2cap_packet(L2capPacketSender* sender, uint16_t ch, uint16_t remoteCID,
-                           uint8_t* payload, uint16_t payloadLen) {
-  if (sender == 0 || sender->sendCallback == nullptr || payloadLen > 255) {
+void L2capPacketSender::sendAclL2capPacket(uint16_t ch, uint16_t remoteCID, uint8_t* payload,
+                                           uint16_t payloadLen) {
+  if (sendCallback == nullptr || payloadLen > 255) {
     return;
   }
 
   const uint8_t pbf = 0b10;
   const uint8_t bf = 0b00;
 
-  const uint16_t packetLen = make_acl_l2cap_packet(sender->tmpQueueData, ch, pbf, bf, remoteCID,
+  const uint16_t packetLen = make_acl_l2cap_packet(tmpQueueData, ch, pbf, bf, remoteCID,
                                                     payload, (uint8_t)payloadLen);
-  sender->sendCallback(sender->tmpQueueData, packetLen);
+  sendCallback(tmpQueueData, packetLen);
 }

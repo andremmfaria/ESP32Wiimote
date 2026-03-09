@@ -10,32 +10,29 @@
 
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+class L2capConnection {
+ public:
+  L2capConnection();
+  L2capConnection(uint16_t channelHandle, uint16_t remoteCid);
 
-    typedef struct
-    {
-        uint16_t ch;
-        uint16_t remoteCID;
-    } l2cap_connection_t;
+  uint16_t ch;
+  uint16_t remoteCID;
+};
 
 #define L2CAP_CONNECTION_LIST_SIZE 8
 
-    typedef struct
-    {
-        l2cap_connection_t list[L2CAP_CONNECTION_LIST_SIZE];
-        int size;
-    } L2capConnectionTable;
+class L2capConnectionTable {
+ public:
+  L2capConnectionTable();
 
-    void l2cap_clear_connections(L2capConnectionTable *table);
-    int l2cap_find_connection(const L2capConnectionTable *table, uint16_t ch);
-    int l2cap_add_connection(L2capConnectionTable *table, l2cap_connection_t connection);
-    int l2cap_get_remote_cid(const L2capConnectionTable *table, uint16_t ch, uint16_t *remoteCID);
+  void clear();
+  int findConnection(uint16_t ch) const;
+  int addConnection(const L2capConnection& connection);
+  int getRemoteCid(uint16_t ch, uint16_t* remoteCID) const;
 
-#ifdef __cplusplus
-}
-#endif
+ private:
+  L2capConnection list[L2CAP_CONNECTION_LIST_SIZE];
+  int size;
+};
 
 #endif // __L2CAP_CONNECTION_H__

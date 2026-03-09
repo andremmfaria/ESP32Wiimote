@@ -7,45 +7,41 @@
 
 #include "l2cap_connection.h"
 
-void l2cap_clear_connections(L2capConnectionTable* table) {
-  if (table == 0) {
-    return;
-  }
-  table->size = 0;
+L2capConnection::L2capConnection() : ch(0), remoteCID(0) {}
+
+L2capConnection::L2capConnection(uint16_t channelHandle, uint16_t remoteCid)
+    : ch(channelHandle), remoteCID(remoteCid) {}
+
+L2capConnectionTable::L2capConnectionTable() : size(0) {}
+
+void L2capConnectionTable::clear() {
+  size = 0;
 }
 
-int l2cap_find_connection(const L2capConnectionTable* table, uint16_t ch) {
-  if (table == 0) {
-    return -1;
-  }
-
-  for (int i = 0; i < table->size; i++) {
-    if (table->list[i].ch == ch) {
+int L2capConnectionTable::findConnection(uint16_t ch) const {
+  for (int i = 0; i < size; i++) {
+    if (list[i].ch == ch) {
       return i;
     }
   }
   return -1;
 }
 
-int l2cap_add_connection(L2capConnectionTable* table, l2cap_connection_t connection) {
-  if (table == 0) {
+int L2capConnectionTable::addConnection(const L2capConnection& connection) {
+  if (size >= L2CAP_CONNECTION_LIST_SIZE) {
     return -1;
   }
 
-  if (table->size >= L2CAP_CONNECTION_LIST_SIZE) {
-    return -1;
-  }
-
-  table->list[table->size++] = connection;
-  return table->size;
+  list[size++] = connection;
+  return size;
 }
 
-int l2cap_get_remote_cid(const L2capConnectionTable* table, uint16_t ch, uint16_t* remoteCID) {
-  const int idx = l2cap_find_connection(table, ch);
+int L2capConnectionTable::getRemoteCid(uint16_t ch, uint16_t* remoteCID) const {
+  const int idx = findConnection(ch);
   if (idx < 0 || remoteCID == 0) {
     return -1;
   }
 
-  *remoteCID = table->list[idx].remoteCID;
+  *remoteCID = list[idx].remoteCID;
   return 0;
 }

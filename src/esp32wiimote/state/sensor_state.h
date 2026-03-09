@@ -13,22 +13,22 @@
 /**
  * Accelerometer State
  */
-typedef struct {
+struct AccelState {
     uint8_t xAxis;
     uint8_t yAxis;
     uint8_t zAxis;
-} AccelState;
+};
 
 /**
  * Nunchuk State - Analog stick and accelerometer
  */
-typedef struct {
+struct NunchukState {
     uint8_t xStick;
     uint8_t yStick;
     uint8_t xAxis;
     uint8_t yAxis;
     uint8_t zAxis;
-} NunchukState;
+};
 
 /**
  * Sensor State Manager - Tracks accelerometer and nunchuk sensor data
@@ -40,12 +40,12 @@ public:
     /**
      * Update accelerometer state
      */
-    void updateAccel(AccelState state);
+    void updateAccel(struct AccelState state);
     
     /**
      * Update nunchuk state
      */
-    void updateNunchuk(NunchukState state);
+    void updateNunchuk(struct NunchukState state);
     
     /**
      * Reset accelerometer state to zero
@@ -60,22 +60,22 @@ public:
     /**
      * Get current accelerometer state
      */
-    AccelState getAccel(void) const;
+    struct AccelState getAccel(void) const;
     
     /**
      * Get current nunchuk state
      */
-    NunchukState getNunchuk(void) const;
+    struct NunchukState getNunchuk(void) const;
     
     /**
      * Get previous accelerometer state
      */
-    AccelState getPreviousAccel(void) const;
+    struct AccelState getPreviousAccel(void) const;
     
     /**
      * Get previous nunchuk state
      */
-    NunchukState getPreviousNunchuk(void) const;
+    struct NunchukState getPreviousNunchuk(void) const;
     
     /**
      * Check if accelerometer state changed
@@ -93,11 +93,11 @@ public:
     void resetChangeFlags(void);
 
 private:
-    AccelState _currentAccel;
-    AccelState _previousAccel;
+    struct AccelState _currentAccel;
+    struct AccelState _previousAccel;
     
-    NunchukState _currentNunchuk;
-    NunchukState _previousNunchuk;
+    struct NunchukState _currentNunchuk;
+    struct NunchukState _previousNunchuk;
     
     int _nunchukStickThreshold;
 };

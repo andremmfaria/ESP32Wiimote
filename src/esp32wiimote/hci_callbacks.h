@@ -32,7 +32,7 @@ public:
     /**
      * Get the HCI interface structure for TinyWiimote
      */
-    const TwHciInterface* getHciInterface(void) const;
+    const struct TwHciInterface* getHciInterface(void) const;
     
     /**
      * Get the VHCI callback structure for ESP32
@@ -56,7 +56,7 @@ public:
 
 private:
     static HciQueueManager* _queueManager;
-    TwHciInterface _hciInterface;
+    struct TwHciInterface _hciInterface;
     esp_vhci_host_callback_t _vhciCallback;
 };
 

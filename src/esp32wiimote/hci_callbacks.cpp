@@ -33,7 +33,7 @@ void HciCallbacksHandler::setQueueManager(HciQueueManager* queueManager)
     _queueManager = queueManager;
 }
 
-const TwHciInterface* HciCallbacksHandler::getHciInterface(void) const
+const struct TwHciInterface* HciCallbacksHandler::getHciInterface(void) const
 {
     return &_hciInterface;
 }

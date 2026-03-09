@@ -1,67 +1,44 @@
 #include "wiimote_state.h"
 
-void wiimote_state_init(WiimoteState* state) {
-  if (state == 0) {
-    return;
-  }
-  state->wiimoteConnected = false;
-  state->nunchukConnected = false;
-  state->batteryLevel = 0;
-  state->useAccelerometer = true;
+WiimoteState::WiimoteState() {
+  reset();
+  useAccelerometer = true;
 }
 
-void wiimote_state_reset(WiimoteState* state) {
-  if (state == 0) {
-    return;
-  }
-  state->wiimoteConnected = false;
-  state->nunchukConnected = false;
-  state->batteryLevel = 0;
+void WiimoteState::reset() {
+  wiimoteConnected = false;
+  nunchukConnected = false;
+  batteryLevel = 0;
 }
 
-void wiimote_state_set_connected(WiimoteState* state, bool connected) {
-  if (state == 0) {
-    return;
-  }
-  state->wiimoteConnected = connected;
+void WiimoteState::setConnected(bool connected) {
+  wiimoteConnected = connected;
 }
 
-bool wiimote_state_is_connected(const WiimoteState* state) {
-  return state != 0 && state->wiimoteConnected;
+bool WiimoteState::isConnected() const {
+  return wiimoteConnected;
 }
 
-void wiimote_state_set_nunchuk_connected(WiimoteState* state, bool connected) {
-  if (state == 0) {
-    return;
-  }
-  state->nunchukConnected = connected;
+void WiimoteState::setNunchukConnected(bool connected) {
+  nunchukConnected = connected;
 }
 
-bool wiimote_state_is_nunchuk_connected(const WiimoteState* state) {
-  return state != 0 && state->nunchukConnected;
+bool WiimoteState::isNunchukConnected() const {
+  return nunchukConnected;
 }
 
-void wiimote_state_set_battery_level(WiimoteState* state, uint8_t level) {
-  if (state == 0) {
-    return;
-  }
-  state->batteryLevel = level;
+void WiimoteState::setBatteryLevel(uint8_t level) {
+  batteryLevel = level;
 }
 
-uint8_t wiimote_state_get_battery_level(const WiimoteState* state) {
-  if (state == 0) {
-    return 0;
-  }
-  return state->batteryLevel;
+uint8_t WiimoteState::getBatteryLevel() const {
+  return batteryLevel;
 }
 
-void wiimote_state_set_use_accelerometer(WiimoteState* state, bool use) {
-  if (state == 0) {
-    return;
-  }
-  state->useAccelerometer = use;
+void WiimoteState::setUseAccelerometer(bool use) {
+  useAccelerometer = use;
 }
 
-bool wiimote_state_get_use_accelerometer(const WiimoteState* state) {
-  return state != 0 && state->useAccelerometer;
+bool WiimoteState::getUseAccelerometer() const {
+  return useAccelerometer;
 }

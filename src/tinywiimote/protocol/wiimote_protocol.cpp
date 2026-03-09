@@ -23,12 +23,6 @@
 #endif
 
 /**
- * Wiimote output report packet buffer
- */
-#define L2CAP_PAYLOAD_MAX_LEN (64)
-static uint8_t wiimotePayload[L2CAP_PAYLOAD_MAX_LEN];
-
-/**
  * Wiimote output report opcodes
  */
 #define WIIMOTE_RPT_SET_LEDS              0x11
@@ -63,29 +57,40 @@ static uint8_t get_address_space_byte(address_space_t address_space) {
   }
 }
 
+WiimoteProtocol::WiimoteProtocol() : connections(nullptr), sender(nullptr), payload{0} {}
+
+void WiimoteProtocol::init(const L2capConnectionTable* connectionTable,
+                           L2capPacketSender* packetSender) {
+  connections = connectionTable;
+  sender = packetSender;
+}
+
 /**
  * Set Wiimote player LEDs
  * 
  * Sends output report (0xA2 0x11 LL) where LL contains LED bits shifted left 4
  */
-void wiimote_set_leds(const L2capConnectionTable* connections, L2capPacketSender* sender,
-                      uint16_t ch, uint8_t leds) {
+void WiimoteProtocol::setLeds(uint16_t ch, uint8_t leds) {
   VERBOSE_PRINTLN("wiimote_set_leds");
 
+  if (connections == nullptr || sender == nullptr) {
+    return;
+  }
+
   uint16_t remoteCID = 0;
-  if (l2cap_get_remote_cid(connections, ch, &remoteCID) != 0) {
+  if (connections->getRemoteCid(ch, &remoteCID) != 0) {
     VERBOSE_PRINTLN("ERROR: L2CAP connection not found");
     return;
   }
 
   // Build output report: A2 11 LL
   uint8_t posi = 0;
-  wiimotePayload[posi++] = HID_OUTPUT_REPORT;           // 0xA2
-  wiimotePayload[posi++] = WIIMOTE_RPT_SET_LEDS;        // 0x11
-  wiimotePayload[posi++] = (uint8_t)(leds << 4);        // LED bits in high nibble
+  payload[posi++] = HID_OUTPUT_REPORT;           // 0xA2
+  payload[posi++] = WIIMOTE_RPT_SET_LEDS;        // 0x11
+  payload[posi++] = (uint8_t)(leds << 4);        // LED bits in high nibble
 
   uint16_t dataLen = posi;
-  send_acl_l2cap_packet(sender, ch, remoteCID, wiimotePayload, dataLen);
+  sender->sendAclL2capPacket(ch, remoteCID, payload, dataLen);
   VERBOSE_PRINT("queued acl_l2cap_packet(Set LEDs, leds=0x%02X)\n", leds);
 }
 
@@ -96,12 +101,15 @@ void wiimote_set_leds(const L2capConnectionTable* connections, L2capPacketSender
  * - TT is continuous flag (0x00 or 0x04)
  * - MM is reporting mode
  */
-void wiimote_set_reporting_mode(const L2capConnectionTable* connections, L2capPacketSender* sender,
-                                uint16_t ch, uint8_t mode, bool continuous) {
+void WiimoteProtocol::setReportingMode(uint16_t ch, uint8_t mode, bool continuous) {
   VERBOSE_PRINT("wiimote_set_reporting_mode mode=0x%02X continuous=%d\n", mode, continuous);
 
+  if (connections == nullptr || sender == nullptr) {
+    return;
+  }
+
   uint16_t remoteCID = 0;
-  if (l2cap_get_remote_cid(connections, ch, &remoteCID) != 0) {
+  if (connections->getRemoteCid(ch, &remoteCID) != 0) {
     VERBOSE_PRINTLN("ERROR: L2CAP connection not found");
     return;
   }
@@ -110,13 +118,13 @@ void wiimote_set_reporting_mode(const L2capConnectionTable* connections, L2capPa
 
   // Build output report: A2 12 TT MM
   uint8_t posi = 0;
-  wiimotePayload[posi++] = HID_OUTPUT_REPORT;           // 0xA2
-  wiimotePayload[posi++] = WIIMOTE_RPT_SET_REPORTING_MODE; // 0x12
-  wiimotePayload[posi++] = contReportIsDesired;         // Continuous flag
-  wiimotePayload[posi++] = mode;                        // Reporting mode
+  payload[posi++] = HID_OUTPUT_REPORT;           // 0xA2
+  payload[posi++] = WIIMOTE_RPT_SET_REPORTING_MODE; // 0x12
+  payload[posi++] = contReportIsDesired;         // Continuous flag
+  payload[posi++] = mode;                        // Reporting mode
 
   uint16_t dataLen = posi;
-  send_acl_l2cap_packet(sender, ch, remoteCID, wiimotePayload, dataLen);
+  sender->sendAclL2capPacket(ch, remoteCID, payload, dataLen);
   VERBOSE_PRINTLN("queued acl_l2cap_packet(Set Reporting Mode)");
 }
 
@@ -126,11 +134,15 @@ void wiimote_set_reporting_mode(const L2capConnectionTable* connections, L2capPa
  * Sends output report (0xA2 0x16 MM OOOOOO SS DD..DD)
  * where MM is address space, O is offset, S is size, DD is data
  */
-void wiimote_write_memory(const L2capConnectionTable* connections, L2capPacketSender* sender,
-                          uint16_t ch, address_space_t address_space, uint32_t offset,
-                          const uint8_t* data, uint8_t length) {
+void WiimoteProtocol::writeMemory(uint16_t ch, address_space_t address_space,
+                                  uint32_t offset, const uint8_t* data,
+                                  uint8_t length) {
   VERBOSE_PRINT("wiimote_write_memory addr_space=%d offset=0x%06lX len=%d\n", 
                 address_space, offset, length);
+
+  if (connections == nullptr || sender == nullptr) {
+    return;
+  }
   
   if(length > EEPROM_DATA_SIZE) {
     VERBOSE_PRINT("ERROR: Write length %d exceeds maximum %d\n", length, EEPROM_DATA_SIZE);
@@ -138,32 +150,32 @@ void wiimote_write_memory(const L2capConnectionTable* connections, L2capPacketSe
   }
 
   uint16_t remoteCID = 0;
-  if (l2cap_get_remote_cid(connections, ch, &remoteCID) != 0) {
+  if (connections->getRemoteCid(ch, &remoteCID) != 0) {
     VERBOSE_PRINTLN("ERROR: L2CAP connection not found");
     return;
   }
 
   // Build output report header
   uint8_t posi = 0;
-  wiimotePayload[posi++] = HID_OUTPUT_REPORT;           // 0xA2
-  wiimotePayload[posi++] = WIIMOTE_RPT_WRITE_MEMORY;    // 0x16
-  wiimotePayload[posi++] = get_address_space_byte(address_space); // MM
+  payload[posi++] = HID_OUTPUT_REPORT;           // 0xA2
+  payload[posi++] = WIIMOTE_RPT_WRITE_MEMORY;    // 0x16
+  payload[posi++] = get_address_space_byte(address_space); // MM
   
   // 24-bit offset (big-endian)
-  wiimotePayload[posi++] = (uint8_t)((offset >> 16) & 0xFF);
-  wiimotePayload[posi++] = (uint8_t)((offset >>  8) & 0xFF);
-  wiimotePayload[posi++] = (uint8_t)((offset      ) & 0xFF);
+  payload[posi++] = (uint8_t)((offset >> 16) & 0xFF);
+  payload[posi++] = (uint8_t)((offset >>  8) & 0xFF);
+  payload[posi++] = (uint8_t)((offset      ) & 0xFF);
   
   // Length of data to write
-  wiimotePayload[posi++] = length;
+  payload[posi++] = length;
   
   // Clear data area and copy user data
-  memset(&wiimotePayload[posi], 0, EEPROM_DATA_SIZE);
-  memcpy(&wiimotePayload[posi], data, length);
+  memset(&payload[posi], 0, EEPROM_DATA_SIZE);
+  memcpy(&payload[posi], data, length);
   posi += EEPROM_DATA_SIZE;
 
   uint16_t dataLen = posi;
-  send_acl_l2cap_packet(sender, ch, remoteCID, wiimotePayload, dataLen);
+  sender->sendAclL2capPacket(ch, remoteCID, payload, dataLen);
   VERBOSE_PRINTLN("queued acl_l2cap_packet(Write Memory)");
 }
 
@@ -173,11 +185,14 @@ void wiimote_write_memory(const L2capConnectionTable* connections, L2capPacketSe
  * Sends output report (0xA2 0x17 MM OOOOOO SSSS)
  * Response comes as input report (0x21)
  */
-void wiimote_read_memory(const L2capConnectionTable* connections, L2capPacketSender* sender,
-                         uint16_t ch, address_space_t address_space, uint32_t offset,
-                         uint16_t size) {
+void WiimoteProtocol::readMemory(uint16_t ch, address_space_t address_space,
+                                 uint32_t offset, uint16_t size) {
   VERBOSE_PRINT("wiimote_read_memory addr_space=%d offset=0x%06lX size=%d\n", 
                 address_space, offset, size);
+
+  if (connections == nullptr || sender == nullptr) {
+    return;
+  }
   
   if(size > EEPROM_DATA_SIZE) {
     VERBOSE_PRINT("ERROR: Read size %d exceeds maximum %d\n", size, EEPROM_DATA_SIZE);
@@ -185,27 +200,27 @@ void wiimote_read_memory(const L2capConnectionTable* connections, L2capPacketSen
   }
 
   uint16_t remoteCID = 0;
-  if (l2cap_get_remote_cid(connections, ch, &remoteCID) != 0) {
+  if (connections->getRemoteCid(ch, &remoteCID) != 0) {
     VERBOSE_PRINTLN("ERROR: L2CAP connection not found");
     return;
   }
 
   // Build output report
   uint8_t posi = 0;
-  wiimotePayload[posi++] = HID_OUTPUT_REPORT;           // 0xA2
-  wiimotePayload[posi++] = WIIMOTE_RPT_READ_MEMORY;     // 0x17
-  wiimotePayload[posi++] = get_address_space_byte(address_space); // MM
+  payload[posi++] = HID_OUTPUT_REPORT;           // 0xA2
+  payload[posi++] = WIIMOTE_RPT_READ_MEMORY;     // 0x17
+  payload[posi++] = get_address_space_byte(address_space); // MM
   
   // 24-bit offset (big-endian)
-  wiimotePayload[posi++] = (uint8_t)((offset >> 16) & 0xFF);
-  wiimotePayload[posi++] = (uint8_t)((offset >>  8) & 0xFF);
-  wiimotePayload[posi++] = (uint8_t)((offset      ) & 0xFF);
+  payload[posi++] = (uint8_t)((offset >> 16) & 0xFF);
+  payload[posi++] = (uint8_t)((offset >>  8) & 0xFF);
+  payload[posi++] = (uint8_t)((offset      ) & 0xFF);
   
   // 16-bit size (big-endian)
-  wiimotePayload[posi++] = (uint8_t)((size >> 8) & 0xFF);
-  wiimotePayload[posi++] = (uint8_t)((size     ) & 0xFF);
+  payload[posi++] = (uint8_t)((size >> 8) & 0xFF);
+  payload[posi++] = (uint8_t)((size     ) & 0xFF);
 
   uint16_t dataLen = posi;
-  send_acl_l2cap_packet(sender, ch, remoteCID, wiimotePayload, dataLen);
+  sender->sendAclL2capPacket(ch, remoteCID, payload, dataLen);
   VERBOSE_PRINTLN("queued acl_l2cap_packet(Read Memory)");
 }

@@ -79,7 +79,7 @@ ButtonState ESP32Wiimote::getButtonState(void)
 /**
  * Get current accelerometer state
  */
-AccelState ESP32Wiimote::getAccelState(void)
+struct AccelState ESP32Wiimote::getAccelState(void)
 {
     return _sensorState->getAccel();
 }
@@ -87,7 +87,7 @@ AccelState ESP32Wiimote::getAccelState(void)
 /**
  * Get current nunchuk state
  */
-NunchukState ESP32Wiimote::getNunchukState(void)
+struct NunchukState ESP32Wiimote::getNunchukState(void)
 {
     return _sensorState->getNunchuk();
 }

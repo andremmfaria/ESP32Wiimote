@@ -16,10 +16,10 @@
 /**
  * HCI Queue Data Structure
  */
-typedef struct {
+struct HciQueueData {
     size_t len;
     uint8_t data[];
-} HciQueueData;
+};
 
 /**
  * HCI Queue Manager - Handles TX/RX queues for HCI packets

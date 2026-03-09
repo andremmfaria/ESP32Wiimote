@@ -71,13 +71,13 @@ public:
      * Get current accelerometer state
      * @return AccelState with x, y, z values
      */
-    AccelState getAccelState(void);
+    struct AccelState getAccelState(void);
     
     /**
      * Get current nunchuk state
      * @return NunchukState with stick and accelerometer values
      */
-    NunchukState getNunchukState(void);
+    struct NunchukState getNunchukState(void);
     
     /**
      * Check if Wiimote is connected
