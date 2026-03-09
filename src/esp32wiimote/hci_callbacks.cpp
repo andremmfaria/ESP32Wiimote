@@ -9,16 +9,7 @@
 #include "queue/hci_queue.h"
 #include "TinyWiimote.h"
 #include "Arduino.h"
-
-#define WIIMOTE_VERBOSE 0
-
-#if WIIMOTE_VERBOSE
-#define VERBOSE_PRINT(...) Serial.printf(__VA_ARGS__)
-#define VERBOSE_PRINTLN(...) Serial.println(__VA_ARGS__)
-#else
-#define VERBOSE_PRINT(...) do {} while(0)
-#define VERBOSE_PRINTLN(...) do {} while(0)
-#endif
+#include "../utils/serial_logging.h"
 
 // Static member initialization
 HciQueueManager* HciCallbacksHandler::_queueManager = NULL;
@@ -64,6 +55,7 @@ int HciCallbacksHandler::notifyHostRecv(uint8_t* data, uint16_t len)
     if (_queueManager && _queueManager->sendToRxQueue(data, len)) {
         return ESP_OK;
     } else {
+        UNVERBOSE_PRINT("[HciCallback] ERROR: Failed to send data to RX queue\n");
         return ESP_FAIL;
     }
 }
@@ -72,5 +64,7 @@ void HciCallbacksHandler::hciHostSendPacket(uint8_t* data, size_t len)
 {
     if (_queueManager) {
         _queueManager->sendToTxQueue(data, len);
+    } else {
+        VERBOSE_PRINT("[HciCallback] WARNING: Queue manager not set, cannot send packet\n");
     }
 }

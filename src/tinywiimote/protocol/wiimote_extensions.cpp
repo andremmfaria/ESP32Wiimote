@@ -3,8 +3,7 @@
 #include "wiimote_state.h"
 #include <HardwareSerial.h>
 #include <string.h>
-
-#define UNVERBOSE_PRINT(...) Serial.printf(__VA_ARGS__)
+#include "../../utils/serial_logging.h"
 
 enum {
   REPORT_STATE_INIT = 0,

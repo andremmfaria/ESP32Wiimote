@@ -11,17 +11,7 @@
 #include "../utils/payload_builder.h"
 #include <string.h>
 #include <Arduino.h>
-
-// Debug macro
-#define WIIMOTE_VERBOSE 0
-
-#if WIIMOTE_VERBOSE
-#define VERBOSE_PRINT(...) Serial.printf(__VA_ARGS__)
-#define VERBOSE_PRINTLN(...) Serial.println(__VA_ARGS__)
-#else
-#define VERBOSE_PRINT(...) do {} while(0)
-#define VERBOSE_PRINTLN(...) do {} while(0)
-#endif
+#include "../../utils/serial_logging.h"
 
 /**
  * Wiimote output report opcodes

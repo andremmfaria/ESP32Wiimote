@@ -11,16 +11,7 @@
 #include "TinyWiimote.h"
 #include "Arduino.h"
 #include "esp_bt.h"
-
-#define WIIMOTE_VERBOSE 0
-
-#if WIIMOTE_VERBOSE
-#define VERBOSE_PRINT(...) Serial.printf(__VA_ARGS__)
-#define VERBOSE_PRINTLN(...) Serial.println(__VA_ARGS__)
-#else
-#define VERBOSE_PRINT(...) do {} while(0)
-#define VERBOSE_PRINTLN(...) do {} while(0)
-#endif
+#include "../utils/serial_logging.h"
 
 BluetoothController::BluetoothController()
     : _initialized(false)
@@ -29,38 +20,49 @@ BluetoothController::BluetoothController()
 
 bool BluetoothController::init(HciCallbacksHandler* hciCallbacks, HciQueueManager* queueManager)
 {
+    VERBOSE_PRINTLN("[BtController] Starting Bluetooth controller initialization...");
+    
     if (!hciCallbacks || !queueManager) {
-        VERBOSE_PRINTLN("Invalid parameters for Bluetooth initialization");
+        UNVERBOSE_PRINT("[BtController] ERROR: Invalid parameters!\n");
         return false;
     }
     
+    // Start Bluetooth controller FIRST (must be done before VHCI registration)
+    VERBOSE_PRINTLN("[BtController] Starting Bluetooth controller with btStart()...");
+    if (!btStart()) {
+        UNVERBOSE_PRINT("[BtController] ERROR: btStart() failed!\n");
+        return false;
+    }
+    VERBOSE_PRINTLN("[BtController] Bluetooth controller started successfully!");
+    
     // Initialize TinyWiimote with HCI interface
+    VERBOSE_PRINTLN("[BtController] Initializing TinyWiimote...");
     TinyWiimoteInit(*hciCallbacks->getHciInterface());
+    VERBOSE_PRINTLN("[BtController] TinyWiimote initialized");
     
     // Set queue manager for callbacks
+    VERBOSE_PRINTLN("[BtController] Setting queue manager...");
     hciCallbacks->setQueueManager(queueManager);
     
     // Create FreeRTOS queues
+    VERBOSE_PRINTLN("[BtController] Creating HCI queues...");
     if (!queueManager->createQueues()) {
-        VERBOSE_PRINTLN("Failed to create HCI queues");
+        UNVERBOSE_PRINT("[BtController] ERROR: Failed to create HCI queues!\n");
         return false;
     }
+    VERBOSE_PRINTLN("[BtController] HCI queues created successfully");
     
-    // Register VHCI callbacks
+    // Register VHCI callbacks (must be done AFTER btStart)
+    VERBOSE_PRINTLN("[BtController] Registering VHCI callbacks...");
     esp_err_t ret = esp_vhci_host_register_callback(hciCallbacks->getVhciCallback());
     if (ret != ESP_OK) {
-        VERBOSE_PRINTLN("Failed to register VHCI callback");
+        UNVERBOSE_PRINT("[BtController] ERROR: Failed to register VHCI callback! Error: 0x%x\n", ret);
         return false;
     }
-    
-    // Start Bluetooth controller
-    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-    if (!btStart()) {
-        Serial.printf("btStart() failed\n");
-        return false;
-    }
+    VERBOSE_PRINTLN("[BtController] VHCI callbacks registered successfully!");
     
     _initialized = true;
+    VERBOSE_PRINTLN("[BtController] Bluetooth controller initialization complete!");
     return true;
 }
 

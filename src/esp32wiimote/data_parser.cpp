@@ -6,6 +6,7 @@
 // - Or see LICENSE.md
 
 #include "data_parser.h"
+#include "../utils/serial_logging.h"
 
 WiimoteDataParser::WiimoteDataParser(ButtonStateManager* buttonState, SensorStateManager* sensorState)
     : _buttonState(buttonState), _sensorState(sensorState), _filter(FILTER_NONE)
@@ -24,10 +25,14 @@ int WiimoteDataParser::parseData(void)
 
     TinyWiimoteData rd = TinyWiimoteRead();
 
-    if (rd.len < 4)
+    if (rd.len < 4) {
+        VERBOSE_PRINT("[DataParser] Data too short: len=%d\n", rd.len);
         return 0;
-    if (rd.data[0] != 0xA1) // HID data report type
+    }
+    if (rd.data[0] != 0xA1) { // HID data report type
+        VERBOSE_PRINT("[DataParser] Invalid report type: 0x%02x\n", rd.data[0]);
         return 0;
+    }
 
     // Parse all data components
     parseButtonData(rd, buttonChanged);

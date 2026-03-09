@@ -30,18 +30,7 @@
 #include "tinywiimote/protocol/wiimote_reports.h"
 #include "tinywiimote/protocol/wiimote_state.h"
 #include "tinywiimote/utils/hci_utils.h"
-
-#define WIIMOTE_VERBOSE 0
-
-#if WIIMOTE_VERBOSE
-#define VERBOSE_PRINT(...) Serial.printf(__VA_ARGS__)
-#define VERBOSE_PRINTLN(...) Serial.println(__VA_ARGS__)
-#else
-#define VERBOSE_PRINT(...) do {} while (0)
-#define VERBOSE_PRINTLN(...) do {} while (0)
-#endif
-
-#define UNVERBOSE_PRINT(...) Serial.printf(__VA_ARGS__)
+#include "utils/serial_logging.h"
 
 #define L2CAP_CONNECT_RES 0x03
 #define L2CAP_CONFIG_REQ 0x04
@@ -77,6 +66,8 @@ static void hci_send_packet_adapter(uint8_t* data, size_t len, void* userData) {
 
 static void on_acl_connected(uint16_t connectionHandle, void* userData) {
   (void)userData;
+  VERBOSE_PRINT("[TinyWiimote] ACL connection established! Handle: 0x%04x\n", connectionHandle);
+  VERBOSE_PRINTLN("[TinyWiimote] Sending L2CAP connection request...");
   g_runtime.l2capSignaling.sendConnectionRequest(connectionHandle, 0x0013, 0x0045);
 }
 
@@ -85,6 +76,7 @@ static void on_disconnected(uint16_t connectionHandle, uint8_t reason, void* use
   (void)reason;
   (void)userData;
 
+  VERBOSE_PRINT("[TinyWiimote] Wiimote disconnected! Handle: 0x%04x, Reason: 0x%02x\n", connectionHandle, reason);
   UNVERBOSE_PRINT("Wiimote lost\n");
   g_runtime.wiimoteState.reset();
   resetDeviceInternal();
@@ -96,6 +88,8 @@ static void handleL2capData(uint16_t ch, uint16_t channelID, uint8_t* data, uint
   if (len == 0 || data == 0) {
     return;
   }
+  
+  uint8_t code = data[0];
 
   switch (data[0]) {
     case L2CAP_CONNECT_RES:
@@ -118,6 +112,7 @@ static void handleL2capData(uint16_t ch, uint16_t channelID, uint8_t* data, uint
 
     case BTCODE_HID: {
       if (!g_runtime.wiimoteState.isConnected()) {
+        UNVERBOSE_PRINT("[TinyWiimote] *** WIIMOTE DETECTED! Setting LED and marking as connected ***\n");
         g_runtime.wiimoteProtocol.setLeds(ch, 0b0001);
         UNVERBOSE_PRINT("Wiimote detected\n");
         g_runtime.wiimoteState.setConnected(true);
@@ -218,20 +213,34 @@ TinyWiimoteData TinyWiimoteRead(void) {
 }
 
 void TinyWiimoteInit(struct TwHciInterface hciInterface) {
+  VERBOSE_PRINTLN("[TinyWiimote] Initializing TinyWiimote core...");
+  
   g_runtime.hciInterface = hciInterface;
 
+  VERBOSE_PRINTLN("[TinyWiimote] Resetting wiimote state...");
   g_runtime.wiimoteState.reset();
   g_runtime.wiimoteReports.clear();
+  
+  VERBOSE_PRINTLN("[TinyWiimote] Setting up packet sender...");
   g_runtime.packetSender.setSendCallback(send_hci_packet_raw);
+  
+  VERBOSE_PRINTLN("[TinyWiimote] Initializing L2CAP connections...");
   g_runtime.l2capConnections.clear();
   g_runtime.l2capSignaling.init(&g_runtime.l2capConnections, &g_runtime.packetSender);
+  
+  VERBOSE_PRINTLN("[TinyWiimote] Initializing Wiimote protocol...");
   g_runtime.wiimoteProtocol.init(&g_runtime.l2capConnections, &g_runtime.packetSender);
+  
+  VERBOSE_PRINTLN("[TinyWiimote] Initializing Wiimote extensions...");
   g_runtime.wiimoteExtensions.init(&g_runtime.wiimoteState,
                                    &g_runtime.l2capConnections,
                                    &g_runtime.packetSender);
 
+  VERBOSE_PRINTLN("[TinyWiimote] Initializing HCI events...");
   hci_events_init(&g_runtime.hciEventContext, hci_send_packet_adapter, 0);
   hci_events_set_callbacks(&g_runtime.hciEventContext, on_acl_connected, on_disconnected);
+  
+  VERBOSE_PRINTLN("[TinyWiimote] TinyWiimote core initialization complete!");
 }
 
 void TinyWiimoteReqAccelerometer(bool use) {

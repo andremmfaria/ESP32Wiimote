@@ -7,6 +7,7 @@
 
 #include "l2cap_packets.h"
 #include "../utils/hci_utils.h"
+#include "../../utils/serial_logging.h"
 
 L2capPacketSender::L2capPacketSender() : sendCallback(nullptr) {}
 
@@ -36,9 +37,17 @@ uint16_t make_acl_l2cap_packet(uint8_t* buf, uint16_t ch, uint8_t pbf, uint8_t b
 
 void L2capPacketSender::sendAclL2capPacket(uint16_t ch, uint16_t remoteCID, uint8_t* payload,
                                            uint16_t payloadLen) {
-  if (sendCallback == nullptr || payloadLen > 255) {
+  if (sendCallback == nullptr) {
+    VERBOSE_PRINT("[L2CAP] ERROR: sendCallback is null\n");
     return;
   }
+  
+  if (payloadLen > 255) {
+    VERBOSE_PRINT("[L2CAP] ERROR: Payload too large: %d bytes (max 255)\n", payloadLen);
+    return;
+  }
+
+  VERBOSE_PRINT("[L2CAP] Sending ACL packet: ch=0x%04x remoteCID=0x%04x len=%d\n", ch, remoteCID, payloadLen);
 
   const uint8_t pbf = 0b10;
   const uint8_t bf = 0b00;

@@ -17,6 +17,7 @@
 
 #include "ESP32Wiimote.h"
 #include "TinyWiimote.h"
+#include "utils/serial_logging.h"
 
 /**
  * Constructor - Initialize all component managers
@@ -37,11 +38,16 @@ ESP32Wiimote::ESP32Wiimote(int NUNCHUK_STICK_THRESHOLD)
  */
 void ESP32Wiimote::init(void)
 {
+    VERBOSE_PRINTLN("[ESP32Wiimote] Starting initialization...");
+    
     // Initialize Bluetooth controller (which initializes TinyWiimote, queues, and VHCI callbacks)
+    VERBOSE_PRINTLN("[ESP32Wiimote] Calling BluetoothController::init()...");
     if (!_btController->init(_hciCallbacks, _queueManager)) {
-        Serial.printf("Failed to initialize Bluetooth controller\n");
+        UNVERBOSE_PRINT("[ESP32Wiimote] ERROR: Bluetooth controller initialization failed!\n");
         return;
     }
+    
+    VERBOSE_PRINTLN("[ESP32Wiimote] Initialization complete!");
 }
 
 /**

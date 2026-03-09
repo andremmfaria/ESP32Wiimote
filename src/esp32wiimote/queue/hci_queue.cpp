@@ -11,18 +11,7 @@
 #include "Arduino.h"
 #include "esp_bt.h"
 #include "TinyWiimote.h"
-
-#define WIIMOTE_VERBOSE 0
-
-#if WIIMOTE_VERBOSE
-#define VERBOSE_PRINT(...) Serial.printf(__VA_ARGS__)
-#define VERBOSE_PRINTLN(...) Serial.println(__VA_ARGS__)
-#else
-#define VERBOSE_PRINT(...) do {} while(0)
-#define VERBOSE_PRINTLN(...) do {} while(0)
-#endif
-
-#define UNVERBOSE_PRINT(...) do {} while(0)
+#include "../../utils/serial_logging.h"
 
 HciQueueManager::HciQueueManager(size_t rxQueueSize, size_t txQueueSize)
     : _txQueue(NULL), _rxQueue(NULL),
@@ -37,18 +26,20 @@ HciQueueManager::~HciQueueManager()
 
 bool HciQueueManager::createQueues(void)
 {
+    VERBOSE_PRINTLN("[HciQueue] Creating TX and RX queues...");
     _txQueue = xQueueCreate(_txQueueSize, sizeof(struct HciQueueData*));
     if (_txQueue == NULL) {
-        VERBOSE_PRINTLN("xQueueCreate(txQueue) failed");
+        UNVERBOSE_PRINT("[HciQueue] ERROR: xQueueCreate(txQueue) failed\n");
         return false;
     }
     
     _rxQueue = xQueueCreate(_rxQueueSize, sizeof(struct HciQueueData*));
     if (_rxQueue == NULL) {
-        VERBOSE_PRINTLN("xQueueCreate(rxQueue) failed");
+        UNVERBOSE_PRINT("[HciQueue] ERROR: xQueueCreate(rxQueue) failed\n");
         return false;
     }
     
+    VERBOSE_PRINTLN("[HciQueue] Queues created successfully");
     return true;
 }
 
@@ -57,13 +48,13 @@ bool HciQueueManager::sendToQueue(xQueueHandle queue, uint8_t* data, size_t len,
     VERBOSE_PRINTLN(debugLabel);
     
     if (!data || !len) {
-        VERBOSE_PRINTLN("no data");
+        VERBOSE_PRINT("[HciQueue] No data to send (len=%d)\n", len);
         return true;
     }
     
     HciQueueData* queuedata = (HciQueueData*)malloc(sizeof(HciQueueData) + len);
     if (!queuedata) {
-        VERBOSE_PRINTLN("malloc failed");
+        UNVERBOSE_PRINT("[HciQueue] ERROR: malloc failed for %d bytes\n", sizeof(HciQueueData) + len);
         return false;
     }
     
@@ -71,7 +62,7 @@ bool HciQueueManager::sendToQueue(xQueueHandle queue, uint8_t* data, size_t len,
     memcpy(queuedata->data, data, len);
     
     if (xQueueSend(queue, &queuedata, portMAX_DELAY) != pdPASS) {
-        VERBOSE_PRINTLN("xQueueSend failed");
+        UNVERBOSE_PRINT("[HciQueue] ERROR: xQueueSend failed\n");
         free(queuedata);
         return false;
     }
@@ -83,7 +74,7 @@ bool HciQueueManager::sendToTxQueue(uint8_t* data, size_t len)
 {
     bool result = sendToQueue(_txQueue, data, len, "sendToTxQueue");
     if (result && data && len) {
-        UNVERBOSE_PRINT("RECV <= %s\n", format2Hex(data, len));
+        VERBOSE_PRINT("RECV <= %s\n", format2Hex(data, len));
     }
     return result;
 }
@@ -92,7 +83,7 @@ bool HciQueueManager::sendToRxQueue(uint8_t* data, size_t len)
 {
     bool result = sendToQueue(_rxQueue, data, len, "sendToRxQueue");
     if (result && data && len) {
-        UNVERBOSE_PRINT("SEND => %s\n", format2Hex(data, len));
+        VERBOSE_PRINT("SEND => %s\n", format2Hex(data, len));
     }
     return result;
 }
@@ -107,7 +98,7 @@ void HciQueueManager::processTxQueue(void)
             HciQueueData* queuedata = NULL;
             if (xQueueReceive(_txQueue, &queuedata, 0) == pdTRUE) {
                 esp_vhci_host_send_packet(queuedata->data, queuedata->len);
-                UNVERBOSE_PRINT("SEND => %s\n", format2Hex(queuedata->data, queuedata->len));
+                VERBOSE_PRINT("SEND => %s\n", format2Hex(queuedata->data, queuedata->len));
                 free(queuedata);
             }
         }
