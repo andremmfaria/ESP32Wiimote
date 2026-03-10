@@ -7,32 +7,24 @@
 
 #include "button_state.h"
 
-ButtonStateManager::ButtonStateManager()
-    : _current(NO_BUTTON), _previous(NO_BUTTON)
-{
-}
+ButtonStateManager::ButtonStateManager() : _current(NO_BUTTON), _previous(NO_BUTTON) {}
 
-void ButtonStateManager::update(ButtonState currentState)
-{
+void ButtonStateManager::update(ButtonState currentState) {
     _current = currentState;
 }
 
-ButtonState ButtonStateManager::getCurrent(void) const
-{
+ButtonState ButtonStateManager::getCurrent(void) const {
     return _current;
 }
 
-ButtonState ButtonStateManager::getPrevious(void) const
-{
+ButtonState ButtonStateManager::getPrevious(void) const {
     return _previous;
 }
 
-bool ButtonStateManager::hasChanged(void) const
-{
+bool ButtonStateManager::hasChanged(void) const {
     return _current != _previous;
 }
 
-void ButtonStateManager::resetChangeFlag(void)
-{
+void ButtonStateManager::resetChangeFlag(void) {
     _previous = _current;
 }

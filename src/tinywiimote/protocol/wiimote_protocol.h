@@ -8,11 +8,11 @@
 #ifndef __WIIMOTE_PROTOCOL_H__
 #define __WIIMOTE_PROTOCOL_H__
 
-#include <stdint.h>
-#include <stdbool.h>
-
 #include "../l2cap/l2cap_connection.h"
 #include "../l2cap/l2cap_packets.h"
+
+#include <stdbool.h>
+#include <stdint.h>
 
 /**
  * Wiimote Protocol - Wiimote-specific commands and operations
@@ -26,14 +26,10 @@
 /**
  * Memory address space types
  */
-typedef enum
-{
-    EEPROM_MEMORY = 0x00,
-    CONTROL_REGISTER = 0x04
-} address_space_t;
+typedef enum { EEPROM_MEMORY = 0x00, CONTROL_REGISTER = 0x04 } address_space_t;
 
 class WiimoteProtocol {
- public:
+   public:
     WiimoteProtocol();
 
     void init(const L2capConnectionTable* connections, L2capPacketSender* sender);
@@ -41,12 +37,14 @@ class WiimoteProtocol {
     void setLeds(uint16_t ch, uint8_t leds);
     void setReportingMode(uint16_t ch, uint8_t mode, bool continuous);
     void requestStatus(uint16_t ch);
-    void writeMemory(uint16_t ch, address_space_t address_space, uint32_t offset,
-                                     const uint8_t* data, uint8_t length);
-    void readMemory(uint16_t ch, address_space_t address_space, uint32_t offset,
-                                    uint16_t size);
+    void writeMemory(uint16_t ch,
+                     address_space_t address_space,
+                     uint32_t offset,
+                     const uint8_t* data,
+                     uint8_t length);
+    void readMemory(uint16_t ch, address_space_t address_space, uint32_t offset, uint16_t size);
 
- private:
+   private:
     /**
      * Validate memory operation size
      * @param size Size to validate
@@ -60,4 +58,4 @@ class WiimoteProtocol {
     uint8_t payload[64];
 };
 
-#endif // __WIIMOTE_PROTOCOL_H__
+#endif  // __WIIMOTE_PROTOCOL_H__

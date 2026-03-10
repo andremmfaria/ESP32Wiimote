@@ -12,7 +12,7 @@
 
 /**
  * Logging Level Configuration
- * 
+ *
  * Library users can override WIIMOTE_VERBOSE before including
  * ESP32Wiimote.h, or via build flags such as:
  *   -DWIIMOTE_VERBOSE=3
@@ -28,10 +28,10 @@
 #endif
 
 // Log level thresholds
-#define LOG_LEVEL_ERROR   0
+#define LOG_LEVEL_ERROR 0
 #define LOG_LEVEL_WARNING 1
-#define LOG_LEVEL_INFO    2
-#define LOG_LEVEL_DEBUG   3
+#define LOG_LEVEL_INFO 2
+#define LOG_LEVEL_DEBUG 3
 
 /**
  * ERROR: Critical errors that always need attention
@@ -46,7 +46,9 @@
 #if WIIMOTE_VERBOSE >= LOG_LEVEL_WARNING
 #define LOG_WARN(...) Serial.printf("[WARN] " __VA_ARGS__)
 #else
-#define LOG_WARN(...) do {} while(0)
+#define LOG_WARN(...) \
+    do {              \
+    } while (0)
 #endif
 
 /**
@@ -56,7 +58,9 @@
 #if WIIMOTE_VERBOSE >= LOG_LEVEL_INFO
 #define LOG_INFO(...) Serial.printf("[INFO] " __VA_ARGS__)
 #else
-#define LOG_INFO(...) do {} while(0)
+#define LOG_INFO(...) \
+    do {              \
+    } while (0)
 #endif
 
 /**
@@ -66,7 +70,9 @@
 #if WIIMOTE_VERBOSE >= LOG_LEVEL_DEBUG
 #define LOG_DEBUG(...) Serial.printf("[DEBUG] " __VA_ARGS__)
 #else
-#define LOG_DEBUG(...) do {} while(0)
+#define LOG_DEBUG(...) \
+    do {               \
+    } while (0)
 #endif
 
-#endif // WIIMOTE_VERBOSE_H
+#endif  // WIIMOTE_VERBOSE_H

@@ -15,14 +15,14 @@
 #ifndef _TINY_WIIMOTE_H_
 #define _TINY_WIIMOTE_H_
 
+#include "tinywiimote/protocol/wiimote_reports.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#include "tinywiimote/protocol/wiimote_reports.h"
-
 struct TwHciInterface {
-    void (*hci_send_packet)(uint8_t *data, size_t len);
+    void (*hci_send_packet)(uint8_t* data, size_t len);
 };
 
 void TinyWiimoteInit(struct TwHciInterface hciInterface);
@@ -41,4 +41,4 @@ void handleHciData(uint8_t* data, size_t len);
 
 char* format2Hex(uint8_t* data, uint16_t len);
 
-#endif // _TINY_WIIMOTE_H_
+#endif  // _TINY_WIIMOTE_H_

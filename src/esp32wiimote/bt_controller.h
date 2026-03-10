@@ -19,9 +19,9 @@ class HciQueueManager;
  * Initializes and manages ESP32 Bluetooth controller
  */
 class BluetoothController {
-public:
+   public:
     BluetoothController();
-    
+
     /**
      * Initialize Bluetooth controller and HCI interface
      * @param hciCallbacks Callback handler
@@ -29,14 +29,14 @@ public:
      * @return true if initialization successful, false otherwise
      */
     bool init(HciCallbacksHandler* hciCallbacks, HciQueueManager* queueManager);
-    
+
     /**
      * Check if Bluetooth is started
      */
     bool isStarted(void) const;
 
-private:
+   private:
     bool _initialized;
 };
 
-#endif // __BT_CONTROLLER_H__
+#endif  // __BT_CONTROLLER_H__

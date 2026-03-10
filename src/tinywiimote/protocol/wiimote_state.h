@@ -4,28 +4,28 @@
 #include <stdint.h>
 
 class WiimoteState {
- public:
-  WiimoteState();
+   public:
+    WiimoteState();
 
-  void reset();
+    void reset();
 
-  void setConnected(bool connected);
-  bool isConnected() const;
+    void setConnected(bool connected);
+    bool isConnected() const;
 
-  void setNunchukConnected(bool connected);
-  bool isNunchukConnected() const;
+    void setNunchukConnected(bool connected);
+    bool isNunchukConnected() const;
 
-  void setBatteryLevel(uint8_t level);
-  uint8_t getBatteryLevel() const;
+    void setBatteryLevel(uint8_t level);
+    uint8_t getBatteryLevel() const;
 
-  void setUseAccelerometer(bool use);
-  bool getUseAccelerometer() const;
+    void setUseAccelerometer(bool use);
+    bool getUseAccelerometer() const;
 
- private:
-  bool wiimoteConnected;
-  bool nunchukConnected;
-  uint8_t batteryLevel;
-  bool useAccelerometer;
+   private:
+    bool wiimoteConnected;
+    bool nunchukConnected;
+    uint8_t batteryLevel;
+    bool useAccelerometer;
 };
 
 #endif

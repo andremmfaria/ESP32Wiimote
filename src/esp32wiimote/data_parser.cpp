@@ -6,15 +6,14 @@
 // - Or see LICENSE.md
 
 #include "data_parser.h"
+
 #include "../utils/serial_logging.h"
 
-WiimoteDataParser::WiimoteDataParser(ButtonStateManager* buttonState, SensorStateManager* sensorState)
-    : _buttonState(buttonState), _sensorState(sensorState), _filter(FILTER_NONE)
-{
-}
+WiimoteDataParser::WiimoteDataParser(ButtonStateManager* buttonState,
+                                     SensorStateManager* sensorState)
+    : _buttonState(buttonState), _sensorState(sensorState), _filter(FILTER_NONE) {}
 
-int WiimoteDataParser::parseData(void)
-{
+int WiimoteDataParser::parseData(void) {
     int buttonChanged = false;
     int accelChanged = false;
     int nunchukStickChanged = false;
@@ -29,7 +28,7 @@ int WiimoteDataParser::parseData(void)
         LOG_DEBUG("DataParser: Data too short: len=%d\n", rd.len);
         return 0;
     }
-    if (rd.data[0] != 0xA1) { // HID data report type
+    if (rd.data[0] != 0xA1) {  // HID data report type
         LOG_DEBUG("DataParser: Invalid report type: 0x%02x\n", rd.data[0]);
         return 0;
     }
@@ -46,18 +45,15 @@ int WiimoteDataParser::parseData(void)
     return (buttonChanged | nunchukStickChanged | accelChanged);
 }
 
-void WiimoteDataParser::setFilter(int filter)
-{
+void WiimoteDataParser::setFilter(int filter) {
     _filter = filter;
 }
 
-int WiimoteDataParser::getFilter(void) const
-{
+int WiimoteDataParser::getFilter(void) const {
     return _filter;
 }
 
-void WiimoteDataParser::parseButtonData(const TinyWiimoteData& data, int& buttonChanged)
-{
+void WiimoteDataParser::parseButtonData(const TinyWiimoteData& data, int& buttonChanged) {
     int offs = 0;
 
     // Check for button data in report
@@ -75,14 +71,13 @@ void WiimoteDataParser::parseButtonData(const TinyWiimoteData& data, int& button
     }
 }
 
-void WiimoteDataParser::parseAccelData(const TinyWiimoteData& data, int& accelChanged)
-{
+void WiimoteDataParser::parseAccelData(const TinyWiimoteData& data, int& accelChanged) {
     int offs = 0;
 
     // Determine accelerometer data offset based on report type
     switch (data.data[1]) {
-        case 0x31: // Core Buttons and Accelerometer
-        case 0x35: // Core Buttons and Accelerometer with 16 Extension Bytes
+        case 0x31:  // Core Buttons and Accelerometer
+        case 0x35:  // Core Buttons and Accelerometer with 16 Extension Bytes
             offs = 4;
             break;
         default:
@@ -104,16 +99,18 @@ void WiimoteDataParser::parseAccelData(const TinyWiimoteData& data, int& accelCh
     }
 }
 
-void WiimoteDataParser::parseNunchukData(const TinyWiimoteData& data, int& nunchukStickChanged, int& accelChanged, int& buttonChanged)
-{
+void WiimoteDataParser::parseNunchukData(const TinyWiimoteData& data,
+                                         int& nunchukStickChanged,
+                                         int& accelChanged,
+                                         int& buttonChanged) {
     int offs = 0;
 
     // Determine nunchuk/extension data offset based on report type
     switch (data.data[1]) {
-        case 0x32: // Core Buttons with 8 Extension bytes
+        case 0x32:  // Core Buttons with 8 Extension bytes
             offs = 4;
             break;
-        case 0x35: // Core Buttons and Accelerometer with 16 Extension Bytes
+        case 0x35:  // Core Buttons and Accelerometer with 16 Extension Bytes
             offs = 7;
             break;
         default:

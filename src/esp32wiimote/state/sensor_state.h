@@ -34,72 +34,72 @@ struct NunchukState {
  * Sensor State Manager - Tracks accelerometer and nunchuk sensor data
  */
 class SensorStateManager {
-public:
+   public:
     SensorStateManager(int nunchukStickThreshold = 1);
-    
+
     /**
      * Update accelerometer state
      */
     void updateAccel(struct AccelState state);
-    
+
     /**
      * Update nunchuk state
      */
     void updateNunchuk(struct NunchukState state);
-    
+
     /**
      * Reset accelerometer state to zero
      */
     void resetAccel(void);
-    
+
     /**
      * Reset nunchuk state to zero
      */
     void resetNunchuk(void);
-    
+
     /**
      * Get current accelerometer state
      */
     struct AccelState getAccel(void) const;
-    
+
     /**
      * Get current nunchuk state
      */
     struct NunchukState getNunchuk(void) const;
-    
+
     /**
      * Get previous accelerometer state
      */
     struct AccelState getPreviousAccel(void) const;
-    
+
     /**
      * Get previous nunchuk state
      */
     struct NunchukState getPreviousNunchuk(void) const;
-    
+
     /**
      * Check if accelerometer state changed
      */
     bool accelHasChanged(void) const;
-    
+
     /**
      * Check if nunchuk stick changed (based on threshold)
      */
     bool nunchukStickHasChanged(void) const;
-    
+
     /**
      * Reset change flags and store current as previous
      */
     void resetChangeFlags(void);
 
-private:
+   private:
     struct AccelState _currentAccel;
     struct AccelState _previousAccel;
-    
+
     struct NunchukState _currentNunchuk;
     struct NunchukState _previousNunchuk;
-    
+
     int _nunchukStickThreshold;
 };
 
-#endif // __SENSOR_STATE_H__
+#endif  // __SENSOR_STATE_H__

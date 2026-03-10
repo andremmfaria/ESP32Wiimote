@@ -13,10 +13,10 @@
 
 /**
  * PayloadBuilder - Helper class for building binary payloads
- * 
+ *
  * Eliminates repetitive posi++ patterns and provides a clean API
  * for constructing HCI/L2CAP/Wiimote protocol packets.
- * 
+ *
  * Example usage:
  *   uint8_t buffer[64];
  *   PayloadBuilder pb(buffer, sizeof(buffer));
@@ -26,20 +26,19 @@
  *   sender->send(buffer, pb.length());
  */
 class PayloadBuilder {
- private:
+   private:
     uint8_t* buffer;
     uint16_t position;
     uint16_t capacity;
-    
- public:
+
+   public:
     /**
      * Construct a PayloadBuilder for a given buffer
      * @param buf Pointer to buffer
      * @param cap Buffer capacity
      */
-    PayloadBuilder(uint8_t* buf, uint16_t cap) 
-        : buffer(buf), position(0), capacity(cap) {}
-    
+    PayloadBuilder(uint8_t* buf, uint16_t cap) : buffer(buf), position(0), capacity(cap) {}
+
     /**
      * Append a single byte
      * @param val Byte value
@@ -49,7 +48,7 @@ class PayloadBuilder {
             buffer[position++] = val;
         }
     }
-    
+
     /**
      * Append 16-bit value in little-endian format (low byte first)
      * @param val 16-bit value
@@ -58,7 +57,7 @@ class PayloadBuilder {
         append((uint8_t)(val & 0xFF));
         append((uint8_t)(val >> 8));
     }
-    
+
     /**
      * Append 16-bit value in big-endian format (high byte first)
      * @param val 16-bit value
@@ -67,17 +66,17 @@ class PayloadBuilder {
         append((uint8_t)(val >> 8));
         append((uint8_t)(val & 0xFF));
     }
-    
+
     /**
      * Append 24-bit value in big-endian format (used for Wiimote addresses)
      * @param val 24-bit value (only lower 24 bits used)
      */
     void appendU24BE(uint32_t val) {
         append((uint8_t)((val >> 16) & 0xFF));
-        append((uint8_t)((val >>  8) & 0xFF));
-        append((uint8_t)((val      ) & 0xFF));
+        append((uint8_t)((val >> 8) & 0xFF));
+        append((uint8_t)((val) & 0xFF));
     }
-    
+
     /**
      * Append array of bytes
      * @param data Pointer to source data
@@ -88,7 +87,7 @@ class PayloadBuilder {
             buffer[position++] = data[i];
         }
     }
-    
+
     /**
      * Append zero bytes (padding)
      * @param count Number of zero bytes to append
@@ -98,7 +97,7 @@ class PayloadBuilder {
             buffer[position++] = 0x00;
         }
     }
-    
+
     /**
      * Zero-fill a region and advance position
      * Unlike appendZeros, this uses memset for efficiency
@@ -110,22 +109,18 @@ class PayloadBuilder {
             position += count;
         }
     }
-    
+
     /**
      * Get current payload length
      * @return Number of bytes written
      */
-    uint16_t length() const {
-        return position;
-    }
-    
+    uint16_t length() const { return position; }
+
     /**
      * Get pointer to buffer
      * @return Buffer pointer
      */
-    uint8_t* data() const {
-        return buffer;
-    }
+    uint8_t* data() const { return buffer; }
 };
 
-#endif // __PAYLOAD_BUILDER_H__
+#endif  // __PAYLOAD_BUILDER_H__

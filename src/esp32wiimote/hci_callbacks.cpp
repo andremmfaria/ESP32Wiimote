@@ -6,46 +6,41 @@
 // - Or see LICENSE.md
 
 #include "hci_callbacks.h"
-#include "queue/hci_queue.h"
-#include "TinyWiimote.h"
-#include "Arduino.h"
+
 #include "../utils/serial_logging.h"
+#include "Arduino.h"
+#include "TinyWiimote.h"
+#include "queue/hci_queue.h"
 
 // Static member initialization
 HciQueueManager* HciCallbacksHandler::_queueManager = NULL;
 
-HciCallbacksHandler::HciCallbacksHandler()
-{
+HciCallbacksHandler::HciCallbacksHandler() {
     _hciInterface.hci_send_packet = hciHostSendPacket;
 }
 
-void HciCallbacksHandler::setQueueManager(HciQueueManager* queueManager)
-{
+void HciCallbacksHandler::setQueueManager(HciQueueManager* queueManager) {
     _queueManager = queueManager;
 }
 
-const struct TwHciInterface* HciCallbacksHandler::getHciInterface(void) const
-{
+const struct TwHciInterface* HciCallbacksHandler::getHciInterface(void) const {
     return &_hciInterface;
 }
 
-esp_vhci_host_callback_t* HciCallbacksHandler::getVhciCallback(void)
-{
+esp_vhci_host_callback_t* HciCallbacksHandler::getVhciCallback(void) {
     _vhciCallback.notify_host_recv = notifyHostRecv;
     _vhciCallback.notify_host_send_available = notifyHostSendAvailable;
     return &_vhciCallback;
 }
 
-void HciCallbacksHandler::notifyHostSendAvailable(void)
-{
+void HciCallbacksHandler::notifyHostSendAvailable(void) {
     LOG_DEBUG("notifyHostSendAvailable\n");
     if (!TinyWiimoteDeviceIsInited()) {
         TinyWiimoteResetDevice();
     }
 }
 
-int HciCallbacksHandler::notifyHostRecv(uint8_t* data, uint16_t len)
-{
+int HciCallbacksHandler::notifyHostRecv(uint8_t* data, uint16_t len) {
     LOG_DEBUG("notifyHostRecv:");
     for (int i = 0; i < len; i++) {
         LOG_DEBUG(" %02x", data[i]);
@@ -60,8 +55,7 @@ int HciCallbacksHandler::notifyHostRecv(uint8_t* data, uint16_t len)
     }
 }
 
-void HciCallbacksHandler::hciHostSendPacket(uint8_t* data, size_t len)
-{
+void HciCallbacksHandler::hciHostSendPacket(uint8_t* data, size_t len) {
     if (_queueManager) {
         _queueManager->sendToTxQueue(data, len);
     } else {

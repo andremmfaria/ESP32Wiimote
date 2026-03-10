@@ -8,10 +8,11 @@
 #ifndef __HCI_QUEUE_H__
 #define __HCI_QUEUE_H__
 
-#include <stdint.h>
-#include <stddef.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+
+#include <stddef.h>
+#include <stdint.h>
 
 /**
  * HCI Queue Data Structure
@@ -25,16 +26,16 @@ struct HciQueueData {
  * HCI Queue Manager - Handles TX/RX queues for HCI packets
  */
 class HciQueueManager {
-public:
+   public:
     HciQueueManager(size_t rxQueueSize = 32, size_t txQueueSize = 32);
     ~HciQueueManager();
-    
+
     /**
      * Create and initialize the TX and RX queues
      * @return true if queues created successfully, false otherwise
      */
     bool createQueues(void);
-    
+
     /**
      * Send data to TX queue (for outgoing packets)
      * @param data Pointer to packet data
@@ -42,7 +43,7 @@ public:
      * @return true if successful, false otherwise
      */
     bool sendToTxQueue(uint8_t* data, size_t len);
-    
+
     /**
      * Send data to RX queue (for incoming packets)
      * @param data Pointer to packet data
@@ -50,30 +51,30 @@ public:
      * @return true if successful, false otherwise
      */
     bool sendToRxQueue(uint8_t* data, size_t len);
-    
+
     /**
      * Process TX queue - sends queued packets if possible
      * Must be called from main task
      */
     void processTxQueue(void);
-    
+
     /**
      * Process RX queue - handles received packets
      * Must be called from main task
      */
     void processRxQueue(void);
-    
+
     /**
      * Check if TX queue has pending packets
      */
     bool hasTxPending(void) const;
-    
+
     /**
      * Check if RX queue has pending packets
      */
     bool hasRxPending(void) const;
 
-private:
+   private:
     /**
      * Internal helper to enqueue data to a specified queue
      * @param queue Target queue handle
@@ -90,4 +91,4 @@ private:
     size_t _txQueueSize;
 };
 
-#endif // __HCI_QUEUE_H__
+#endif  // __HCI_QUEUE_H__

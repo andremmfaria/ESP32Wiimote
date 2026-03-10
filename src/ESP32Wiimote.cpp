@@ -5,25 +5,25 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#include <stdint.h>
-#include <string.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include "nvs.h"
-#include "nvs_flash.h"
+#include "ESP32Wiimote.h"
+
+#include "Arduino.h"
+#include "TinyWiimote.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "Arduino.h"
-
-#include "ESP32Wiimote.h"
-#include "TinyWiimote.h"
+#include "nvs.h"
+#include "nvs_flash.h"
 #include "utils/serial_logging.h"
+
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 
 /**
  * Constructor - Initialize all component managers
  */
-ESP32Wiimote::ESP32Wiimote(int NUNCHUK_STICK_THRESHOLD)
-{
+ESP32Wiimote::ESP32Wiimote(int NUNCHUK_STICK_THRESHOLD) {
     _btController = new BluetoothController();
     _hciCallbacks = new HciCallbacksHandler();
     _queueManager = new HciQueueManager(32, 32);
@@ -37,17 +37,16 @@ ESP32Wiimote::ESP32Wiimote(int NUNCHUK_STICK_THRESHOLD)
  * Orchestrates initialization of all components
  * Returns true if initialization succeeded, false otherwise
  */
-bool ESP32Wiimote::init(void)
-{
+bool ESP32Wiimote::init(void) {
     LOG_INFO("ESP32Wiimote: Starting initialization...\n");
-    
+
     // Initialize Bluetooth controller (which initializes TinyWiimote, queues, and VHCI callbacks)
     LOG_DEBUG("ESP32Wiimote: Calling BluetoothController::init()...\n");
     if (!_btController->init(_hciCallbacks, _queueManager)) {
         LOG_ERROR("ESP32Wiimote: Bluetooth controller initialization failed!\n");
         return false;
     }
-    
+
     LOG_INFO("ESP32Wiimote: Initialization complete!\n");
     return true;
 }
@@ -56,12 +55,11 @@ bool ESP32Wiimote::init(void)
  * Process HCI tasks
  * Should be called regularly in the main loop
  */
-void ESP32Wiimote::task(void)
-{
+void ESP32Wiimote::task(void) {
     if (!_btController->isStarted()) {
         return;
     }
-    
+
     // Process pending HCI packets
     _queueManager->processTxQueue();
     _queueManager->processRxQueue();
@@ -71,64 +69,56 @@ void ESP32Wiimote::task(void)
  * Check if new sensor/button data is available
  * Delegates to data parser
  */
-int ESP32Wiimote::available(void)
-{
+int ESP32Wiimote::available(void) {
     return _dataParser->parseData();
 }
 
 /**
  * Get current button state
  */
-ButtonState ESP32Wiimote::getButtonState(void)
-{
+ButtonState ESP32Wiimote::getButtonState(void) {
     return _buttonState->getCurrent();
 }
 
 /**
  * Get current accelerometer state
  */
-struct AccelState ESP32Wiimote::getAccelState(void)
-{
+struct AccelState ESP32Wiimote::getAccelState(void) {
     return _sensorState->getAccel();
 }
 
 /**
  * Get current nunchuk state
  */
-struct NunchukState ESP32Wiimote::getNunchukState(void)
-{
+struct NunchukState ESP32Wiimote::getNunchukState(void) {
     return _sensorState->getNunchuk();
 }
 
 /**
  * Check if Wiimote is connected
  */
-bool ESP32Wiimote::isConnected(void)
-{
+bool ESP32Wiimote::isConnected(void) {
     return TinyWiimoteIsConnected();
 }
 
 /**
  * Get battery level
  */
-uint8_t ESP32Wiimote::getBatteryLevel(void)
-{
+uint8_t ESP32Wiimote::getBatteryLevel(void) {
     return TinyWiimoteGetBatteryLevel();
 }
 
 /**
  * Request battery status update
  */
-void ESP32Wiimote::requestBatteryUpdate(void)
-{
+void ESP32Wiimote::requestBatteryUpdate(void) {
     TinyWiimoteRequestBatteryUpdate();
 }
 
 /**
  * Add filter to ignore certain data types
  */
-void ESP32Wiimote::addFilter(int action, int filter)
-{
+void ESP32Wiimote::addFilter(int action, int filter) {
     if (action == ACTION_IGNORE) {
         _dataParser->setFilter(_dataParser->getFilter() | filter);
 
@@ -137,4 +127,3 @@ void ESP32Wiimote::addFilter(int action, int filter)
         }
     }
 }
-

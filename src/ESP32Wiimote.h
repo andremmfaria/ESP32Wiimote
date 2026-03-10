@@ -9,12 +9,12 @@
 #define __ESP32_WIIMOTE_H__
 
 #include "TinyWiimote.h"
-#include "esp32wiimote/state/button_state.h"
-#include "esp32wiimote/state/sensor_state.h"
-#include "esp32wiimote/queue/hci_queue.h"
-#include "esp32wiimote/hci_callbacks.h"
 #include "esp32wiimote/bt_controller.h"
 #include "esp32wiimote/data_parser.h"
+#include "esp32wiimote/hci_callbacks.h"
+#include "esp32wiimote/queue/hci_queue.h"
+#include "esp32wiimote/state/button_state.h"
+#include "esp32wiimote/state/sensor_state.h"
 
 /**
  * Action types for filters
@@ -26,7 +26,7 @@ enum {
 /**
  * ESP32Wiimote - Main Wiimote controller interface for ESP32
  * Provides high-level API for Wiimote button, sensor, and nunchuk data
- * 
+ *
  * Delegates responsibilities to:
  * - BluetoothController: BT initialization
  * - HciCallbacksHandler: HCI callbacks
@@ -36,7 +36,7 @@ enum {
  * - WiimoteDataParser: Data parsing
  */
 class ESP32Wiimote {
-public:
+   public:
     /**
      * Create ESP32Wiimote instance
      * @param NUNCHUK_STICK_THRESHOLD Sensitivity threshold for nunchuk stick changes (default: 1)
@@ -48,55 +48,55 @@ public:
      * Must be called before using other methods
      */
     bool init(void);
-    
+
     /**
      * Process HCI tasks
      * Must be called regularly (e.g., in main loop)
      */
     void task(void);
-    
+
     /**
      * Check if new data is available
      * @return 1 if data changed, 0 otherwise
      */
     int available(void);
-    
+
     /**
      * Get current button state
      * @return ButtonState enum value
      */
     ButtonState getButtonState(void);
-    
+
     /**
      * Get current accelerometer state
      * @return AccelState with x, y, z values
      */
     struct AccelState getAccelState(void);
-    
+
     /**
      * Get current nunchuk state
      * @return NunchukState with stick and accelerometer values
      */
     struct NunchukState getNunchukState(void);
-    
+
     /**
      * Check if Wiimote is connected
      * @return true if connected, false otherwise
      */
     bool isConnected(void);
-    
+
     /**
      * Get battery level
      * @return Battery level (0-100)
      */
     uint8_t getBatteryLevel(void);
-    
+
     /**
      * Request battery status update from Wiimote
      * Battery level will be updated when response is received
      */
     void requestBatteryUpdate(void);
-    
+
     /**
      * Add filter to ignore certain data types
      * @param action Filter action (ACTION_IGNORE)
@@ -104,7 +104,7 @@ public:
      */
     void addFilter(int action, int filter);
 
-private:
+   private:
     // Component managers
     BluetoothController* _btController;
     HciCallbacksHandler* _hciCallbacks;
@@ -114,4 +114,4 @@ private:
     WiimoteDataParser* _dataParser;
 };
 
-#endif // __ESP32_WIIMOTE_H__
+#endif  // __ESP32_WIIMOTE_H__
