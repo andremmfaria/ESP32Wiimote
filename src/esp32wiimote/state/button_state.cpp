@@ -13,18 +13,18 @@ void ButtonStateManager::update(ButtonState currentState) {
     _current = currentState;
 }
 
-ButtonState ButtonStateManager::getCurrent(void) const {
+ButtonState ButtonStateManager::getCurrent() const {
     return _current;
 }
 
-ButtonState ButtonStateManager::getPrevious(void) const {
+ButtonState ButtonStateManager::getPrevious() const {
     return _previous;
 }
 
-bool ButtonStateManager::hasChanged(void) const {
+bool ButtonStateManager::hasChanged() const {
     return _current != _previous;
 }
 
-void ButtonStateManager::resetChangeFlag(void) {
+void ButtonStateManager::resetChangeFlag() {
     _previous = _current;
 }

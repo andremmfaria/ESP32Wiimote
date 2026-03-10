@@ -37,7 +37,7 @@ ESP32Wiimote::ESP32Wiimote(int NUNCHUK_STICK_THRESHOLD) {
  * Orchestrates initialization of all components
  * Returns true if initialization succeeded, false otherwise
  */
-bool ESP32Wiimote::init(void) {
+bool ESP32Wiimote::init() {
     LOG_INFO("ESP32Wiimote: Starting initialization...\n");
 
     // Initialize Bluetooth controller (which initializes TinyWiimote, queues, and VHCI callbacks)
@@ -55,8 +55,8 @@ bool ESP32Wiimote::init(void) {
  * Process HCI tasks
  * Should be called regularly in the main loop
  */
-void ESP32Wiimote::task(void) {
-    if (!_btController->isStarted()) {
+void ESP32Wiimote::task() {
+    if (!BluetoothController::isStarted()) {
         return;
     }
 
@@ -69,49 +69,49 @@ void ESP32Wiimote::task(void) {
  * Check if new sensor/button data is available
  * Delegates to data parser
  */
-int ESP32Wiimote::available(void) {
+int ESP32Wiimote::available() {
     return _dataParser->parseData();
 }
 
 /**
  * Get current button state
  */
-ButtonState ESP32Wiimote::getButtonState(void) {
+ButtonState ESP32Wiimote::getButtonState() {
     return _buttonState->getCurrent();
 }
 
 /**
  * Get current accelerometer state
  */
-struct AccelState ESP32Wiimote::getAccelState(void) {
+struct AccelState ESP32Wiimote::getAccelState() {
     return _sensorState->getAccel();
 }
 
 /**
  * Get current nunchuk state
  */
-struct NunchukState ESP32Wiimote::getNunchukState(void) {
+struct NunchukState ESP32Wiimote::getNunchukState() {
     return _sensorState->getNunchuk();
 }
 
 /**
  * Check if Wiimote is connected
  */
-bool ESP32Wiimote::isConnected(void) {
+bool ESP32Wiimote::isConnected() {
     return TinyWiimoteIsConnected();
 }
 
 /**
  * Get battery level
  */
-uint8_t ESP32Wiimote::getBatteryLevel(void) {
+uint8_t ESP32Wiimote::getBatteryLevel() {
     return TinyWiimoteGetBatteryLevel();
 }
 
 /**
  * Request battery status update
  */
-void ESP32Wiimote::requestBatteryUpdate(void) {
+void ESP32Wiimote::requestBatteryUpdate() {
     TinyWiimoteRequestBatteryUpdate();
 }
 
@@ -122,7 +122,7 @@ void ESP32Wiimote::addFilter(int action, int filter) {
     if (action == ACTION_IGNORE) {
         _dataParser->setFilter(_dataParser->getFilter() | filter);
 
-        if (filter & FILTER_ACCEL) {
+        if ((filter & FILTER_ACCEL) != 0) {
             TinyWiimoteReqAccelerometer(false);
         }
     }

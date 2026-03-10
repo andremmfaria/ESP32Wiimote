@@ -4,9 +4,9 @@
 #include <unity.h>
 
 // Test fixtures uses real implementations from src/
-L2capConnectionTable* connections;
-L2capPacketSender* sender;
-WiimoteProtocol* protocol;
+L2capConnectionTable *connections;
+L2capPacketSender *sender;
+WiimoteProtocol *protocol;
 
 void setUp(void) {
     connections = new L2capConnectionTable();
@@ -33,14 +33,14 @@ void tearDown(void) {
 // ===== Connection Table Tests =====
 
 // Test: Empty connection table
-void test_empty_connection_table(void) {
+void test_empty_connection_table() {
     uint16_t remoteCID = 0;
     int result = connections->getRemoteCid(0x0040, &remoteCID);
     TEST_ASSERT_EQUAL(-1, result);  // Not found
 }
 
 // Test: Add and find connection
-void test_add_and_find_connection(void) {
+void test_add_and_find_connection() {
     L2capConnection conn(0x0040, 0x0041);
     int result = connections->addConnection(conn);
     TEST_ASSERT_EQUAL(1, result);
@@ -52,7 +52,7 @@ void test_add_and_find_connection(void) {
 }
 
 // Test: Get first connection handle
-void test_get_first_connection_handle(void) {
+void test_get_first_connection_handle() {
     L2capConnection conn(0x0040, 0x0041);
     connections->addConnection(conn);
 
@@ -63,7 +63,7 @@ void test_get_first_connection_handle(void) {
 }
 
 // Test: Clear connections
-void test_clear_connections(void) {
+void test_clear_connections() {
     L2capConnection conn(0x0040, 0x0041);
     connections->addConnection(conn);
 
@@ -77,7 +77,7 @@ void test_clear_connections(void) {
 // ===== LED Control Tests =====
 
 // Test: Set LEDs with no connection
-void test_set_leds_no_connection(void) {
+void test_set_leds_no_connection() {
     protocol->setLeds(0x0040, 0x0F);
 
     // Should not send anything
@@ -85,7 +85,7 @@ void test_set_leds_no_connection(void) {
 }
 
 // Test: Set LEDs with connection
-void test_set_leds_with_connection(void) {
+void test_set_leds_with_connection() {
     L2capConnection conn(0x0040, 0x0041);
     connections->addConnection(conn);
 
@@ -104,7 +104,7 @@ void test_set_leds_with_connection(void) {
 }
 
 // Test: Set all LEDs
-void test_set_all_leds(void) {
+void test_set_all_leds() {
     L2capConnection conn(0x0040, 0x0041);
     connections->addConnection(conn);
 
@@ -117,7 +117,7 @@ void test_set_all_leds(void) {
 }
 
 // Test: Set individual LEDs
-void test_set_individual_leds(void) {
+void test_set_individual_leds() {
     L2capConnection conn(0x0040, 0x0041);
     connections->addConnection(conn);
 
@@ -141,14 +141,14 @@ void test_set_individual_leds(void) {
 // ===== Reporting Mode Tests =====
 
 // Test: Set reporting mode with no connection
-void test_set_reporting_mode_no_connection(void) {
+void test_set_reporting_mode_no_connection() {
     protocol->setReportingMode(0x0040, 0x30, false);
 
     TEST_ASSERT_EQUAL(0, mockSendCallCount);
 }
 
 // Test: Set reporting mode continuous
-void test_set_reporting_mode_continuous(void) {
+void test_set_reporting_mode_continuous() {
     L2capConnection conn(0x0040, 0x0041);
     connections->addConnection(conn);
 
@@ -163,7 +163,7 @@ void test_set_reporting_mode_continuous(void) {
 }
 
 // Test: Set reporting mode non-continuous
-void test_set_reporting_mode_non_continuous(void) {
+void test_set_reporting_mode_non_continuous() {
     L2capConnection conn(0x0040, 0x0041);
     connections->addConnection(conn);
 
@@ -177,7 +177,7 @@ void test_set_reporting_mode_non_continuous(void) {
 }
 
 // Test: Different reporting modes
-void test_different_reporting_modes(void) {
+void test_different_reporting_modes() {
     L2capConnection conn(0x0040, 0x0041);
     connections->addConnection(conn);
 
@@ -192,14 +192,14 @@ void test_different_reporting_modes(void) {
 // ===== Status Request Tests =====
 
 // Test: Request status with no connection
-void test_request_status_no_connection(void) {
+void test_request_status_no_connection() {
     protocol->requestStatus(0x0040);
 
     TEST_ASSERT_EQUAL(0, mockSendCallCount);
 }
 
 // Test: Request status with connection
-void test_request_status_with_connection(void) {
+void test_request_status_with_connection() {
     L2capConnection conn(0x0040, 0x0041);
     connections->addConnection(conn);
 
@@ -215,7 +215,7 @@ void test_request_status_with_connection(void) {
 // ===== Memory Operations Tests =====
 
 // Test: Write memory EEPROM
-void test_write_memory_eeprom(void) {
+void test_write_memory_eeprom() {
     L2capConnection conn(0x0040, 0x0041);
     connections->addConnection(conn);
 
@@ -232,7 +232,7 @@ void test_write_memory_eeprom(void) {
 }
 
 // Test: Write memory control register
-void test_write_memory_control_register(void) {
+void test_write_memory_control_register() {
     L2capConnection conn(0x0040, 0x0041);
     connections->addConnection(conn);
 
@@ -245,7 +245,7 @@ void test_write_memory_control_register(void) {
 }
 
 // Test: Write memory with no connection
-void test_write_memory_no_connection(void) {
+void test_write_memory_no_connection() {
     uint8_t data[] = {0x01};
     protocol->writeMemory(0x0040, EEPROM_MEMORY, 0x00000010, data, sizeof(data));
 
@@ -253,7 +253,7 @@ void test_write_memory_no_connection(void) {
 }
 
 // Test: Read memory EEPROM
-void test_read_memory_eeprom(void) {
+void test_read_memory_eeprom() {
     L2capConnection conn(0x0040, 0x0041);
     connections->addConnection(conn);
 
@@ -269,7 +269,7 @@ void test_read_memory_eeprom(void) {
 }
 
 // Test: Read memory control register
-void test_read_memory_control_register(void) {
+void test_read_memory_control_register() {
     L2capConnection conn(0x0040, 0x0041);
     connections->addConnection(conn);
 
@@ -281,7 +281,7 @@ void test_read_memory_control_register(void) {
 }
 
 // Test: Read memory with no connection
-void test_read_memory_no_connection(void) {
+void test_read_memory_no_connection() {
     protocol->readMemory(0x0040, EEPROM_MEMORY, 0x00000020, 16);
 
     TEST_ASSERT_EQUAL(0, mockSendCallCount);
@@ -290,7 +290,7 @@ void test_read_memory_no_connection(void) {
 // ===== Multiple Connections Tests =====
 
 // Test: Multiple connections
-void test_multiple_connections(void) {
+void test_multiple_connections() {
     L2capConnection conn1(0x0040, 0x0041);
     L2capConnection conn2(0x0050, 0x0051);
 
@@ -311,7 +311,7 @@ void test_multiple_connections(void) {
 // ===== Initialization Tests =====
 
 // Test: Uninitialized protocol
-void test_uninitialized_protocol(void) {
+void test_uninitialized_protocol() {
     WiimoteProtocol uninitProtocol;
     // Don't call init()
 
@@ -324,7 +324,7 @@ void test_uninitialized_protocol(void) {
 }
 
 // Test: Re-initialization
-void test_reinitialization(void) {
+void test_reinitialization() {
     L2capConnection conn(0x0040, 0x0041);
     connections->addConnection(conn);
 
@@ -333,8 +333,8 @@ void test_reinitialization(void) {
     TEST_ASSERT_EQUAL(1, mockSendCallCount);
 
     // Re-init with new objects
-    L2capConnectionTable* newConnections = new L2capConnectionTable();
-    L2capPacketSender* newSender = new L2capPacketSender();
+    L2capConnectionTable *newConnections = new L2capConnectionTable();
+    L2capPacketSender *newSender = new L2capPacketSender();
     newSender->setSendCallback(mockL2capRawSendCallback);
 
     protocol->init(newConnections, newSender);
@@ -357,7 +357,7 @@ void test_reinitialization(void) {
 // ===== Stress Tests =====
 
 // Test: Rapid sequential operations
-void test_rapid_operations(void) {
+void test_rapid_operations() {
     L2capConnection conn(0x0040, 0x0041);
     connections->addConnection(conn);
 
@@ -382,7 +382,7 @@ void test_rapid_operations(void) {
 }
 
 // Test: Connection table capacity
-void test_connection_table_capacity(void) {
+void test_connection_table_capacity() {
     // Add up to max connections
     for (int i = 0; i < L2CAP_CONNECTION_LIST_SIZE; i++) {
         L2capConnection conn(0x0040 + i, 0x0041 + i);
@@ -402,7 +402,7 @@ void test_connection_table_capacity(void) {
 // ===== Edge Cases =====
 
 // Test: Invalid channel handle
-void test_invalid_channel_handle(void) {
+void test_invalid_channel_handle() {
     L2capConnection conn(0x0040, 0x0041);
     connections->addConnection(conn);
 
@@ -412,7 +412,7 @@ void test_invalid_channel_handle(void) {
 }
 
 // Test: Zero values
-void test_zero_values(void) {
+void test_zero_values() {
     L2capConnection conn(0x0040, 0x0041);
     connections->addConnection(conn);
 
@@ -428,7 +428,7 @@ void test_zero_values(void) {
 // ===== Main Test Runner =====
 
 #ifdef NATIVE_TEST
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
     UNITY_BEGIN();
 
     // Connection table tests

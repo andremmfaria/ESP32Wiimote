@@ -29,10 +29,10 @@ CheckOptions:
     value: lower_case
   # Allow camelCase for public methods (matches existing API)
   - key: readability-identifier-naming.PublicMethodCase
-    value: camelCase
+    value: CamelCase
   # Allow camelCase for member variables with _ prefix (matches existing _btController etc)
   - key: readability-identifier-naming.MemberCase
-    value: camelCase
+    value: CamelCase
   - key: readability-identifier-naming.MemberPrefix
     value: '_'
   # Loop convert: only suggest range-for when the loop variable is used as iterator

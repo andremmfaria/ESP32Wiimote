@@ -42,7 +42,7 @@ class HciQueueManager {
      * @param len Length of packet
      * @return true if successful, false otherwise
      */
-    bool sendToTxQueue(uint8_t* data, size_t len);
+    bool sendToTxQueue(uint8_t *data, size_t len);
 
     /**
      * Send data to RX queue (for incoming packets)
@@ -50,7 +50,7 @@ class HciQueueManager {
      * @param len Length of packet
      * @return true if successful, false otherwise
      */
-    bool sendToRxQueue(uint8_t* data, size_t len);
+    bool sendToRxQueue(uint8_t *data, size_t len);
 
     /**
      * Process TX queue - sends queued packets if possible
@@ -83,7 +83,7 @@ class HciQueueManager {
      * @param debugLabel Debug label for verbose logging
      * @return true if successful, false otherwise
      */
-    bool sendToQueue(xQueueHandle queue, uint8_t* data, size_t len, const char* debugLabel);
+    static bool sendToQueue(xQueueHandle queue, uint8_t *data, size_t len, const char *debugLabel);
 
     xQueueHandle _txQueue;
     xQueueHandle _rxQueue;

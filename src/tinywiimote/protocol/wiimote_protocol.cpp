@@ -54,13 +54,13 @@ static uint8_t get_address_space_byte(address_space_t address_space) {
 
 WiimoteProtocol::WiimoteProtocol() : connections(nullptr), sender(nullptr), payload{0} {}
 
-void WiimoteProtocol::init(const L2capConnectionTable* connectionTable,
-                           L2capPacketSender* packetSender) {
+void WiimoteProtocol::init(const L2capConnectionTable *connectionTable,
+                           L2capPacketSender *packetSender) {
     connections = connectionTable;
     sender = packetSender;
 }
 
-bool WiimoteProtocol::isValidMemorySize(uint16_t size, const char* operation) const {
+bool WiimoteProtocol::isValidMemorySize(uint16_t size, const char *operation) {
     if (size > EEPROM_DATA_SIZE) {
         LOG_ERROR("%s size %d exceeds maximum %d\n", operation, size, EEPROM_DATA_SIZE);
         return false;
@@ -167,7 +167,7 @@ void WiimoteProtocol::requestStatus(uint16_t ch) {
 void WiimoteProtocol::writeMemory(uint16_t ch,
                                   address_space_t address_space,
                                   uint32_t offset,
-                                  const uint8_t* data,
+                                  const uint8_t *data,
                                   uint8_t length) {
     LOG_DEBUG("wiimote_write_memory addr_space=%d offset=0x%06lX len=%d\n", address_space, offset,
               length);

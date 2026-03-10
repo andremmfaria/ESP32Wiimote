@@ -11,15 +11,15 @@ class L2capSignaling {
    public:
     L2capSignaling();
 
-    void init(L2capConnectionTable* connections, L2capPacketSender* sender);
+    void init(L2capConnectionTable *connectionTable, L2capPacketSender *sender);
     void sendConnectionRequest(uint16_t ch, uint16_t psm, uint16_t cid);
-    void handleConnectionResponse(uint16_t ch, uint8_t* data, uint16_t len);
-    void handleConfigurationRequest(uint16_t ch, uint8_t* data, uint16_t len);
-    void handleConfigurationResponse(uint8_t* data, uint16_t len);
+    void handleConnectionResponse(uint16_t ch, uint8_t *data, uint16_t len);
+    void handleConfigurationRequest(uint16_t ch, uint8_t *data, uint16_t len);
+    static void handleConfigurationResponse(const uint8_t *data, uint16_t len);
 
    private:
-    L2capConnectionTable* connections;
-    L2capPacketSender* sender;
+    L2capConnectionTable *connections;
+    L2capPacketSender *sender;
     uint8_t payload[64];
 };
 

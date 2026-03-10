@@ -1,5 +1,6 @@
 #include "wiimote_reports.h"
 
+#include <algorithm>
 #include <string.h>
 
 WiimoteReports::WiimoteReports() {
@@ -12,16 +13,14 @@ void WiimoteReports::clear() {
     rp = 0;
 }
 
-void WiimoteReports::put(uint8_t number, const uint8_t* data, uint8_t len) {
-    if (data == 0) {
+void WiimoteReports::put(uint8_t number, const uint8_t *data, uint8_t len) {
+    if (data == nullptr) {
         return;
     }
 
     if (cnt < RECEIVED_DATA_MAX_NUM) {
-        TinyWiimoteData* target = &(reports[wp]);
-        if (len > RECEIVED_DATA_MAX_LEN) {
-            len = RECEIVED_DATA_MAX_LEN;
-        }
+        TinyWiimoteData *target = &(reports[wp]);
+        len = std::min<uint8_t>(len, RECEIVED_DATA_MAX_LEN);
         memcpy(target->data, data, len);
         target->number = number;
         target->len = len;

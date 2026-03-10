@@ -29,7 +29,7 @@ int L2capConnectionTable::findConnection(uint16_t ch) const {
     return -1;
 }
 
-int L2capConnectionTable::addConnection(const L2capConnection& connection) {
+int L2capConnectionTable::addConnection(const L2capConnection &connection) {
     if (size >= L2CAP_CONNECTION_LIST_SIZE) {
         LOG_WARN("L2CAP: Connection table full, cannot add connection\n");
         return -1;
@@ -41,9 +41,9 @@ int L2capConnectionTable::addConnection(const L2capConnection& connection) {
     return size;
 }
 
-int L2capConnectionTable::getRemoteCid(uint16_t ch, uint16_t* remoteCID) const {
+int L2capConnectionTable::getRemoteCid(uint16_t ch, uint16_t *remoteCID) const {
     const int idx = findConnection(ch);
-    if (idx < 0 || remoteCID == 0) {
+    if (idx < 0 || remoteCID == nullptr) {
         return -1;
     }
 
@@ -51,8 +51,8 @@ int L2capConnectionTable::getRemoteCid(uint16_t ch, uint16_t* remoteCID) const {
     return 0;
 }
 
-int L2capConnectionTable::getFirstConnectionHandle(uint16_t* ch) const {
-    if (size == 0 || ch == 0) {
+int L2capConnectionTable::getFirstConnectionHandle(uint16_t *ch) const {
+    if (size == 0 || ch == nullptr) {
         return -1;
     }
 

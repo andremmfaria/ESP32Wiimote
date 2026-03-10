@@ -24,10 +24,10 @@ extern "C" __attribute__((weak)) bool btInUse(void) {
 
 BluetoothController::BluetoothController() : _initialized(false) {}
 
-bool BluetoothController::init(HciCallbacksHandler* hciCallbacks, HciQueueManager* queueManager) {
+bool BluetoothController::init(HciCallbacksHandler *hciCallbacks, HciQueueManager *queueManager) {
     LOG_DEBUG("BtController: Starting Bluetooth controller initialization...\n");
 
-    if (!hciCallbacks || !queueManager) {
+    if ((hciCallbacks == nullptr) || (queueManager == nullptr)) {
         LOG_ERROR("BtController: Invalid parameters!\n");
         return false;
     }
@@ -63,7 +63,7 @@ bool BluetoothController::init(HciCallbacksHandler* hciCallbacks, HciQueueManage
 
     // Set queue manager for callbacks
     LOG_DEBUG("BtController: Setting queue manager...\n");
-    hciCallbacks->setQueueManager(queueManager);
+    HciCallbacksHandler::setQueueManager(queueManager);
 
     // Create FreeRTOS queues
     LOG_DEBUG("BtController: Creating HCI queues...\n");
@@ -87,6 +87,6 @@ bool BluetoothController::init(HciCallbacksHandler* hciCallbacks, HciQueueManage
     return true;
 }
 
-bool BluetoothController::isStarted(void) const {
+bool BluetoothController::isStarted() {
     return btStarted();
 }

@@ -21,16 +21,16 @@ WiimoteExtensions::WiimoteExtensions()
     , connections(nullptr)
     , sender(nullptr) {}
 
-void WiimoteExtensions::init(WiimoteState* wiimoteState,
-                             const L2capConnectionTable* connectionTable,
-                             L2capPacketSender* packetSender) {
+void WiimoteExtensions::init(WiimoteState *wiimoteState,
+                             const L2capConnectionTable *connectionTable,
+                             L2capPacketSender *packetSender) {
     state = wiimoteState;
     connections = connectionTable;
     sender = packetSender;
     controllerReportState = REPORT_STATE_INIT;
 }
 
-void WiimoteExtensions::handleReport(uint16_t ch, uint8_t* data, uint16_t len) {
+void WiimoteExtensions::handleReport(uint16_t ch, uint8_t *data, uint16_t len) {
     if (state == nullptr || connections == nullptr || sender == nullptr) {
         return;
     }
@@ -49,7 +49,7 @@ void WiimoteExtensions::handleReport(uint16_t ch, uint8_t* data, uint16_t len) {
                 LOG_DEBUG("Wiimote: Status report 0x20 - Raw battery value: 0x%02x (%d)\n",
                           rawBattery, rawBattery);
                 state->setBatteryLevel(rawBattery);
-                if (data[4] & 0x02) {
+                if ((data[4] & 0x02) != 0) {
                     LOG_INFO("Extension controller connected\n");
                     protocol.writeMemory(ch, CONTROL_REGISTER, 0xA400F0, (const uint8_t[]){0x55},
                                          1);

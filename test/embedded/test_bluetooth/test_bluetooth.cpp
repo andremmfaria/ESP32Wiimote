@@ -27,9 +27,9 @@
 #define TEST_PRINT(msg) Serial.println(msg)
 
 // Global test objects
-BluetoothController* btController = nullptr;
-HciCallbacksHandler* hciCallbacks = nullptr;
-HciQueueManager* queueManager = nullptr;
+BluetoothController *btController = nullptr;
+HciCallbacksHandler *hciCallbacks = nullptr;
+HciQueueManager *queueManager = nullptr;
 bool btInitialized = false;
 
 void setUp(void) {
@@ -43,29 +43,29 @@ void tearDown(void) {
 // ===== Bluetooth Controller Tests =====
 
 // Test: Create BluetoothController instance
-void test_create_bluetooth_controller(void) {
+void test_create_bluetooth_controller() {
     TEST_PRINT("Creating BluetoothController...");
     btController = new BluetoothController();
     TEST_ASSERT_NOT_NULL(btController);
 }
 
 // Test: Create HCI queue manager
-void test_create_hci_queue_manager(void) {
+void test_create_hci_queue_manager() {
     TEST_PRINT("Creating HCI queue manager...");
     queueManager = new HciQueueManager(32, 32);
     TEST_ASSERT_NOT_NULL(queueManager);
 }
 
 // Test: Create HCI callback handler
-void test_create_hci_callbacks(void) {
+void test_create_hci_callbacks() {
     TEST_PRINT("Creating HCI callback handler...");
     hciCallbacks = new HciCallbacksHandler();
     TEST_ASSERT_NOT_NULL(hciCallbacks);
 }
 
 // Test: Create FreeRTOS queues
-void test_create_queues(void) {
-    if (!queueManager) {
+void test_create_queues() {
+    if (queueManager == nullptr) {
         queueManager = new HciQueueManager(32, 32);
     }
 
@@ -75,14 +75,14 @@ void test_create_queues(void) {
 }
 
 // Test: Initialize Bluetooth controller
-void test_initialize_bluetooth_controller(void) {
-    if (!btController) {
+void test_initialize_bluetooth_controller() {
+    if (btController == nullptr) {
         btController = new BluetoothController();
     }
-    if (!hciCallbacks) {
+    if (hciCallbacks == nullptr) {
         hciCallbacks = new HciCallbacksHandler();
     }
-    if (!queueManager) {
+    if (queueManager == nullptr) {
         queueManager = new HciQueueManager(32, 32);
         queueManager->createQueues();
     }
@@ -98,8 +98,8 @@ void test_initialize_bluetooth_controller(void) {
 }
 
 // Test: Verify Bluetooth controller is started
-void test_bluetooth_controller_is_started(void) {
-    if (!btInitialized || !btController) {
+void test_bluetooth_controller_is_started() {
+    if (!btInitialized || (btController == nullptr)) {
         TEST_IGNORE_MESSAGE("Bluetooth not initialized, skipping");
         return;
     }
@@ -111,8 +111,8 @@ void test_bluetooth_controller_is_started(void) {
 // ===== HCI Queue Tests =====
 
 // Test: Send to TX queue
-void test_send_to_tx_queue(void) {
-    if (!queueManager) {
+void test_send_to_tx_queue() {
+    if (queueManager == nullptr) {
         TEST_IGNORE_MESSAGE("Queue manager not available, skipping");
         return;
     }
@@ -124,8 +124,8 @@ void test_send_to_tx_queue(void) {
 }
 
 // Test: Check TX queue has pending
-void test_tx_queue_has_pending(void) {
-    if (!queueManager) {
+void test_tx_queue_has_pending() {
+    if (queueManager == nullptr) {
         TEST_IGNORE_MESSAGE("Queue manager not available, skipping");
         return;
     }
@@ -140,8 +140,8 @@ void test_tx_queue_has_pending(void) {
 }
 
 // Test: Process TX queue
-void test_process_tx_queue(void) {
-    if (!queueManager) {
+void test_process_tx_queue() {
+    if (queueManager == nullptr) {
         TEST_IGNORE_MESSAGE("Queue manager not available, skipping");
         return;
     }
@@ -153,8 +153,8 @@ void test_process_tx_queue(void) {
 }
 
 // Test: Send to RX queue
-void test_send_to_rx_queue(void) {
-    if (!queueManager) {
+void test_send_to_rx_queue() {
+    if (queueManager == nullptr) {
         TEST_IGNORE_MESSAGE("Queue manager not available, skipping");
         return;
     }
@@ -166,8 +166,8 @@ void test_send_to_rx_queue(void) {
 }
 
 // Test: Check RX queue has pending
-void test_rx_queue_has_pending(void) {
-    if (!queueManager) {
+void test_rx_queue_has_pending() {
+    if (queueManager == nullptr) {
         TEST_IGNORE_MESSAGE("Queue manager not available, skipping");
         return;
     }
@@ -182,8 +182,8 @@ void test_rx_queue_has_pending(void) {
 }
 
 // Test: Process RX queue
-void test_process_rx_queue(void) {
-    if (!queueManager) {
+void test_process_rx_queue() {
+    if (queueManager == nullptr) {
         TEST_IGNORE_MESSAGE("Queue manager not available, skipping");
         return;
     }
@@ -197,8 +197,8 @@ void test_process_rx_queue(void) {
 // ===== Queue Stress Tests =====
 
 // Test: Multiple sequential sends to TX queue
-void test_multiple_tx_sends(void) {
-    if (!queueManager) {
+void test_multiple_tx_sends() {
+    if (queueManager == nullptr) {
         TEST_IGNORE_MESSAGE("Queue manager not available, skipping");
         return;
     }
@@ -220,8 +220,8 @@ void test_multiple_tx_sends(void) {
 }
 
 // Test: Multiple sequential sends to RX queue
-void test_multiple_rx_sends(void) {
-    if (!queueManager) {
+void test_multiple_rx_sends() {
+    if (queueManager == nullptr) {
         TEST_IGNORE_MESSAGE("Queue manager not available, skipping");
         return;
     }
@@ -243,8 +243,8 @@ void test_multiple_rx_sends(void) {
 }
 
 // Test: Alternating TX/RX sends
-void test_alternating_tx_rx_sends(void) {
-    if (!queueManager) {
+void test_alternating_tx_rx_sends() {
+    if (queueManager == nullptr) {
         TEST_IGNORE_MESSAGE("Queue manager not available, skipping");
         return;
     }
@@ -263,8 +263,8 @@ void test_alternating_tx_rx_sends(void) {
 }
 
 // Test: Send large packet
-void test_send_large_packet(void) {
-    if (!queueManager) {
+void test_send_large_packet() {
+    if (queueManager == nullptr) {
         TEST_IGNORE_MESSAGE("Queue manager not available, skipping");
         return;
     }
@@ -282,8 +282,8 @@ void test_send_large_packet(void) {
 }
 
 // Test: Send empty packet
-void test_send_empty_packet(void) {
-    if (!queueManager) {
+void test_send_empty_packet() {
+    if (queueManager == nullptr) {
         TEST_IGNORE_MESSAGE("Queue manager not available, skipping");
         return;
     }
@@ -298,7 +298,7 @@ void test_send_empty_packet(void) {
 // ===== TinyWiimote Stack Tests =====
 
 // Test: TinyWiimote initial state
-void test_tinywiimote_initial_state(void) {
+void test_tinywiimote_initial_state() {
     TEST_PRINT("Checking TinyWiimote initial state...");
 
     bool isConnected = TinyWiimoteIsConnected();
@@ -310,7 +310,7 @@ void test_tinywiimote_initial_state(void) {
 }
 
 // Test: TinyWiimote data availability
-void test_tinywiimote_data_availability(void) {
+void test_tinywiimote_data_availability() {
     TEST_PRINT("Checking TinyWiimote data availability...");
 
     int available = TinyWiimoteAvailable();
@@ -318,7 +318,7 @@ void test_tinywiimote_data_availability(void) {
 }
 
 // Test: TinyWiimote battery level
-void test_tinywiimote_battery_level(void) {
+void test_tinywiimote_battery_level() {
     TEST_PRINT("Checking TinyWiimote battery level...");
 
     uint8_t battery = TinyWiimoteGetBatteryLevel();
@@ -329,7 +329,7 @@ void test_tinywiimote_battery_level(void) {
 // ===== Memory and Resource Tests =====
 
 // Test: Heap memory check before BT init
-void test_heap_memory_before_bt(void) {
+void test_heap_memory_before_bt() {
     size_t freeBefore = ESP.getFreeHeap();
     char msg[64];
     sprintf(msg, "Free heap before BT: %d bytes", freeBefore);
@@ -339,7 +339,7 @@ void test_heap_memory_before_bt(void) {
 }
 
 // Test: Heap memory check after BT init
-void test_heap_memory_after_bt(void) {
+void test_heap_memory_after_bt() {
     if (!btInitialized) {
         TEST_IGNORE_MESSAGE("Bluetooth not initialized, skipping");
         return;
@@ -357,7 +357,7 @@ void test_heap_memory_after_bt(void) {
 // ===== Cleanup Tests =====
 
 // Test: Safe cleanup (run last)
-void test_cleanup(void) {
+void test_cleanup() {
     TEST_PRINT("Testing cleanup...");
 
     // Note: We don't actually delete objects here because other tests may still need them

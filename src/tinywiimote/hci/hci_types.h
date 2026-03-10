@@ -5,8 +5,8 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef __TINYWIIMOTE_HCI_TYPES_H__
-#define __TINYWIIMOTE_HCI_TYPES_H__
+#ifndef TINYWIIMOTE_HCI_TYPES_H_
+#define TINYWIIMOTE_HCI_TYPES_H_
 
 #include <stdint.h>
 

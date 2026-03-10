@@ -83,19 +83,19 @@ class ESP32Wiimote {
      * Check if Wiimote is connected
      * @return true if connected, false otherwise
      */
-    bool isConnected(void);
+    static bool isConnected(void);
 
     /**
      * Get battery level
      * @return Battery level (0-100)
      */
-    uint8_t getBatteryLevel(void);
+    static uint8_t getBatteryLevel(void);
 
     /**
      * Request battery status update from Wiimote
      * Battery level will be updated when response is received
      */
-    void requestBatteryUpdate(void);
+    static void requestBatteryUpdate(void);
 
     /**
      * Add filter to ignore certain data types
@@ -106,12 +106,12 @@ class ESP32Wiimote {
 
    private:
     // Component managers
-    BluetoothController* _btController;
-    HciCallbacksHandler* _hciCallbacks;
-    HciQueueManager* _queueManager;
-    ButtonStateManager* _buttonState;
-    SensorStateManager* _sensorState;
-    WiimoteDataParser* _dataParser;
+    BluetoothController *_btController;
+    HciCallbacksHandler *_hciCallbacks;
+    HciQueueManager *_queueManager;
+    ButtonStateManager *_buttonState;
+    SensorStateManager *_sensorState;
+    WiimoteDataParser *_dataParser;
 };
 
 #endif  // __ESP32_WIIMOTE_H__

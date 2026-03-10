@@ -22,7 +22,7 @@
 #include <stdint.h>
 
 struct TwHciInterface {
-    void (*hci_send_packet)(uint8_t* data, size_t len);
+    void (*hci_send_packet)(uint8_t *data, size_t len);
 };
 
 void TinyWiimoteInit(struct TwHciInterface hciInterface);
@@ -37,8 +37,8 @@ void TinyWiimoteRequestBatteryUpdate(void);
 
 void TinyWiimoteReqAccelerometer(bool use);
 
-void handleHciData(uint8_t* data, size_t len);
+void handleHciData(uint8_t *data, size_t len);
 
-char* format2Hex(uint8_t* data, uint16_t len);
+char *format2Hex(uint8_t *data, uint16_t len);
 
 #endif  // _TINY_WIIMOTE_H_

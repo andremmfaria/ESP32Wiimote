@@ -32,7 +32,7 @@ class WiimoteProtocol {
    public:
     WiimoteProtocol();
 
-    void init(const L2capConnectionTable* connections, L2capPacketSender* sender);
+    void init(const L2capConnectionTable *connectionTable, L2capPacketSender *sender);
 
     void setLeds(uint16_t ch, uint8_t leds);
     void setReportingMode(uint16_t ch, uint8_t mode, bool continuous);
@@ -40,7 +40,7 @@ class WiimoteProtocol {
     void writeMemory(uint16_t ch,
                      address_space_t address_space,
                      uint32_t offset,
-                     const uint8_t* data,
+                     const uint8_t *data,
                      uint8_t length);
     void readMemory(uint16_t ch, address_space_t address_space, uint32_t offset, uint16_t size);
 
@@ -51,10 +51,10 @@ class WiimoteProtocol {
      * @param operation Operation name for error message ("Write" or "Read")
      * @return true if valid, false if exceeds maximum
      */
-    bool isValidMemorySize(uint16_t size, const char* operation) const;
+    static bool isValidMemorySize(uint16_t size, const char *operation);
 
-    const L2capConnectionTable* connections;
-    L2capPacketSender* sender;
+    const L2capConnectionTable *connections;
+    L2capPacketSender *sender;
     uint8_t payload[64];
 };
 

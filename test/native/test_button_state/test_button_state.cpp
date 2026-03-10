@@ -20,26 +20,26 @@ void tearDown(void) {
 }
 
 // Test: Initial state should be NO_BUTTON
-void test_initial_state_is_no_button(void) {
+void test_initial_state_is_no_button() {
     TEST_ASSERT_EQUAL(NO_BUTTON, buttonState->getCurrent());
     TEST_ASSERT_EQUAL(NO_BUTTON, buttonState->getPrevious());
     TEST_ASSERT_FALSE(buttonState->hasChanged());
 }
 
 // Test: Update changes current state
-void test_update_changes_current_state(void) {
+void test_update_changes_current_state() {
     buttonState->update(BUTTON_A);
     TEST_ASSERT_EQUAL(BUTTON_A, buttonState->getCurrent());
 }
 
 // Test: Update sets changed flag
-void test_update_sets_changed_flag(void) {
+void test_update_sets_changed_flag() {
     buttonState->update(BUTTON_A);
     TEST_ASSERT_TRUE(buttonState->hasChanged());
 }
 
 // Test: Update preserves previous state
-void test_update_preserves_previous_state(void) {
+void test_update_preserves_previous_state() {
     buttonState->update(BUTTON_A);
     buttonState->resetChangeFlag();
     buttonState->update(BUTTON_B);
@@ -49,7 +49,7 @@ void test_update_preserves_previous_state(void) {
 }
 
 // Test: Update with same state
-void test_update_with_same_state(void) {
+void test_update_with_same_state() {
     buttonState->update(BUTTON_A);
     buttonState->resetChangeFlag();
     buttonState->update(BUTTON_A);
@@ -59,7 +59,7 @@ void test_update_with_same_state(void) {
 }
 
 // Test: Reset change flag
-void test_reset_change_flag(void) {
+void test_reset_change_flag() {
     buttonState->update(BUTTON_HOME);
     TEST_ASSERT_TRUE(buttonState->hasChanged());
 
@@ -68,7 +68,7 @@ void test_reset_change_flag(void) {
 }
 
 // Test: Multiple button combination
-void test_multiple_buttons_combination(void) {
+void test_multiple_buttons_combination() {
     ButtonState combo = (ButtonState)(BUTTON_A | BUTTON_B | BUTTON_ONE);
     buttonState->update(combo);
 
@@ -80,7 +80,7 @@ void test_multiple_buttons_combination(void) {
 }
 
 // Test: Nunchuk buttons
-void test_nunchuk_buttons(void) {
+void test_nunchuk_buttons() {
     buttonState->update(BUTTON_Z);
     TEST_ASSERT_EQUAL(BUTTON_Z, buttonState->getCurrent());
 
@@ -90,7 +90,7 @@ void test_nunchuk_buttons(void) {
 }
 
 // Test: D-pad buttons
-void test_dpad_buttons(void) {
+void test_dpad_buttons() {
     buttonState->update(BUTTON_UP);
     TEST_ASSERT_EQUAL(BUTTON_UP, buttonState->getCurrent());
 
@@ -100,7 +100,7 @@ void test_dpad_buttons(void) {
 }
 
 // Test: Transition from no button to button
-void test_transition_none_to_button(void) {
+void test_transition_none_to_button() {
     TEST_ASSERT_EQUAL(NO_BUTTON, buttonState->getCurrent());
 
     buttonState->update(BUTTON_PLUS);
@@ -109,7 +109,7 @@ void test_transition_none_to_button(void) {
 }
 
 // Test: Transition from button to no button
-void test_transition_button_to_none(void) {
+void test_transition_button_to_none() {
     buttonState->update(BUTTON_MINUS);
     buttonState->resetChangeFlag();
 
@@ -119,7 +119,7 @@ void test_transition_button_to_none(void) {
 }
 
 // Test: Rapid state changes
-void test_rapid_state_changes(void) {
+void test_rapid_state_changes() {
     buttonState->update(BUTTON_A);
     buttonState->resetChangeFlag();
 
@@ -136,7 +136,7 @@ void test_rapid_state_changes(void) {
 }
 
 // Test: All individual buttons
-void test_all_individual_buttons(void) {
+void test_all_individual_buttons() {
     ButtonState buttons[] = {BUTTON_TWO,  BUTTON_ONE,  BUTTON_B,     BUTTON_A,    BUTTON_MINUS,
                              BUTTON_HOME, BUTTON_LEFT, BUTTON_RIGHT, BUTTON_DOWN, BUTTON_UP,
                              BUTTON_PLUS, BUTTON_C,    BUTTON_Z};

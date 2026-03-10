@@ -28,17 +28,17 @@ class HciCallbacksHandler {
     /**
      * Set the queue manager for HCI packet routing
      */
-    void setQueueManager(HciQueueManager* queueManager);
+    static void setQueueManager(HciQueueManager *queueManager);
 
     /**
      * Get the HCI interface structure for TinyWiimote
      */
-    const struct TwHciInterface* getHciInterface(void) const;
+    const struct TwHciInterface *getHciInterface(void) const;
 
     /**
      * Get the VHCI callback structure for ESP32
      */
-    esp_vhci_host_callback_t* getVhciCallback(void);
+    esp_vhci_host_callback_t *getVhciCallback(void);
 
     /**
      * Static callback - Called when host is ready to send
@@ -48,15 +48,15 @@ class HciCallbacksHandler {
     /**
      * Static callback - Called when host receives data
      */
-    static int notifyHostRecv(uint8_t* data, uint16_t len);
+    static int notifyHostRecv(uint8_t *data, uint16_t len);
 
     /**
      * Static callback - Send HCI packet to host
      */
-    static void hciHostSendPacket(uint8_t* data, size_t len);
+    static void hciHostSendPacket(uint8_t *data, size_t len);
 
    private:
-    static HciQueueManager* _queueManager;
+    static HciQueueManager *_queueManager;
     struct TwHciInterface _hciInterface;
     esp_vhci_host_callback_t _vhciCallback;
 };

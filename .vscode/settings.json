@@ -11,6 +11,11 @@
   "C_Cpp.clang_format_style": "file",
   "C_Cpp.clang_format_fallbackStyle": "Google",
   "C_Cpp.codeAnalysis.clangTidy.enabled": true,
-  "C_Cpp.codeAnalysis.clangTidy.useBuildPath": false,
+  "C_Cpp.codeAnalysis.clangTidy.useBuildPath": true,
+  "C_Cpp.codeAnalysis.clangTidy.headerFilter": "^${workspaceFolder}/(src|test|examples)/",
+  "C_Cpp.codeAnalysis.exclude": {
+    "**/.pio/**": true,
+    "**/.platformio/**": true
+  },
   "C_Cpp.codeAnalysis.runAutomatically": true
 }

@@ -11,16 +11,16 @@ class WiimoteExtensions {
    public:
     WiimoteExtensions();
 
-    void init(WiimoteState* state,
-              const L2capConnectionTable* connections,
-              L2capPacketSender* sender);
-    void handleReport(uint16_t ch, uint8_t* data, uint16_t len);
+    void init(WiimoteState *state,
+              const L2capConnectionTable *connectionTable,
+              L2capPacketSender *sender);
+    void handleReport(uint16_t ch, uint8_t *data, uint16_t len);
 
    private:
     int controllerReportState;
-    WiimoteState* state;
-    const L2capConnectionTable* connections;
-    L2capPacketSender* sender;
+    WiimoteState *state;
+    const L2capConnectionTable *connections;
+    L2capPacketSender *sender;
 };
 
 #endif

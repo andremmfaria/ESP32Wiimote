@@ -28,12 +28,12 @@ class BluetoothController {
      * @param queueManager Queue manager for packet routing
      * @return true if initialization successful, false otherwise
      */
-    bool init(HciCallbacksHandler* hciCallbacks, HciQueueManager* queueManager);
+    bool init(HciCallbacksHandler *hciCallbacks, HciQueueManager *queueManager);
 
     /**
      * Check if Bluetooth is started
      */
-    bool isStarted(void) const;
+    static bool isStarted(void);
 
    private:
     bool _initialized;

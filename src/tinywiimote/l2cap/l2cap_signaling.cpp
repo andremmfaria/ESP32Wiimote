@@ -6,7 +6,7 @@
 
 L2capSignaling::L2capSignaling() : connections(nullptr), sender(nullptr) {}
 
-void L2capSignaling::init(L2capConnectionTable* connectionTable, L2capPacketSender* packetSender) {
+void L2capSignaling::init(L2capConnectionTable *connectionTable, L2capPacketSender *packetSender) {
     connections = connectionTable;
     sender = packetSender;
 }
@@ -29,7 +29,7 @@ void L2capSignaling::sendConnectionRequest(uint16_t ch, uint16_t psm, uint16_t c
     sender->sendAclL2capPacket(ch, 0x0001, payload, pb.length());
 }
 
-void L2capSignaling::handleConnectionResponse(uint16_t ch, uint8_t* data, uint16_t len) {
+void L2capSignaling::handleConnectionResponse(uint16_t ch, uint8_t *data, uint16_t len) {
     if (len < 12) {
         LOG_DEBUG("L2CAP: Connection response too short: len=%d\n", len);
         return;
@@ -72,7 +72,7 @@ void L2capSignaling::handleConnectionResponse(uint16_t ch, uint8_t* data, uint16
     sender->sendAclL2capPacket(ch, 0x0001, payload, pb.length());
 }
 
-void L2capSignaling::handleConfigurationRequest(uint16_t ch, uint8_t* data, uint16_t len) {
+void L2capSignaling::handleConfigurationRequest(uint16_t ch, uint8_t *data, uint16_t len) {
     if (len < 12) {
         LOG_DEBUG("L2CAP: Config request too short: len=%d\n", len);
         return;
@@ -114,7 +114,7 @@ void L2capSignaling::handleConfigurationRequest(uint16_t ch, uint8_t* data, uint
     sender->sendAclL2capPacket(ch, 0x0001, payload, pb.length());
 }
 
-void L2capSignaling::handleConfigurationResponse(uint8_t* data, uint16_t len) {
+void L2capSignaling::handleConfigurationResponse(const uint8_t *data, uint16_t len) {
     (void)data;
     (void)len;
 }

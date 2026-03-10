@@ -53,7 +53,7 @@ static void printButtonLine(ButtonState button) {
 
 static void printBatteryLine() {
     uint8_t battery = ESP32Wiimote::getBatteryLevel();
-    float batteryPercent = (battery / 255.0f) * 100.0f;
+    float batteryPercent = (static_cast<float>(battery) / 255.0F) * 100.0F;
     Serial.printf("battery: %3u/255 (%.1f%%)\n", battery, batteryPercent);
 }
 

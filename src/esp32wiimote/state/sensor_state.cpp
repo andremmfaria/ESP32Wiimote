@@ -40,13 +40,13 @@ void SensorStateManager::updateNunchuk(NunchukState state) {
     _currentNunchuk = state;
 }
 
-void SensorStateManager::resetAccel(void) {
+void SensorStateManager::resetAccel() {
     _currentAccel.xAxis = 0;
     _currentAccel.yAxis = 0;
     _currentAccel.zAxis = 0;
 }
 
-void SensorStateManager::resetNunchuk(void) {
+void SensorStateManager::resetNunchuk() {
     _currentNunchuk.xStick = 0;
     _currentNunchuk.yStick = 0;
     _currentNunchuk.xAxis = 0;
@@ -54,36 +54,36 @@ void SensorStateManager::resetNunchuk(void) {
     _currentNunchuk.zAxis = 0;
 }
 
-AccelState SensorStateManager::getAccel(void) const {
+AccelState SensorStateManager::getAccel() const {
     return _currentAccel;
 }
 
-NunchukState SensorStateManager::getNunchuk(void) const {
+NunchukState SensorStateManager::getNunchuk() const {
     return _currentNunchuk;
 }
 
-AccelState SensorStateManager::getPreviousAccel(void) const {
+AccelState SensorStateManager::getPreviousAccel() const {
     return _previousAccel;
 }
 
-NunchukState SensorStateManager::getPreviousNunchuk(void) const {
+NunchukState SensorStateManager::getPreviousNunchuk() const {
     return _previousNunchuk;
 }
 
-bool SensorStateManager::accelHasChanged(void) const {
+bool SensorStateManager::accelHasChanged() const {
     return (_currentAccel.xAxis != _previousAccel.xAxis) ||
            (_currentAccel.yAxis != _previousAccel.yAxis) ||
            (_currentAccel.zAxis != _previousAccel.zAxis);
 }
 
-bool SensorStateManager::nunchukStickHasChanged(void) const {
+bool SensorStateManager::nunchukStickHasChanged() const {
     int xDelta = (int)_currentNunchuk.xStick - _previousNunchuk.xStick;
     int yDelta = (int)_currentNunchuk.yStick - _previousNunchuk.yStick;
-    int stickDelta = (xDelta * xDelta + yDelta * yDelta);
+    int stickDelta = ((xDelta * xDelta) + (yDelta * yDelta));
     return stickDelta >= _nunchukStickThreshold;
 }
 
-void SensorStateManager::resetChangeFlags(void) {
+void SensorStateManager::resetChangeFlags() {
     _previousAccel = _currentAccel;
     _previousNunchuk = _currentNunchuk;
 }
