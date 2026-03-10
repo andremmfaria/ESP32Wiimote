@@ -1,0 +1,59 @@
+# clang-format 18 — Google base with embedded-friendly adjustments
+BasedOnStyle: Google
+
+# C++ standard matching platformio.ini build_flags = -std=c++11
+Standard: c++11
+
+# Column limit: 100 is comfortable on modern monitors and avoids
+# aggressive wrapping in embedded-style long identifier names
+ColumnLimit: 100
+
+# Keep pointer/reference style consistent with existing codebase (uint8_t* buf)
+PointerAlignment: Right
+
+# Braces: keep Google's Attach style (opening brace on same line)
+BreakBeforeBraces: Attach
+
+# Indent
+IndentWidth: 4
+ContinuationIndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+# Include organisation: split into groups separated by blank lines,
+# sort within each group
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  # System C headers
+  - Regex: '^<(stdint|stdbool|stddef|stdio|string|stdlib)\.h>'
+    Priority: 3
+  # Arduino/ESP32 framework headers
+  - Regex: '^<(Arduino|HardwareSerial|freertos|esp|nvs).*>'
+    Priority: 2
+  # Local project headers
+  - Regex: '^".*"'
+    Priority: 1
+
+# Constructor initialiser lists
+BreakConstructorInitializers: BeforeComma
+ConstructorInitializerIndentWidth: 4
+
+# Function parameters: pack as many as fit on one line, then one per line
+BinPackParameters: false
+AllowAllParametersOfDeclarationOnNextLine: false
+
+# Avoid single-line if/for bodies in embedded code (easier to step through)
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Inline
+
+# Trailing comments: align within a block
+AlignTrailingComments:
+  Kind: Always
+  OverEmptyLines: 1
+
+# Misc
+SpaceBeforeParens: ControlStatements
+SpaceAfterCStyleCast: false
+Cpp11BracedListStyle: true

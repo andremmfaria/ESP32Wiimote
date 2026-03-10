@@ -1,0 +1,43 @@
+# clang-tidy configuration for ESP32Wiimote
+# Targets C++11, Arduino/ESP32 embedded environment
+
+Checks: >
+  clang-analyzer-*,
+  bugprone-*,
+  readability-*,
+  modernize-use-nullptr,
+  modernize-use-override,
+  modernize-use-default-member-init,
+  modernize-redundant-void-arg,
+  modernize-loop-convert,
+  -readability-magic-numbers,
+  -readability-identifier-length,
+  -readability-function-cognitive-complexity,
+  -bugprone-easily-swappable-parameters,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
+
+# Treat warnings as errors only for the most critical checks
+WarningsAsErrors: >
+  clang-analyzer-core.NullDereference,
+  clang-analyzer-core.uninitialized.*,
+  bugprone-use-after-move,
+  bugprone-infinite-loop
+
+CheckOptions:
+  # Require _t suffix style for type aliases (matches existing uint8_t etc)
+  - key: readability-identifier-naming.TypeAliasCase
+    value: lower_case
+  # Allow camelCase for public methods (matches existing API)
+  - key: readability-identifier-naming.PublicMethodCase
+    value: camelCase
+  # Allow camelCase for member variables with _ prefix (matches existing _btController etc)
+  - key: readability-identifier-naming.MemberCase
+    value: camelCase
+  - key: readability-identifier-naming.MemberPrefix
+    value: '_'
+  # Loop convert: only suggest range-for when the loop variable is used as iterator
+  - key: modernize-loop-convert.MinConfidence
+    value: reasonable
+
+# Do not run on test mocks (they stub platform types that clang-tidy can't resolve)
+HeaderFilterRegex: '^(?!.*test/mocks).*\.(h|hpp)$'
