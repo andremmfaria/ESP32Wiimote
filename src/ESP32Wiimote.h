@@ -15,6 +15,7 @@
 #include "esp32wiimote/queue/hci_queue.h"
 #include "esp32wiimote/state/button_state.h"
 #include "esp32wiimote/state/sensor_state.h"
+#include "utils/serial_logging.h"
 
 /**
  * Action types for filters
@@ -96,6 +97,18 @@ class ESP32Wiimote {
      * Battery level will be updated when response is received
      */
     static void requestBatteryUpdate(void);
+
+    /**
+     * Set runtime log level for all library components
+     * @param level WiimoteLogLevel value
+     */
+    static void setLogLevel(uint8_t level);
+
+    /**
+     * Get current runtime log level
+     * @return Current WiimoteLogLevel value
+     */
+    static uint8_t getLogLevel(void);
 
     /**
      * Add filter to ignore certain data types

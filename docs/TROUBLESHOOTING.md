@@ -44,10 +44,12 @@ Common issues and solutions for ESP32Wiimote.
 3. **Check serial output for errors**
 
    ```cpp
-   // Define before including ESP32Wiimote.h
-   #define WIIMOTE_VERBOSE 3
-
    #include "ESP32Wiimote.h"
+
+   void setup() {
+       Serial.begin(115200);
+       ESP32Wiimote::setLogLevel(WIIMOTE_LOG_DEBUG);
+   }
    ```
 
    Look for:
@@ -243,10 +245,12 @@ For native tests, this is expected - tests provide setup/loop.
 3. **Check log level**
 
    ```cpp
-   // In your sketch before including the library
-   #define WIIMOTE_VERBOSE 2  // Increase to 2 or 3
-
    #include "ESP32Wiimote.h"
+
+   void setup() {
+       Serial.begin(115200);
+       ESP32Wiimote::setLogLevel(WIIMOTE_LOG_INFO);  // or WIIMOTE_LOG_DEBUG
+   }
    ```
 
 4. **Try USB cable**
@@ -273,9 +277,7 @@ For native tests, this is expected - tests provide setup/loop.
 2. **Reduce log level**
 
    ```cpp
-   #define WIIMOTE_VERBOSE 1  // Less serial traffic
-
-   #include "ESP32Wiimote.h"
+   ESP32Wiimote::setLogLevel(WIIMOTE_LOG_WARNING);  // Less serial traffic
    ```
 
 3. **Check stack size**
@@ -421,9 +423,7 @@ For native tests, this is expected - tests provide setup/loop.
 4. **Enable debug logging**
 
    ```cpp
-   #define WIIMOTE_VERBOSE 3
-
-   #include "ESP32Wiimote.h"
+   ESP32Wiimote::setLogLevel(WIIMOTE_LOG_DEBUG);
    // Watch for "BTCODE_HID" in logs
    ```
 
@@ -492,7 +492,7 @@ For native tests, this is expected - tests provide setup/loop.
 3. **Enable debug logging**
 
    ```cpp
-   #define WIIMOTE_VERBOSE 3
+   ESP32Wiimote::setLogLevel(WIIMOTE_LOG_DEBUG);
    // Look for extension detection sequence
    ```
 
@@ -516,7 +516,7 @@ For native tests, this is expected - tests provide setup/loop.
 1. **Reduce log level**
 
    ```cpp
-   #define WIIMOTE_VERBOSE 1  // Less logging
+   ESP32Wiimote::setLogLevel(WIIMOTE_LOG_WARNING);  // Less logging
    ```
 
 2. **Add small delays**
@@ -648,7 +648,7 @@ Still stuck? Try these resources:
 1. **Enable full logging**
 
    ```cpp
-   #define WIIMOTE_VERBOSE 3
+   ESP32Wiimote::setLogLevel(WIIMOTE_LOG_DEBUG);
    ```
 
 2. **Check documentation**

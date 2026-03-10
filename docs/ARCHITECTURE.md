@@ -487,11 +487,13 @@ struct HciQueueData {
 
 ### Logging
 
-Defined by the application before including the library, or via build flags:
+Set at runtime via the public API:
 
 ```cpp
-#define WIIMOTE_VERBOSE 2  // 0-3
+ESP32Wiimote::setLogLevel(WIIMOTE_LOG_WARNING);
 ```
+
+Optional build flags can still define the initial default (`-DWIIMOTE_VERBOSE=2`).
 
 ### Queue Sizes
 

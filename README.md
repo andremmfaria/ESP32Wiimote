@@ -230,32 +230,36 @@ See [Troubleshooting Guide](docs/TROUBLESHOOTING.md) for more solutions.
 
 ## Logging
 
-Control debug output by defining `WIIMOTE_VERBOSE` before including the library:
+Control debug output using the runtime log-level API:
 
 ```cpp
-#define WIIMOTE_VERBOSE 2
-
 #include "ESP32Wiimote.h"
+
+void setup() {
+  Serial.begin(115200);
+  ESP32Wiimote::setLogLevel(WIIMOTE_LOG_WARNING);
+}
 ```
 
-You can also set it from PlatformIO:
+For consistent behavior across Arduino IDE, `arduino-cli`, and PlatformIO,
+prefer `ESP32Wiimote::setLogLevel(...)` over a sketch-local `#define WIIMOTE_VERBOSE`.
+
+PlatformIO users can still set an initial default globally with build flags:
 
 ```ini
 build_flags = -DWIIMOTE_VERBOSE=2
 ```
 
-If you do not define it, the library defaults to:
-
-```cpp
-#define WIIMOTE_VERBOSE 2  // 0=Errors, 1=+Warnings, 2=+Info, 3=+Debug
-```
+Runtime API calls override this initial default.
 
 **Log Levels:**
 
-- **0**: Errors only (production)
-- **1**: + Warnings
-- **2**: + Info messages (default - shows connection events)
-- **3**: + Debug traces (packet dumps, detailed flow)
+```cpp
+WIIMOTE_LOG_ERROR   // 0
+WIIMOTE_LOG_WARNING // 1
+WIIMOTE_LOG_INFO    // 2
+WIIMOTE_LOG_DEBUG   // 3
+```
 
 See [Logging System](docs/LOGGING.md) for complete documentation.
 
