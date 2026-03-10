@@ -44,8 +44,10 @@ Common issues and solutions for ESP32Wiimote.
 3. **Check serial output for errors**
 
    ```cpp
-   // Set WIIMOTE_VERBOSE to 2 or 3 in serial_logging.h
+   // Define before including ESP32Wiimote.h
    #define WIIMOTE_VERBOSE 3
+
+   #include "ESP32Wiimote.h"
    ```
 
    Look for:
@@ -162,9 +164,6 @@ lib_deps =
 **Solution:**
 
 ```cpp
-#include "utils/serial_logging.h"
-
-// Or if external to library
 #include <ESP32Wiimote.h>
 ```
 
@@ -244,8 +243,10 @@ For native tests, this is expected - tests provide setup/loop.
 3. **Check log level**
 
    ```cpp
-   // In src/utils/serial_logging.h
+   // In your sketch before including the library
    #define WIIMOTE_VERBOSE 2  // Increase to 2 or 3
+
+   #include "ESP32Wiimote.h"
    ```
 
 4. **Try USB cable**
@@ -273,6 +274,8 @@ For native tests, this is expected - tests provide setup/loop.
 
    ```cpp
    #define WIIMOTE_VERBOSE 1  // Less serial traffic
+
+   #include "ESP32Wiimote.h"
    ```
 
 3. **Check stack size**
@@ -419,6 +422,8 @@ For native tests, this is expected - tests provide setup/loop.
 
    ```cpp
    #define WIIMOTE_VERBOSE 3
+
+   #include "ESP32Wiimote.h"
    // Watch for "BTCODE_HID" in logs
    ```
 

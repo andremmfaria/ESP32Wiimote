@@ -13,13 +13,19 @@
 /**
  * Logging Level Configuration
  * 
- * Set WIIMOTE_VERBOSE to control logging verbosity:
+ * Library users can override WIIMOTE_VERBOSE before including
+ * ESP32Wiimote.h, or via build flags such as:
+ *   -DWIIMOTE_VERBOSE=3
+ *
+ * Levels:
  *   0 = Errors only (always shown)
  *   1 = Errors + Warnings
  *   2 = Errors + Warnings + Info
  *   3 = Errors + Warnings + Info + Debug (full verbose)
  */
+#ifndef WIIMOTE_VERBOSE
 #define WIIMOTE_VERBOSE 2
+#endif
 
 // Log level thresholds
 #define LOG_LEVEL_ERROR   0

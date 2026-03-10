@@ -487,7 +487,7 @@ struct HciQueueData {
 
 ### Logging
 
-`src/utils/serial_logging.h`:
+Defined by the application before including the library, or via build flags:
 
 ```cpp
 #define WIIMOTE_VERBOSE 2  // 0-3

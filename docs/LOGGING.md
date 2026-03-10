@@ -4,7 +4,21 @@ ESP32Wiimote includes a comprehensive 4-level logging system for debugging and d
 
 ## Quick Start
 
-Set logging level in `src/utils/serial_logging.h`:
+Define `WIIMOTE_VERBOSE` before including the library in your sketch:
+
+```cpp
+#define WIIMOTE_VERBOSE 2  // 0=Errors, 1=+Warnings, 2=+Info, 3=+Debug
+
+#include "ESP32Wiimote.h"
+```
+
+PlatformIO users can set the same value in `platformio.ini`:
+
+```ini
+build_flags = -DWIIMOTE_VERBOSE=2
+```
+
+If you do not define it, the library uses this default internally:
 
 ```cpp
 #define WIIMOTE_VERBOSE 2  // 0=Errors, 1=+Warnings, 2=+Info, 3=+Debug
@@ -116,7 +130,25 @@ LOG_DEBUG("Processing packet: type=0x%02x len=%d\n", type, len);
 
 ## Configuration
 
-Edit `src/utils/serial_logging.h`:
+The library checks whether `WIIMOTE_VERBOSE` is already defined and only falls back to the default when it is not.
+
+### Arduino Sketch
+
+```cpp
+// Must come before the library include
+#define WIIMOTE_VERBOSE 2
+
+#include "ESP32Wiimote.h"
+```
+
+### PlatformIO
+
+```ini
+[env:esp32dev]
+build_flags = -DWIIMOTE_VERBOSE=2
+```
+
+### Default
 
 ```cpp
 /**
@@ -128,7 +160,9 @@ Edit `src/utils/serial_logging.h`:
  *   2 = Errors + Warnings + Info (default)
  *   3 = Errors + Warnings + Info + Debug (full verbose)
  */
+#ifndef WIIMOTE_VERBOSE
 #define WIIMOTE_VERBOSE 2
+#endif
 ```
 
 ### For Development
@@ -156,7 +190,7 @@ Edit `src/utils/serial_logging.h`:
 ### In Your Code
 
 ```cpp
-#include "utils/serial_logging.h"
+#include <ESP32Wiimote.h>
 
 void myFunction() {
     LOG_ERROR("Critical: %s\n", errorMsg);
@@ -285,7 +319,7 @@ All internal operations visible:
 Check:
 
 1. Serial initialized: `Serial.begin(115200);`
-2. Log level set correctly in `serial_logging.h`
+2. `WIIMOTE_VERBOSE` defined before including `ESP32Wiimote.h`
 3. Recompile after changing log level
 
 ### "Too much output"
@@ -309,7 +343,7 @@ Raise the log level:
 Include the header:
 
 ```cpp
-#include "utils/serial_logging.h"
+#include <ESP32Wiimote.h>
 ```
 
 ---

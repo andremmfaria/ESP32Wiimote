@@ -11,7 +11,7 @@ ESP32Wiimote is an Arduino library for ESP32 boards that connects to a Wii Remot
 - ✅ Battery level readout (0-100%) via `getBatteryLevel()`
 - ✅ Battery status requests via `requestBatteryUpdate()`
 - ✅ Comprehensive 4-level logging system (ERROR/WARN/INFO/DEBUG)
-- ✅ Unit tests with PlatformIO (28 passing tests)
+- ✅ Unit tests with PlatformIO
 - ✅ Hardware integration tests
 
 ## Documentation
@@ -230,7 +230,21 @@ See [Troubleshooting Guide](docs/TROUBLESHOOTING.md) for more solutions.
 
 ## Logging
 
-Control debug output by setting the log level in `src/utils/serial_logging.h`:
+Control debug output by defining `WIIMOTE_VERBOSE` before including the library:
+
+```cpp
+#define WIIMOTE_VERBOSE 2
+
+#include "ESP32Wiimote.h"
+```
+
+You can also set it from PlatformIO:
+
+```ini
+build_flags = -DWIIMOTE_VERBOSE=2
+```
+
+If you do not define it, the library defaults to:
 
 ```cpp
 #define WIIMOTE_VERBOSE 2  // 0=Errors, 1=+Warnings, 2=+Info, 3=+Debug
