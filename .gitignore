@@ -83,3 +83,4 @@ ESP32Wiimote.ino
 .gcc-flags.json
 .platformio
 platformio.ini.bak
+compile_commands.json

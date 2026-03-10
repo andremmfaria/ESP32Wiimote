@@ -1,5 +1,6 @@
-#include <Arduino.h>
 #include "ESP32Wiimote.h"
+
+#include <Arduino.h>
 
 ESP32Wiimote wiimote;
 
@@ -20,19 +21,19 @@ static const unsigned long STATS_INTERVAL_MS = 1000;
 static const unsigned long BATTERY_INTERVAL_MS = 3000;
 
 static void printButtonLine(ButtonState button) {
-    char ca     = (button & BUTTON_A)     ? 'A' : '.';
-    char cb     = (button & BUTTON_B)     ? 'B' : '.';
-    char cc     = (button & BUTTON_C)     ? 'C' : '.';
-    char cz     = (button & BUTTON_Z)     ? 'Z' : '.';
-    char c1     = (button & BUTTON_ONE)   ? '1' : '.';
-    char c2     = (button & BUTTON_TWO)   ? '2' : '.';
-    char cminus = (button & BUTTON_MINUS) ? '-' : '.';
-    char cplus  = (button & BUTTON_PLUS)  ? '+' : '.';
-    char chome  = (button & BUTTON_HOME)  ? 'H' : '.';
-    char cleft  = (button & BUTTON_LEFT)  ? '<' : '.';
-    char cright = (button & BUTTON_RIGHT) ? '>' : '.';
-    char cup    = (button & BUTTON_UP)    ? '^' : '.';
-    char cdown  = (button & BUTTON_DOWN)  ? 'v' : '.';
+    char ca = ((button & BUTTON_A) != 0) ? 'A' : '.';
+    char cb = ((button & BUTTON_B) != 0) ? 'B' : '.';
+    char cc = ((button & BUTTON_C) != 0) ? 'C' : '.';
+    char cz = ((button & BUTTON_Z) != 0) ? 'Z' : '.';
+    char c1 = ((button & BUTTON_ONE) != 0) ? '1' : '.';
+    char c2 = ((button & BUTTON_TWO) != 0) ? '2' : '.';
+    char cminus = ((button & BUTTON_MINUS) != 0) ? '-' : '.';
+    char cplus = ((button & BUTTON_PLUS) != 0) ? '+' : '.';
+    char chome = ((button & BUTTON_HOME) != 0) ? 'H' : '.';
+    char cleft = ((button & BUTTON_LEFT) != 0) ? '<' : '.';
+    char cright = ((button & BUTTON_RIGHT) != 0) ? '>' : '.';
+    char cup = ((button & BUTTON_UP) != 0) ? '^' : '.';
+    char cdown = ((button & BUTTON_DOWN) != 0) ? 'v' : '.';
 
     Serial.printf("buttons: %05x = ", (int)button);
     Serial.print(ca);
@@ -51,13 +52,12 @@ static void printButtonLine(ButtonState button) {
 }
 
 static void printBatteryLine() {
-    uint8_t battery = wiimote.getBatteryLevel();
+    uint8_t battery = ESP32Wiimote::getBatteryLevel();
     float batteryPercent = (battery / 255.0f) * 100.0f;
     Serial.printf("battery: %3u/255 (%.1f%%)\n", battery, batteryPercent);
 }
 
-void setup()
-{
+void setup() {
     Serial.begin(115200);
     delay(200);
 
@@ -67,9 +67,11 @@ void setup()
 
     if (!wiimote.init()) {
         Serial.println("FATAL: Bluetooth initialization failed! Halting.");
-        while (1) { delay(1000); }
+        while (true) {
+            delay(1000);
+        }
     }
-    
+
     Serial.println("Bluetooth initialized successfully!");
 
     if (IGNORE_ACCEL) {
@@ -88,12 +90,11 @@ void setup()
     Serial.println("Ready! Press 1 + 2 on the Wiimote to connect.");
 }
 
-void loop()
-{
+void loop() {
     wiimote.task();
     numLoopRuns++;
 
-    bool isConnected = wiimote.isConnected();
+    bool isConnected = ESP32Wiimote::isConnected();
     if (isConnected != wasConnected) {
         Serial.printf("connection: %s\n", isConnected ? "CONNECTED" : "DISCONNECTED");
         wasConnected = isConnected;
@@ -105,32 +106,30 @@ void loop()
         lastBatteryMs = now;
     }
 
-    while (wiimote.available() > 0)
-    {
+    while (wiimote.available() > 0) {
         ButtonState button = wiimote.getButtonState();
         AccelState accel = wiimote.getAccelState();
         NunchukState nunchuk = wiimote.getNunchukState();
         numInputUpdates++;
 
-        if (ENABLE_VERBOSE_INPUT_LOG)
-        {
+        if (ENABLE_VERBOSE_INPUT_LOG) {
             printButtonLine(button);
             Serial.printf(", wiimote.axis: %3u/%3u/%3u", accel.xAxis, accel.yAxis, accel.zAxis);
-            Serial.printf(", nunchuk.axis: %3u/%3u/%3u", nunchuk.xAxis, nunchuk.yAxis, nunchuk.zAxis);
+            Serial.printf(", nunchuk.axis: %3u/%3u/%3u", nunchuk.xAxis, nunchuk.yAxis,
+                          nunchuk.zAxis);
             Serial.printf(", nunchuk.stick: %3u/%3u\n", nunchuk.xStick, nunchuk.yStick);
-    }
+        }
     }
 
-    if (now - lastStatsMs >= STATS_INTERVAL_MS)
-    {
-        Serial.printf("stats: loops/s=%d, updates/s=%d, connected=%d\n",
-                                    numLoopRuns, numInputUpdates, (int)isConnected);
+    if (now - lastStatsMs >= STATS_INTERVAL_MS) {
+        Serial.printf("stats: loops/s=%d, updates/s=%d, connected=%d\n", numLoopRuns,
+                      numInputUpdates, (int)isConnected);
         numLoopRuns = 0;
         numInputUpdates = 0;
         lastStatsMs += STATS_INTERVAL_MS;
         if ((now - lastStatsMs) >= STATS_INTERVAL_MS) {
             lastStatsMs = now;
-    }
+        }
     }
 
     delay(10);

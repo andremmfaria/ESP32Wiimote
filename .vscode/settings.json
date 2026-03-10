@@ -1,24 +1,8 @@
 {
   "C_Cpp.default.configurationProvider": "platformio.platformio-ide",
-  "C_Cpp.default.compilerPath": "${env:HOME}/.platformio/packages/toolchain-xtensa-esp32/bin/xtensa-esp32-elf-g++",
+  "C_Cpp.default.compileCommands": "${workspaceFolder}/compile_commands.json",
   "C_Cpp.default.cStandard": "c11",
   "C_Cpp.default.cppStandard": "c++11",
-  "C_Cpp.default.defines": [
-    "ESP32",
-    "ARDUINO_ARCH_ESP32"
-  ],
-  "C_Cpp.default.includePath": [
-    "${workspaceFolder}",
-    "${workspaceFolder}/src",
-    "${workspaceFolder}/test/mocks",
-    "${env:HOME}/.platformio/packages/framework-arduinoespressif32/cores/esp32",
-    "${env:HOME}/.platformio/packages/framework-arduinoespressif32/variants/esp32",
-    "${env:HOME}/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/**",
-    "${env:HOME}/.platformio/packages/framework-arduinoespressif32/libraries/**",
-    "${env:HOME}/.arduino15/packages/esp32/hardware/esp32/3.3.7/cores/esp32",
-    "${env:HOME}/.arduino15/packages/esp32/hardware/esp32/3.3.7/variants/esp32",
-    "${env:HOME}/.arduino15/packages/esp32/tools/esp32-libs/3.3.7/**"
-  ],
   "files.associations": {
     "*.ino": "cpp"
   },
