@@ -1,0 +1,95 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+jobs:
+  validate-tag-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate tag format and version match
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TAG="${GITHUB_REF_NAME}"
+          if [[ ! "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag '$TAG' is invalid. Use plain semver only (example: 1.5.0)."
+            exit 1
+          fi
+
+          LIB_VERSION="$(grep -E '^version=' library.properties | head -n1 | cut -d'=' -f2 | tr -d '[:space:]')"
+          if [[ -z "$LIB_VERSION" ]]; then
+            echo "::error::Could not read 'version=' from library.properties."
+            exit 1
+          fi
+
+          if [[ "$TAG" != "$LIB_VERSION" ]]; then
+            echo "::error::Tag '$TAG' does not match library version '$LIB_VERSION'."
+            exit 1
+          fi
+
+          echo "Tag and library version match: $TAG"
+
+  release:
+    runs-on: ubuntu-latest
+    needs: validate-tag-version
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          generate_release_notes: true
+
+  compile-demo:
+    runs-on: ubuntu-latest
+    needs: [validate-tag-version, release]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install arduino-cli
+        uses: arduino/setup-arduino-cli@v2
+
+      - name: Cache arduino-cli cores and libraries
+        uses: actions/cache@v4
+        with:
+          path: ~/.arduino15
+          key: arduino-${{ runner.os }}-esp32
+          restore-keys: arduino-${{ runner.os }}-
+
+      - name: Install ESP32 core
+        run: |
+          arduino-cli config add board_manager.additional_urls \
+            https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32
+
+      - name: Build ESP32WiimoteDemo
+        run: |
+          arduino-cli compile \
+            --fqbn esp32:esp32:esp32 \
+            --library . \
+            --output-dir dist \
+            examples/ESP32WiimoteDemo
+
+      - name: Upload firmware to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: dist/ESP32WiimoteDemo.ino.bin
