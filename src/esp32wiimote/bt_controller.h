@@ -33,10 +33,10 @@ class BluetoothController {
     /**
      * Check if Bluetooth is started
      */
-    static bool isStarted(void);
+    static bool isStarted();
 
    private:
-    bool _initialized;
+    bool _initialized = false;
 };
 
 #endif  // __BT_CONTROLLER_H__

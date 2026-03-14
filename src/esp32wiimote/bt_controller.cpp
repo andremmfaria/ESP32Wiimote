@@ -23,7 +23,7 @@ extern "C" __attribute__((weak)) bool btInUse(void) {
     return true;
 }
 
-BluetoothController::BluetoothController() : _initialized(false) {}
+BluetoothController::BluetoothController() = default;
 
 bool BluetoothController::init(HciCallbacksHandler *hciCallbacks, HciQueueManager *queueManager) {
     LOG_DEBUG("BtController: Starting Bluetooth controller initialization...\n");

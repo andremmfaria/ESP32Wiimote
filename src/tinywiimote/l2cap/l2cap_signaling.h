@@ -18,8 +18,8 @@ class L2capSignaling {
     static void handleConfigurationResponse(const uint8_t *data, uint16_t len);
 
    private:
-    L2capConnectionTable *connections;
-    L2capPacketSender *sender;
+    L2capConnectionTable *connections = nullptr;
+    L2capPacketSender *sender = nullptr;
     uint8_t payload[64];
 };
 

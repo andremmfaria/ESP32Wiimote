@@ -33,17 +33,17 @@ class HciCallbacksHandler {
     /**
      * Get the HCI interface structure for TinyWiimote
      */
-    const struct TwHciInterface *getHciInterface(void) const;
+    const struct TwHciInterface *getHciInterface() const;
 
     /**
      * Get the VHCI callback structure for ESP32
      */
-    esp_vhci_host_callback_t *getVhciCallback(void);
+    esp_vhci_host_callback_t *getVhciCallback();
 
     /**
      * Static callback - Called when host is ready to send
      */
-    static void notifyHostSendAvailable(void);
+    static void notifyHostSendAvailable();
 
     /**
      * Static callback - Called when host receives data

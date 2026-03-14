@@ -183,9 +183,9 @@ void test_different_reporting_modes() {
 
     uint8_t modes[] = {0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37};
 
-    for (size_t i = 0; i < sizeof(modes); i++) {
-        protocol->setReportingMode(0x0040, modes[i], false);
-        TEST_ASSERT_EQUAL_UINT8(modes[i], mockLastPacket[3]);
+    for (uint8_t mode : modes) {
+        protocol->setReportingMode(0x0040, mode, false);
+        TEST_ASSERT_EQUAL_UINT8(mode, mockLastPacket[3]);
     }
 }
 

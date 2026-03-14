@@ -30,13 +30,13 @@ enum {
  */
 class WiimoteDataParser {
    public:
-    WiimoteDataParser(ButtonStateManager* buttonState, SensorStateManager* sensorState);
+    WiimoteDataParser(ButtonStateManager *buttonState, SensorStateManager *sensorState);
 
     /**
      * Parse incoming Wiimote data and update state
      * @return 1 if any monitored data changed, 0 otherwise
      */
-    int parseData(void);
+    int parseData();
 
     /**
      * Set filter flags
@@ -46,30 +46,30 @@ class WiimoteDataParser {
     /**
      * Get current filter flags
      */
-    int getFilter(void) const;
+    int getFilter() const;
 
    private:
-    ButtonStateManager* _buttonState;
-    SensorStateManager* _sensorState;
+    ButtonStateManager *_buttonState;
+    SensorStateManager *_sensorState;
     int _filter;
 
     /**
      * Parse button data from Wiimote report
      */
-    void parseButtonData(const TinyWiimoteData& data, int& buttonChanged);
+    void parseButtonData(const TinyWiimoteData &data, int &buttonChanged);
 
     /**
      * Parse accelerometer data from Wiimote report
      */
-    void parseAccelData(const TinyWiimoteData& data, int& accelChanged);
+    void parseAccelData(const TinyWiimoteData &data, int &accelChanged);
 
     /**
      * Parse nunchuk/extension data from Wiimote report
      */
-    void parseNunchukData(const TinyWiimoteData& data,
-                          int& nunchukStickChanged,
-                          int& accelChanged,
-                          int& buttonChanged);
+    void parseNunchukData(const TinyWiimoteData &data,
+                          int &nunchukStickChanged,
+                          int &accelChanged,
+                          int &buttonChanged);
 };
 
 #endif  // __DATA_PARSER_H__

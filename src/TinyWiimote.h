@@ -26,14 +26,14 @@ struct TwHciInterface {
 };
 
 void TinyWiimoteInit(struct TwHciInterface hciInterface);
-int TinyWiimoteAvailable(void);
-TinyWiimoteData TinyWiimoteRead(void);
+int TinyWiimoteAvailable();
+TinyWiimoteData TinyWiimoteRead();
 
-void TinyWiimoteResetDevice(void);
-bool TinyWiimoteDeviceIsInited(void);
-bool TinyWiimoteIsConnected(void);
-uint8_t TinyWiimoteGetBatteryLevel(void);
-void TinyWiimoteRequestBatteryUpdate(void);
+void TinyWiimoteResetDevice();
+bool TinyWiimoteDeviceIsInited();
+bool TinyWiimoteIsConnected();
+uint8_t TinyWiimoteGetBatteryLevel();
+void TinyWiimoteRequestBatteryUpdate();
 
 void TinyWiimoteReqAccelerometer(bool use);
 

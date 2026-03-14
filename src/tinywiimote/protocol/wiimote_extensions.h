@@ -17,10 +17,10 @@ class WiimoteExtensions {
     void handleReport(uint16_t ch, uint8_t *data, uint16_t len);
 
    private:
-    int controllerReportState;
-    WiimoteState *state;
-    const L2capConnectionTable *connections;
-    L2capPacketSender *sender;
+    int controllerReportState = 0;
+    WiimoteState *state = nullptr;
+    const L2capConnectionTable *connections = nullptr;
+    L2capPacketSender *sender = nullptr;
 };
 
 #endif

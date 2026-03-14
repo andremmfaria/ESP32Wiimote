@@ -7,6 +7,7 @@
 #include "../../src/tinywiimote/l2cap/l2cap_packets.h"
 #include "../../src/tinywiimote/protocol/wiimote_protocol.h"
 
+#include <algorithm>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -27,7 +28,7 @@ extern uint16_t mockLastRemoteCID;
  * Mock callback for L2CAP packet transmission
  * Validates ACL/L2CAP framing and captures payload for test assertions
  */
-static inline void mockL2capRawSendCallback(uint8_t* data, size_t len) {
+static inline void mockL2capRawSendCallback(uint8_t *data, size_t len) {
     mockSendCallCount++;
 
     if (data == nullptr || len == 0) {
@@ -72,9 +73,7 @@ static inline void mockL2capRawSendCallback(uint8_t* data, size_t len) {
 
     // Store validated payload (strip both headers for test assertions)
     size_t payloadLen = len - minPacketSize;
-    if (payloadLen > sizeof(mockLastPacket)) {
-        payloadLen = sizeof(mockLastPacket);
-    }
+    payloadLen = std::min<unsigned long>(payloadLen, sizeof(mockLastPacket));
 
     if (payloadLen > 0) {
         memcpy(mockLastPacket, data + minPacketSize, payloadLen);
