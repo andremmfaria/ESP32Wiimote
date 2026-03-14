@@ -5,8 +5,8 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef __WIIMOTE_PROTOCOL_H__
-#define __WIIMOTE_PROTOCOL_H__
+#ifndef ESP32WIIMOTE_WIIMOTE_PROTOCOL_H_
+#define ESP32WIIMOTE_WIIMOTE_PROTOCOL_H_
 
 #include "../l2cap/l2cap_connection.h"
 #include "../l2cap/l2cap_packets.h"
@@ -28,14 +28,23 @@
  */
 typedef enum { EEPROM_MEMORY = 0x00, CONTROL_REGISTER = 0x04 } address_space_t;
 
+struct WiimoteLedCommand {
+    uint8_t leds;
+};
+
+struct WiimoteReportingModeCommand {
+    uint8_t mode;
+    bool continuous;
+};
+
 class WiimoteProtocol {
    public:
     WiimoteProtocol();
 
     void init(const L2capConnectionTable *connectionTable, L2capPacketSender *sender);
 
-    void setLeds(uint16_t ch, uint8_t leds);
-    void setReportingMode(uint16_t ch, uint8_t mode, bool continuous);
+    void setLeds(uint16_t ch, const WiimoteLedCommand &command);
+    void setReportingMode(uint16_t ch, const WiimoteReportingModeCommand &command);
     void requestStatus(uint16_t ch);
     void writeMemory(uint16_t ch,
                      address_space_t address_space,
@@ -58,4 +67,4 @@ class WiimoteProtocol {
     uint8_t payload[64];
 };
 
-#endif  // __WIIMOTE_PROTOCOL_H__
+#endif  // ESP32WIIMOTE_WIIMOTE_PROTOCOL_H_

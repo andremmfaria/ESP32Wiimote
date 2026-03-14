@@ -5,8 +5,8 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef __DATA_PARSER_H__
-#define __DATA_PARSER_H__
+#ifndef ESP32WIIMOTE_DATA_PARSER_H_
+#define ESP32WIIMOTE_DATA_PARSER_H_
 
 #include "TinyWiimote.h"
 #include "state/button_state.h"
@@ -49,6 +49,12 @@ class WiimoteDataParser {
     int getFilter() const;
 
    private:
+    struct ChangeFlags {
+        int buttonChanged;
+        int accelChanged;
+        int nunchukStickChanged;
+    };
+
     ButtonStateManager *_buttonState;
     SensorStateManager *_sensorState;
     int _filter;
@@ -66,10 +72,7 @@ class WiimoteDataParser {
     /**
      * Parse nunchuk/extension data from Wiimote report
      */
-    void parseNunchukData(const TinyWiimoteData &data,
-                          int &nunchukStickChanged,
-                          int &accelChanged,
-                          int &buttonChanged);
+    void parseNunchukData(const TinyWiimoteData &data, ChangeFlags &flags);
 };
 
-#endif  // __DATA_PARSER_H__
+#endif  // ESP32WIIMOTE_DATA_PARSER_H_

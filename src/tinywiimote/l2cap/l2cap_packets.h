@@ -5,13 +5,18 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef __L2CAP_PACKETS_H__
-#define __L2CAP_PACKETS_H__
+#ifndef ESP32WIIMOTE_L2CAP_PACKETS_H_
+#define ESP32WIIMOTE_L2CAP_PACKETS_H_
 
 #include <stddef.h>
 #include <stdint.h>
 
 typedef void (*L2capRawSendFunc)(uint8_t *data, size_t len);
+
+struct AclPacketControl {
+    uint8_t packetBoundaryFlag;
+    uint8_t broadcastFlag;
+};
 
 class L2capPacketSender {
    public:
@@ -28,10 +33,9 @@ class L2capPacketSender {
 uint16_t make_l2cap_packet(uint8_t *buf, uint16_t channelID, const uint8_t *data, uint16_t len);
 uint16_t make_acl_l2cap_packet(uint8_t *buf,
                                uint16_t ch,
-                               uint8_t pbf,
-                               uint8_t bf,
+                               const AclPacketControl &control,
                                uint16_t channelID,
                                uint8_t *data,
                                uint8_t len);
 
-#endif  // __L2CAP_PACKETS_H__
+#endif  // ESP32WIIMOTE_L2CAP_PACKETS_H_

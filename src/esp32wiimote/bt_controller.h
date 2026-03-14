@@ -5,8 +5,8 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef __BT_CONTROLLER_H__
-#define __BT_CONTROLLER_H__
+#ifndef ESP32WIIMOTE_BT_CONTROLLER_H_
+#define ESP32WIIMOTE_BT_CONTROLLER_H_
 
 #include <stdint.h>
 
@@ -39,4 +39,4 @@ class BluetoothController {
     bool _initialized = false;
 };
 
-#endif  // __BT_CONTROLLER_H__
+#endif  // ESP32WIIMOTE_BT_CONTROLLER_H_

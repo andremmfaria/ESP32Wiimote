@@ -125,8 +125,8 @@ uint8_t ESP32Wiimote::getLogLevel() {
 /**
  * Add filter to ignore certain data types
  */
-void ESP32Wiimote::addFilter(int action, int filter) {
-    if (action == ACTION_IGNORE) {
+void ESP32Wiimote::addFilter(FilterAction action, int filter) {
+    if (action == FilterAction::Ignore) {
         _dataParser->setFilter(_dataParser->getFilter() | filter);
 
         if ((filter & FILTER_ACCEL) != 0) {

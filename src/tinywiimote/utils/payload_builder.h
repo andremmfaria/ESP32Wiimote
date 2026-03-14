@@ -123,4 +123,4 @@ class PayloadBuilder {
     uint8_t *data() const { return _buffer; }
 };
 
-#endif  // __PAYLOAD_BUILDER_H__
+#endif  // PAYLOAD_BUILDER_H_

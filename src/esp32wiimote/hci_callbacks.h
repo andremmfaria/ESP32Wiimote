@@ -5,8 +5,8 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef __HCI_CALLBACKS_H__
-#define __HCI_CALLBACKS_H__
+#ifndef ESP32WIIMOTE_HCI_CALLBACKS_H_
+#define ESP32WIIMOTE_HCI_CALLBACKS_H_
 
 #include "TinyWiimote.h"
 #include "esp_bt.h"
@@ -61,4 +61,4 @@ class HciCallbacksHandler {
     esp_vhci_host_callback_t _vhciCallback;
 };
 
-#endif  // __HCI_CALLBACKS_H__
+#endif  // ESP32WIIMOTE_HCI_CALLBACKS_H_
