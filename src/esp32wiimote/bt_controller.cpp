@@ -7,6 +7,7 @@
 
 #include "bt_controller.h"
 
+#include "../utils/protocol_codes.h"
 #include "../utils/serial_logging.h"
 #include "Arduino.h"
 #include "TinyWiimote.h"
@@ -38,13 +39,14 @@ bool BluetoothController::init(HciCallbacksHandler *hciCallbacks, HciQueueManage
 
     // Get and display detailed status info
     esp_bt_controller_status_t status = esp_bt_controller_get_status();
-    LOG_DEBUG("BtController: Initial controller status: %d (0=IDLE, 1=INITED, 2=ENABLED)\n",
-              status);
+    LOG_DEBUG("BtController: Initial controller status: %d (%s)\n", status,
+              btControllerStatusToString((uint8_t)status));
 
     // Initialize Bluetooth controller using Arduino core function
     LOG_DEBUG("BtController: Calling btStart()...\n");
-    LOG_DEBUG("BtController: Controller status before btStart: %d\n",
-              esp_bt_controller_get_status());
+    LOG_DEBUG("BtController: Controller status before btStart: %d (%s)\n",
+              esp_bt_controller_get_status(),
+              btControllerStatusToString((uint8_t)esp_bt_controller_get_status()));
 
     if (!btStart()) {
         LOG_ERROR("BtController: btStart() failed!\n");
@@ -52,8 +54,9 @@ bool BluetoothController::init(HciCallbacksHandler *hciCallbacks, HciQueueManage
     }
 
     LOG_DEBUG("BtController: btStart() succeeded!\n");
-    LOG_DEBUG("BtController: Controller status after btStart: %d\n",
-              esp_bt_controller_get_status());
+    LOG_DEBUG("BtController: Controller status after btStart: %d (%s)\n",
+              esp_bt_controller_get_status(),
+              btControllerStatusToString((uint8_t)esp_bt_controller_get_status()));
     LOG_DEBUG("BtController: Free heap after init: %d bytes\n", ESP.getFreeHeap());
 
     // Initialize TinyWiimote with HCI interface

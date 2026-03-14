@@ -1,5 +1,6 @@
 #include "l2cap_signaling.h"
 
+#include "../../utils/protocol_codes.h"
 #include "../../utils/serial_logging.h"
 #include "../utils/hci_utils.h"
 #include "../utils/payload_builder.h"
@@ -17,16 +18,18 @@ void L2capSignaling::sendConnectionRequest(uint16_t ch, uint16_t psm, uint16_t c
         return;
     }
 
-    LOG_DEBUG("L2CAP: Sending connection request: ch=0x%04x psm=0x%04x cid=0x%04x\n", ch, psm, cid);
+    LOG_DEBUG("L2CAP: Sending %s on CID=0x%04x: ch=0x%04x psm=0x%04x cid=0x%04x\n",
+              l2capSignalCodeToString((uint8_t)L2capSignalingCode::CONNECTION_REQUEST),
+              (uint16_t)L2capCid::SIGNALING, ch, psm, cid);
 
     PayloadBuilder pb(payload, sizeof(payload));
-    pb.append(0x02);         // CONNECTION REQUEST
+    pb.append((uint8_t)L2capSignalingCode::CONNECTION_REQUEST);
     pb.append(0x01);         // Identifier
     pb.appendU16LE(0x0004);  // Length
     pb.appendU16LE(psm);     // PSM
     pb.appendU16LE(cid);     // Source CID
 
-    sender->sendAclL2capPacket(ch, 0x0001, payload, pb.length());
+    sender->sendAclL2capPacket(ch, (uint16_t)L2capCid::SIGNALING, payload, pb.length());
 }
 
 void L2capSignaling::handleConnectionResponse(uint16_t ch, uint8_t *data, uint16_t len) {
@@ -43,11 +46,13 @@ void L2capSignaling::handleConnectionResponse(uint16_t ch, uint8_t *data, uint16
     uint16_t dstCID = READ_UINT16_LE(data + 4);
     uint16_t result = READ_UINT16_LE(data + 8);
 
-    LOG_DEBUG("L2CAP: Connection response: ch=0x%04x dstCID=0x%04x result=0x%04x\n", ch, dstCID,
-              result);
+    LOG_DEBUG("L2CAP: %s: ch=0x%04x dstCID=0x%04x result=0x%04x (%s)\n",
+              l2capSignalCodeToString((uint8_t)L2capSignalingCode::CONNECTION_RESPONSE), ch, dstCID,
+              result, l2capSignalingResultToString(result));
 
-    if (result != 0x0000) {
-        LOG_WARN("L2CAP: Connection failed with result=0x%04x\n", result);
+    if (result != (uint16_t)L2capSignalingResult::SUCCESS) {
+        LOG_WARN("L2CAP: Connection failed with result=0x%04x (%s)\n", result,
+                 l2capSignalingResultToString(result));
         return;
     }
 
@@ -60,7 +65,7 @@ void L2capSignaling::handleConnectionResponse(uint16_t ch, uint8_t *data, uint16
     LOG_INFO("L2CAP: Connection established successfully\n");
 
     PayloadBuilder pb(payload, sizeof(payload));
-    pb.append(0x04);         // CONFIGURATION REQUEST
+    pb.append((uint8_t)L2capSignalingCode::CONFIGURATION_REQUEST);
     pb.append(0x02);         // Identifier
     pb.appendU16LE(0x0008);  // Length
     pb.appendU16LE(dstCID);  // Destination CID
@@ -69,7 +74,7 @@ void L2capSignaling::handleConnectionResponse(uint16_t ch, uint8_t *data, uint16
     pb.append(0x02);         // Option length
     pb.appendU16LE(0x0040);  // MTU value
 
-    sender->sendAclL2capPacket(ch, 0x0001, payload, pb.length());
+    sender->sendAclL2capPacket(ch, (uint16_t)L2capCid::SIGNALING, payload, pb.length());
 }
 
 void L2capSignaling::handleConfigurationRequest(uint16_t ch, uint8_t *data, uint16_t len) {
@@ -98,10 +103,12 @@ void L2capSignaling::handleConfigurationRequest(uint16_t ch, uint8_t *data, uint
         return;
     }
 
-    LOG_DEBUG("L2CAP: Config request: ch=0x%04x mtu=%d remoteCID=0x%04x\n", ch, mtu, remoteCID);
+    LOG_DEBUG("L2CAP: %s: ch=0x%04x mtu=%d remoteCID=0x%04x\n",
+              l2capSignalCodeToString((uint8_t)L2capSignalingCode::CONFIGURATION_REQUEST), ch, mtu,
+              remoteCID);
 
     PayloadBuilder pb(payload, sizeof(payload));
-    pb.append(0x05);            // CONFIGURATION RESPONSE
+    pb.append((uint8_t)L2capSignalingCode::CONFIGURATION_RESPONSE);
     pb.append(identifier);      // Identifier
     pb.appendU16LE(0x000A);     // Length
     pb.appendU16LE(remoteCID);  // Source CID
@@ -111,7 +118,7 @@ void L2capSignaling::handleConfigurationRequest(uint16_t ch, uint8_t *data, uint
     pb.append(0x02);            // Option length
     pb.appendU16LE(mtu);        // MTU value
 
-    sender->sendAclL2capPacket(ch, 0x0001, payload, pb.length());
+    sender->sendAclL2capPacket(ch, (uint16_t)L2capCid::SIGNALING, payload, pb.length());
 }
 
 void L2capSignaling::handleConfigurationResponse(const uint8_t *data, uint16_t len) {
