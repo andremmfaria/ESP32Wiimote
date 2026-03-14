@@ -34,7 +34,7 @@ class HciQueueManager {
      * Create and initialize the TX and RX queues
      * @return true if queues created successfully, false otherwise
      */
-    bool createQueues(void);
+    bool createQueues();
 
     /**
      * Send data to TX queue (for outgoing packets)
@@ -56,23 +56,23 @@ class HciQueueManager {
      * Process TX queue - sends queued packets if possible
      * Must be called from main task
      */
-    void processTxQueue(void);
+    void processTxQueue();
 
     /**
      * Process RX queue - handles received packets
      * Must be called from main task
      */
-    void processRxQueue(void);
+    void processRxQueue();
 
     /**
      * Check if TX queue has pending packets
      */
-    bool hasTxPending(void) const;
+    bool hasTxPending() const;
 
     /**
      * Check if RX queue has pending packets
      */
-    bool hasRxPending(void) const;
+    bool hasRxPending() const;
 
    private:
     /**

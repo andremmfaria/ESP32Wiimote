@@ -50,47 +50,47 @@ class SensorStateManager {
     /**
      * Reset accelerometer state to zero
      */
-    void resetAccel(void);
+    void resetAccel();
 
     /**
      * Reset nunchuk state to zero
      */
-    void resetNunchuk(void);
+    void resetNunchuk();
 
     /**
      * Get current accelerometer state
      */
-    struct AccelState getAccel(void) const;
+    struct AccelState getAccel() const;
 
     /**
      * Get current nunchuk state
      */
-    struct NunchukState getNunchuk(void) const;
+    struct NunchukState getNunchuk() const;
 
     /**
      * Get previous accelerometer state
      */
-    struct AccelState getPreviousAccel(void) const;
+    struct AccelState getPreviousAccel() const;
 
     /**
      * Get previous nunchuk state
      */
-    struct NunchukState getPreviousNunchuk(void) const;
+    struct NunchukState getPreviousNunchuk() const;
 
     /**
      * Check if accelerometer state changed
      */
-    bool accelHasChanged(void) const;
+    bool accelHasChanged() const;
 
     /**
      * Check if nunchuk stick changed (based on threshold)
      */
-    bool nunchukStickHasChanged(void) const;
+    bool nunchukStickHasChanged() const;
 
     /**
      * Reset change flags and store current as previous
      */
-    void resetChangeFlags(void);
+    void resetChangeFlags();
 
    private:
     struct AccelState _currentAccel;

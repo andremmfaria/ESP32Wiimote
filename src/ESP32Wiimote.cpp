@@ -119,7 +119,7 @@ void ESP32Wiimote::setLogLevel(uint8_t level) {
     wiimoteSetLogLevel(level);
 }
 
-uint8_t ESP32Wiimote::getLogLevel(void) {
+uint8_t ESP32Wiimote::getLogLevel() {
     return wiimoteGetLogLevel();
 }
 

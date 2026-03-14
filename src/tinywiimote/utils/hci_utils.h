@@ -27,28 +27,30 @@
         *(p)++ = (uint8_t)((u16) >> 8); \
     }
 
-#define UINT8_TO_STREAM(p, u8) \
-    { *(p)++ = (uint8_t)(u8); }
-
-#define BDADDR_TO_STREAM(p, a)                          \
-    {                                                   \
-        int ijk;                                        \
-        for (ijk = 0; ijk < BD_ADDR_LEN; ijk++)         \
-            *(p)++ = (uint8_t)a[BD_ADDR_LEN - 1 - ijk]; \
+#define UINT8_TO_STREAM(p, u8)  \
+    {                           \
+        *(p)++ = (uint8_t)(u8); \
     }
 
-#define STREAM_TO_BDADDR(a, p)                   \
-    {                                            \
-        int ijk;                                 \
-        for (ijk = 0; ijk < BD_ADDR_LEN; ijk++)  \
-            a[BD_ADDR_LEN - 1 - ijk] = (p)[ijk]; \
+#define BDADDR_TO_STREAM(p, a)                            \
+    {                                                     \
+        int ijk;                                          \
+        for (ijk = 0; ijk < BD_ADDR_LEN; ijk++)           \
+            *(p)++ = (uint8_t)(a)[BD_ADDR_LEN - 1 - ijk]; \
     }
 
-#define ARRAY_TO_STREAM(p, a, len)      \
-    {                                   \
-        int ijk;                        \
-        for (ijk = 0; ijk < len; ijk++) \
-            *(p)++ = (uint8_t)a[ijk];   \
+#define STREAM_TO_BDADDR(a, p)                     \
+    {                                              \
+        int ijk;                                   \
+        for (ijk = 0; ijk < BD_ADDR_LEN; ijk++)    \
+            (a)[BD_ADDR_LEN - 1 - ijk] = (p)[ijk]; \
+    }
+
+#define ARRAY_TO_STREAM(p, a, len)        \
+    {                                     \
+        int ijk;                          \
+        for (ijk = 0; ijk < (len); ijk++) \
+            *(p)++ = (uint8_t)(a)[ijk];   \
     }
 
 /**
@@ -61,7 +63,7 @@
  * @param data Pointer to byte array
  * @return 16-bit value
  */
-static inline uint16_t READ_UINT16_LE(const uint8_t* data) {
+static inline uint16_t READ_UINT16_LE(const uint8_t *data) {
     return ((uint16_t)data[1] << 8) | data[0];
 }
 
@@ -70,7 +72,7 @@ static inline uint16_t READ_UINT16_LE(const uint8_t* data) {
  * @param data Pointer to byte array
  * @return 16-bit value
  */
-static inline uint16_t READ_UINT16_BE(const uint8_t* data) {
+static inline uint16_t READ_UINT16_BE(const uint8_t *data) {
     return ((uint16_t)data[0] << 8) | data[1];
 }
 
@@ -99,6 +101,6 @@ enum { H4_TYPE_COMMAND = 1, H4_TYPE_ACL = 2, H4_TYPE_SCO = 3, H4_TYPE_EVENT = 4 
  * @param len Length of data
  * @return Pointer to static hex string buffer
  */
-char* format2Hex(uint8_t* data, uint16_t len);
+char *format2Hex(uint8_t *data, uint16_t len);
 
 #endif  // __HCI_UTILS_H__

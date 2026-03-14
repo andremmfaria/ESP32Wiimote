@@ -46,22 +46,22 @@ class ButtonStateManager {
     /**
      * Get current button state
      */
-    ButtonState getCurrent(void) const;
+    ButtonState getCurrent() const;
 
     /**
      * Get previous button state
      */
-    ButtonState getPrevious(void) const;
+    ButtonState getPrevious() const;
 
     /**
      * Check if button state changed
      */
-    bool hasChanged(void) const;
+    bool hasChanged() const;
 
     /**
      * Reset state change flag and store current as old
      */
-    void resetChangeFlag(void);
+    void resetChangeFlag();
 
    private:
     ButtonState _current;

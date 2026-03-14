@@ -48,55 +48,55 @@ class ESP32Wiimote {
      * Initialize Bluetooth and HCI queues
      * Must be called before using other methods
      */
-    bool init(void);
+    bool init();
 
     /**
      * Process HCI tasks
      * Must be called regularly (e.g., in main loop)
      */
-    void task(void);
+    void task();
 
     /**
      * Check if new data is available
      * @return 1 if data changed, 0 otherwise
      */
-    int available(void);
+    int available();
 
     /**
      * Get current button state
      * @return ButtonState enum value
      */
-    ButtonState getButtonState(void);
+    ButtonState getButtonState();
 
     /**
      * Get current accelerometer state
      * @return AccelState with x, y, z values
      */
-    struct AccelState getAccelState(void);
+    struct AccelState getAccelState();
 
     /**
      * Get current nunchuk state
      * @return NunchukState with stick and accelerometer values
      */
-    struct NunchukState getNunchukState(void);
+    struct NunchukState getNunchukState();
 
     /**
      * Check if Wiimote is connected
      * @return true if connected, false otherwise
      */
-    static bool isConnected(void);
+    static bool isConnected();
 
     /**
      * Get battery level
      * @return Battery level (0-100)
      */
-    static uint8_t getBatteryLevel(void);
+    static uint8_t getBatteryLevel();
 
     /**
      * Request battery status update from Wiimote
      * Battery level will be updated when response is received
      */
-    static void requestBatteryUpdate(void);
+    static void requestBatteryUpdate();
 
     /**
      * Set runtime log level for all library components
@@ -108,7 +108,7 @@ class ESP32Wiimote {
      * Get current runtime log level
      * @return Current WiimoteLogLevel value
      */
-    static uint8_t getLogLevel(void);
+    static uint8_t getLogLevel();
 
     /**
      * Add filter to ignore certain data types
