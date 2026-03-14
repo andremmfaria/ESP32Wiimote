@@ -26,7 +26,7 @@ Common issues and solutions for ESP32Wiimote.
 
 1. **Check button press timing**
 
-   ```
+   ```text
    - Press 1 + 2 simultaneously
    - Hold for 2-3 seconds
    - Release when LEDs start blinking
@@ -118,6 +118,25 @@ Common issues and solutions for ESP32Wiimote.
 
 ---
 
+### Second Wiimote Won't Connect
+
+**Symptoms:**
+
+- First controller works, second one never completes pairing
+- Second controller LEDs keep blinking
+
+**Cause:**
+
+- ESP32 Bluetooth Classic HCI resources are limited in this usage model
+- ESP32Wiimote is designed for one active controller per ESP32 radio
+
+**Solution:**
+
+- Use a single Wiimote per ESP32 device
+- If you need multiple controllers, use multiple ESP32 boards (one controller each)
+
+---
+
 ### Can't Find Wiimote After First Connection
 
 **Symptoms:**
@@ -129,7 +148,7 @@ Common issues and solutions for ESP32Wiimote.
 
 Remove Wiimote sync:
 
-```
+```text
 1. Open Wiimote battery cover
 2. Press red SYNC button (inside battery compartment)
 3. Close cover
@@ -236,7 +255,7 @@ For native tests, this is expected - tests provide setup/loop.
 
 2. **Check baud rate**
 
-   ```
+   ```text
    Serial Monitor must be set to 115200 baud
    ```
 

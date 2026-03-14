@@ -70,7 +70,7 @@ Expected output: `78 test cases: 78 succeeded`
 
 ## Code Organization
 
-```
+```text
 ESP32Wiimote/
 ├── src/
 │   ├── ESP32Wiimote.{h,cpp}       # Public API
