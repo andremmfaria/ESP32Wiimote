@@ -5,8 +5,8 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef __ESP32_WIIMOTE_H__
-#define __ESP32_WIIMOTE_H__
+#ifndef ESP32WIIMOTE_ESP32WIIMOTE_H_
+#define ESP32WIIMOTE_ESP32WIIMOTE_H_
 
 #include "TinyWiimote.h"
 #include "esp32wiimote/bt_controller.h"
@@ -20,9 +20,11 @@
 /**
  * Action types for filters
  */
-enum {
-    ACTION_IGNORE,
+enum class FilterAction : uint8_t {
+    Ignore = 0,
 };
+
+static constexpr FilterAction ACTION_IGNORE = FilterAction::Ignore;
 
 /**
  * ESP32Wiimote - Main Wiimote controller interface for ESP32
@@ -115,7 +117,7 @@ class ESP32Wiimote {
      * @param action Filter action (ACTION_IGNORE)
      * @param filter Filter type (FILTER_BUTTON, FILTER_ACCEL, etc.)
      */
-    void addFilter(int action, int filter);
+    void addFilter(FilterAction action, int filter);
 
    private:
     // Component managers
@@ -127,4 +129,4 @@ class ESP32Wiimote {
     WiimoteDataParser *_dataParser;
 };
 
-#endif  // __ESP32_WIIMOTE_H__
+#endif  // ESP32WIIMOTE_ESP32WIIMOTE_H_

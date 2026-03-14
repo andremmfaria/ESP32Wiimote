@@ -74,7 +74,7 @@ bool WiimoteProtocol::isValidMemorySize(uint16_t size, const char *operation) {
  *
  * Sends output report (0xA2 0x11 LL) where LL contains LED bits shifted left 4
  */
-void WiimoteProtocol::setLeds(uint16_t ch, uint8_t leds) {
+void WiimoteProtocol::setLeds(uint16_t ch, const WiimoteLedCommand &command) {
     LOG_DEBUG("wiimote_set_leds\n");
 
     if (connections == nullptr || sender == nullptr) {
@@ -89,13 +89,13 @@ void WiimoteProtocol::setLeds(uint16_t ch, uint8_t leds) {
 
     // Build output report: A2 11 LL
     PayloadBuilder pb(payload, sizeof(payload));
-    pb.append(HID_OUTPUT_REPORT);     // 0xA2
-    pb.append(WIIMOTE_RPT_SET_LEDS);  // 0x11
-    pb.append((uint8_t)(leds << 4));  // LED bits in high nibble
+    pb.append(HID_OUTPUT_REPORT);             // 0xA2
+    pb.append(WIIMOTE_RPT_SET_LEDS);          // 0x11
+    pb.append((uint8_t)(command.leds << 4));  // LED bits in high nibble
 
     sender->sendAclL2capPacket(ch, remoteCID, payload, pb.length());
     LOG_DEBUG("queued acl_l2cap_packet(%s, leds=0x%02X)\n",
-              wiimoteOutputReportToString(WIIMOTE_RPT_SET_LEDS), leds);
+              wiimoteOutputReportToString(WIIMOTE_RPT_SET_LEDS), command.leds);
 }
 
 /**
@@ -105,9 +105,9 @@ void WiimoteProtocol::setLeds(uint16_t ch, uint8_t leds) {
  * - TT is continuous flag (0x00 or 0x04)
  * - MM is reporting mode
  */
-void WiimoteProtocol::setReportingMode(uint16_t ch, uint8_t mode, bool continuous) {
-    LOG_DEBUG("wiimote_set_reporting_mode mode=0x%02X (%s) continuous=%d\n", mode,
-              wiimoteReportingModeToString(mode), continuous);
+void WiimoteProtocol::setReportingMode(uint16_t ch, const WiimoteReportingModeCommand &command) {
+    LOG_DEBUG("wiimote_set_reporting_mode mode=0x%02X (%s) continuous=%d\n", command.mode,
+              wiimoteReportingModeToString(command.mode), command.continuous);
 
     if (connections == nullptr || sender == nullptr) {
         return;
@@ -119,14 +119,14 @@ void WiimoteProtocol::setReportingMode(uint16_t ch, uint8_t mode, bool continuou
         return;
     }
 
-    uint8_t contReportIsDesired = continuous ? 0x04 : 0x00;
+    uint8_t contReportIsDesired = command.continuous ? 0x04 : 0x00;
 
     // Build output report: A2 12 TT MM
     PayloadBuilder pb(payload, sizeof(payload));
     pb.append(HID_OUTPUT_REPORT);               // 0xA2
     pb.append(WIIMOTE_RPT_SET_REPORTING_MODE);  // 0x12
     pb.append(contReportIsDesired);             // Continuous flag
-    pb.append(mode);                            // Reporting mode
+    pb.append(command.mode);                    // Reporting mode
 
     sender->sendAclL2capPacket(ch, remoteCID, payload, pb.length());
     LOG_DEBUG("queued acl_l2cap_packet(Set Reporting Mode)\n");

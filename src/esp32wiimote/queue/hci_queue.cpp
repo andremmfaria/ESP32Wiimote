@@ -92,7 +92,7 @@ void HciQueueManager::processTxQueue() {
 
         if (ok) {
             HciQueueData *queuedata = nullptr;
-            if (xQueueReceive(_txQueue, &queuedata, 0) == pdTRUE) {
+            if (xQueueReceive(_txQueue, reinterpret_cast<void *>(&queuedata), 0) == pdTRUE) {
                 esp_vhci_host_send_packet(queuedata->data, queuedata->len);
                 LOG_DEBUG("SEND => %s\n", format2Hex(queuedata->data, queuedata->len));
                 free(queuedata);
@@ -104,7 +104,7 @@ void HciQueueManager::processTxQueue() {
 void HciQueueManager::processRxQueue() {
     if (uxQueueMessagesWaiting(_rxQueue) != 0U) {
         HciQueueData *queuedata = nullptr;
-        if (xQueueReceive(_rxQueue, &queuedata, 0) == pdTRUE) {
+        if (xQueueReceive(_rxQueue, reinterpret_cast<void *>(&queuedata), 0) == pdTRUE) {
             handleHciData(queuedata->data, queuedata->len);
             free(queuedata);
         }

@@ -5,8 +5,8 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef __HCI_QUEUE_H__
-#define __HCI_QUEUE_H__
+#ifndef ESP32WIIMOTE_HCI_QUEUE_H_
+#define ESP32WIIMOTE_HCI_QUEUE_H_
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
@@ -91,4 +91,4 @@ class HciQueueManager {
     size_t _txQueueSize;
 };
 
-#endif  // __HCI_QUEUE_H__
+#endif  // ESP32WIIMOTE_HCI_QUEUE_H_

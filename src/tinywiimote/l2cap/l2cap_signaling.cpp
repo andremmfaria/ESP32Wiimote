@@ -5,7 +5,7 @@
 #include "../utils/hci_utils.h"
 #include "../utils/payload_builder.h"
 
-L2capSignaling::L2capSignaling() : connections(nullptr), sender(nullptr) {}
+L2capSignaling::L2capSignaling() = default;
 
 void L2capSignaling::init(L2capConnectionTable *connectionTable, L2capPacketSender *packetSender) {
     connections = connectionTable;
@@ -56,7 +56,8 @@ void L2capSignaling::handleConnectionResponse(uint16_t ch, uint8_t *data, uint16
         return;
     }
 
-    const L2capConnection connection(ch, dstCID);
+    L2capConnection::Endpoint endpoint = {ch, dstCID};
+    const L2capConnection connection(endpoint);
     if (connections->addConnection(connection) < 0) {
         LOG_ERROR("L2CAP: Failed to add connection to table\n");
         return;

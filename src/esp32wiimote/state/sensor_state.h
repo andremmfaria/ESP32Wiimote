@@ -5,8 +5,8 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef __SENSOR_STATE_H__
-#define __SENSOR_STATE_H__
+#ifndef ESP32WIIMOTE_SENSOR_STATE_H_
+#define ESP32WIIMOTE_SENSOR_STATE_H_
 
 #include <stdint.h>
 
@@ -102,4 +102,4 @@ class SensorStateManager {
     int _nunchukStickThreshold;
 };
 
-#endif  // __SENSOR_STATE_H__
+#endif  // ESP32WIIMOTE_SENSOR_STATE_H_

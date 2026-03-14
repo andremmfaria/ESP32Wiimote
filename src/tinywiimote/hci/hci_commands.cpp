@@ -57,16 +57,16 @@ uint16_t make_cmd_write_scan_enable(uint8_t *buf, uint8_t mode) {
     return HCI_H4_CMD_PREAMBLE_SIZE + HCIC_PARAM_SIZE_WRITE_SCAN_ENABLE;
 }
 
-uint16_t make_cmd_inquiry(uint8_t *buf, uint32_t lap, uint8_t len, uint8_t num) {
+uint16_t make_cmd_inquiry(uint8_t *buf, const HciInquiryParams &params) {
     UINT8_TO_STREAM(buf, H4_TYPE_COMMAND);
     UINT16_TO_STREAM(buf, HCI_OPCODE_INQUIRY);
     UINT8_TO_STREAM(buf, HCIC_PARAM_SIZE_WRITE_INQUIRY);
 
-    UINT8_TO_STREAM(buf, (uint8_t)(lap & 0xFF));
-    UINT8_TO_STREAM(buf, (uint8_t)((lap >> 8) & 0xFF));
-    UINT8_TO_STREAM(buf, (uint8_t)((lap >> 16) & 0xFF));
-    UINT8_TO_STREAM(buf, len);
-    UINT8_TO_STREAM(buf, num);
+    UINT8_TO_STREAM(buf, (uint8_t)(params.lap & 0xFF));
+    UINT8_TO_STREAM(buf, (uint8_t)((params.lap >> 8) & 0xFF));
+    UINT8_TO_STREAM(buf, (uint8_t)((params.lap >> 16) & 0xFF));
+    UINT8_TO_STREAM(buf, params.length);
+    UINT8_TO_STREAM(buf, params.maxResponses);
 
     return HCI_H4_CMD_PREAMBLE_SIZE + HCIC_PARAM_SIZE_WRITE_INQUIRY;
 }
@@ -79,38 +79,30 @@ uint16_t make_cmd_inquiry_cancel(uint8_t *buf) {
     return HCI_H4_CMD_PREAMBLE_SIZE + HCIC_PARAM_SIZE_WRITE_INQUIRY_CANCEL;
 }
 
-uint16_t make_cmd_remote_name_request(uint8_t *buf,
-                                      struct bd_addr_t bdAddr,
-                                      uint8_t psrm,
-                                      uint16_t clkofs) {
+uint16_t make_cmd_remote_name_request(uint8_t *buf, const HciRemoteNameRequestParams &params) {
     UINT8_TO_STREAM(buf, H4_TYPE_COMMAND);
     UINT16_TO_STREAM(buf, HCI_OPCODE_REMOTE_NAME_REQUEST);
     UINT8_TO_STREAM(buf, HCIC_PARAM_SIZE_REMOTE_NAME_REQUEST);
 
-    BDADDR_TO_STREAM(buf, bdAddr.addr);
-    UINT8_TO_STREAM(buf, psrm);
+    BDADDR_TO_STREAM(buf, params.bdAddr.addr);
+    UINT8_TO_STREAM(buf, params.pageScanRepetitionMode);
     UINT8_TO_STREAM(buf, 0);
-    UINT16_TO_STREAM(buf, clkofs);
+    UINT16_TO_STREAM(buf, params.clockOffset);
 
     return HCI_H4_CMD_PREAMBLE_SIZE + HCIC_PARAM_SIZE_REMOTE_NAME_REQUEST;
 }
 
-uint16_t make_cmd_create_connection(uint8_t *buf,
-                                    struct bd_addr_t bdAddr,
-                                    uint16_t pt,
-                                    uint8_t psrm,
-                                    uint16_t clkofs,
-                                    uint8_t ars) {
+uint16_t make_cmd_create_connection(uint8_t *buf, const HciCreateConnectionParams &params) {
     UINT8_TO_STREAM(buf, H4_TYPE_COMMAND);
     UINT16_TO_STREAM(buf, HCI_OPCODE_CREATE_CONNECTION);
     UINT8_TO_STREAM(buf, HCIC_PARAM_SIZE_CREATE_CONNECTION);
 
-    BDADDR_TO_STREAM(buf, bdAddr.addr);
-    UINT16_TO_STREAM(buf, pt);
-    UINT8_TO_STREAM(buf, psrm);
+    BDADDR_TO_STREAM(buf, params.bdAddr.addr);
+    UINT16_TO_STREAM(buf, params.packetType);
+    UINT8_TO_STREAM(buf, params.pageScanRepetitionMode);
     UINT8_TO_STREAM(buf, 0);
-    UINT16_TO_STREAM(buf, clkofs);
-    UINT8_TO_STREAM(buf, ars);
+    UINT16_TO_STREAM(buf, params.clockOffset);
+    UINT8_TO_STREAM(buf, params.allowRoleSwitch);
 
     return HCI_H4_CMD_PREAMBLE_SIZE + HCIC_PARAM_SIZE_CREATE_CONNECTION;
 }

@@ -15,11 +15,7 @@ enum {
     REPORT_STATE_WAIT_READ_RESPONSE,
 };
 
-WiimoteExtensions::WiimoteExtensions()
-    : controllerReportState(REPORT_STATE_INIT)
-    , state(nullptr)
-    , connections(nullptr)
-    , sender(nullptr) {}
+WiimoteExtensions::WiimoteExtensions() : controllerReportState(REPORT_STATE_INIT) {}
 
 void WiimoteExtensions::init(WiimoteState *wiimoteState,
                              const L2capConnectionTable *connectionTable,
@@ -58,9 +54,11 @@ void WiimoteExtensions::handleReport(uint16_t ch, uint8_t *data, uint16_t len) {
                     LOG_INFO("Extension controller NOT connected\n");
                     state->setNunchukConnected(false);
                     if (state->getUseAccelerometer()) {
-                        protocol.setReportingMode(ch, 0x31, false);
+                        WiimoteReportingModeCommand reportingModeCommand = {0x31, false};
+                        protocol.setReportingMode(ch, reportingModeCommand);
                     } else {
-                        protocol.setReportingMode(ch, 0x30, false);
+                        WiimoteReportingModeCommand reportingModeCommand = {0x30, false};
+                        protocol.setReportingMode(ch, reportingModeCommand);
                     }
                 }
             }
@@ -106,9 +104,11 @@ void WiimoteExtensions::handleReport(uint16_t ch, uint8_t *data, uint16_t len) {
                         LOG_INFO("Nunchuk detected\n");
                         state->setNunchukConnected(true);
                         if (state->getUseAccelerometer()) {
-                            protocol.setReportingMode(ch, 0x35, false);
+                            WiimoteReportingModeCommand reportingModeCommand = {0x35, false};
+                            protocol.setReportingMode(ch, reportingModeCommand);
                         } else {
-                            protocol.setReportingMode(ch, 0x32, false);
+                            WiimoteReportingModeCommand reportingModeCommand = {0x32, false};
+                            protocol.setReportingMode(ch, reportingModeCommand);
                         }
                     }
                     controllerReportState = REPORT_STATE_INIT;

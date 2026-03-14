@@ -12,8 +12,8 @@
 //   Under the following terms:
 //     NonCommercial — You may not use the material for commercial purposes.
 
-#ifndef _TINY_WIIMOTE_H_
-#define _TINY_WIIMOTE_H_
+#ifndef ESP32WIIMOTE_TINYWIIMOTE_H_
+#define ESP32WIIMOTE_TINYWIIMOTE_H_
 
 #include "tinywiimote/protocol/wiimote_reports.h"
 
@@ -41,4 +41,4 @@ void handleHciData(uint8_t *data, size_t len);
 
 char *format2Hex(uint8_t *data, uint16_t len);
 
-#endif  // _TINY_WIIMOTE_H_
+#endif  // ESP32WIIMOTE_TINYWIIMOTE_H_

@@ -11,8 +11,8 @@
 
 L2capConnection::L2capConnection() : ch(0), remoteCID(0) {}
 
-L2capConnection::L2capConnection(uint16_t channelHandle, uint16_t remoteCid)
-    : ch(channelHandle), remoteCID(remoteCid) {}
+L2capConnection::L2capConnection(const Endpoint &endpoint)
+    : ch(endpoint.channelHandle), remoteCID(endpoint.remoteCid) {}
 
 L2capConnectionTable::L2capConnectionTable() : size(0) {}
 

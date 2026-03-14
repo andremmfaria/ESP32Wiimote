@@ -136,7 +136,8 @@ static void handle_command_complete(struct HciEventContext *ctx, uint8_t *data) 
             if (status == 0x00) {
                 LOG_INFO("HCI: Device initialized, starting inquiry\n");
                 clear_scanned_devices(ctx);
-                const uint16_t txLen = make_cmd_inquiry(g_hciTxBuffer, 0x9E8B33, 0x05, 0x00);
+                HciInquiryParams inquiryParams = {0x9E8B33, 0x05, 0x00};
+                const uint16_t txLen = make_cmd_inquiry(g_hciTxBuffer, inquiryParams);
                 hci_send(ctx, txLen);
                 ctx->deviceInited = true;
             } else {
@@ -152,9 +153,9 @@ static void handle_command_complete(struct HciEventContext *ctx, uint8_t *data) 
 
         default:
             if (status != 0x00) {
-                LOG_WARNING("HCI: %s (0x%04x) completed with error status=0x%02x (%s)\n",
-                            hciOpcodeToString(cmdOpcode), cmdOpcode, status,
-                            hciStatusCodeToString(status));
+                LOG_WARN("HCI: %s (0x%04x) completed with error status=0x%02x (%s)\n",
+                         hciOpcodeToString(cmdOpcode), cmdOpcode, status,
+                         hciStatusCodeToString(status));
             }
             break;
     }
@@ -168,9 +169,9 @@ static void handle_command_status(struct HciEventContext *ctx, const uint8_t *da
     const uint16_t cmdOpcode = READ_UINT16_LE(data + 2);
 
     if (status != 0x00) {
-        LOG_WARNING("HCI: Command status for %s (0x%04x): status=0x%02x (%s), numPackets=%u\n",
-                    hciOpcodeToString(cmdOpcode), cmdOpcode, status, hciStatusCodeToString(status),
-                    numHciCommandPackets);
+        LOG_WARN("HCI: Command status for %s (0x%04x): status=0x%02x (%s), numPackets=%u\n",
+                 hciOpcodeToString(cmdOpcode), cmdOpcode, status, hciStatusCodeToString(status),
+                 numHciCommandPackets);
     }
 }
 
@@ -207,8 +208,12 @@ static void handle_inquiry_result(struct HciEventContext *ctx, const uint8_t *da
         // Filter for Wiimote class-of-device: [04 25 00]
         if (data[pos + 9] == 0x04 && data[pos + 10] == 0x25 && data[pos + 11] == 0x00) {
             LOG_INFO("HCI: Wiimote detected! Requesting remote name...\n");
-            const uint16_t txLen = make_cmd_remote_name_request(g_hciTxBuffer, scanned.bdAddr,
-                                                                scanned.psrm, scanned.clkofs);
+            HciRemoteNameRequestParams remoteNameParams = {
+                scanned.bdAddr,
+                scanned.psrm,
+                scanned.clkofs,
+            };
+            const uint16_t txLen = make_cmd_remote_name_request(g_hciTxBuffer, remoteNameParams);
             hci_send(ctx, txLen);
         }
     }
@@ -236,9 +241,10 @@ static void handle_remote_name_request_complete(struct HciEventContext *ctx, uin
         const uint16_t packetType = 0x0008;
         const uint8_t allowRoleSwitch = 0x00;
 
-        const uint16_t txLen =
-            make_cmd_create_connection(g_hciTxBuffer, scanned.bdAddr, packetType, scanned.psrm,
-                                       scanned.clkofs, allowRoleSwitch);
+        HciCreateConnectionParams createConnectionParams = {
+            scanned.bdAddr, packetType, scanned.psrm, scanned.clkofs, allowRoleSwitch,
+        };
+        const uint16_t txLen = make_cmd_create_connection(g_hciTxBuffer, createConnectionParams);
         hci_send(ctx, txLen);
     }
 }
@@ -263,48 +269,45 @@ static void handle_disconnection_complete(struct HciEventContext *ctx, uint8_t *
     }
 }
 
-void hci_events_handle_event(struct HciEventContext *ctx,
-                             uint8_t eventCode,
-                             uint8_t len,
-                             uint8_t *data) {
-    (void)len;
+void hci_events_handle_event(struct HciEventContext *ctx, const HciEventPacket &packet) {
+    (void)packet.len;
 
-    if (ctx == nullptr || data == nullptr) {
+    if (ctx == nullptr || packet.data == nullptr) {
         return;
     }
 
-    switch (eventCode) {
+    switch (packet.eventCode) {
         case HCI_INQUIRY_COMP_EVT:
-            handle_inquiry_complete(ctx, data);
+            handle_inquiry_complete(ctx, packet.data);
             break;
 
         case HCI_INQUIRY_RESULT_EVT:
-            handle_inquiry_result(ctx, data);
+            handle_inquiry_result(ctx, packet.data);
             break;
 
         case HCI_CONNECTION_COMP_EVT:
-            handle_connection_complete(ctx, data);
+            handle_connection_complete(ctx, packet.data);
             break;
 
         case HCI_DISCONNECTION_COMP_EVT:
-            handle_disconnection_complete(ctx, data);
+            handle_disconnection_complete(ctx, packet.data);
             break;
 
         case HCI_RMT_NAME_REQUEST_COMP_EVT:
-            handle_remote_name_request_complete(ctx, data);
+            handle_remote_name_request_complete(ctx, packet.data);
             break;
 
         case HCI_COMMAND_COMPLETE_EVT:
-            handle_command_complete(ctx, data);
+            handle_command_complete(ctx, packet.data);
             break;
 
         case HCI_COMMAND_STATUS_EVT:
-            handle_command_status(ctx, data);
+            handle_command_status(ctx, packet.data);
             break;
 
         default:
-            LOG_DEBUG("HCI: Unhandled event 0x%02x (%s)\n", eventCode,
-                      hciEventCodeToString(eventCode));
+            LOG_DEBUG("HCI: Unhandled event 0x%02x (%s)\n", packet.eventCode,
+                      hciEventCodeToString(packet.eventCode));
             break;
     }
 }

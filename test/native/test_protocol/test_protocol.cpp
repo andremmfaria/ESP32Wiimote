@@ -8,6 +8,18 @@ L2capConnectionTable *connections;
 L2capPacketSender *sender;
 WiimoteProtocol *protocol;
 
+static L2capConnection makeConnection(uint16_t ch, uint16_t remoteCID) {
+    return L2capConnection({ch, remoteCID});
+}
+
+static WiimoteLedCommand ledCommand(uint8_t leds) {
+    return WiimoteLedCommand{leds};
+}
+
+static WiimoteReportingModeCommand reportingModeCommand(uint8_t mode, bool continuous) {
+    return WiimoteReportingModeCommand{mode, continuous};
+}
+
 void setUp(void) {
     connections = new L2capConnectionTable();
     sender = new L2capPacketSender();
@@ -41,7 +53,7 @@ void test_empty_connection_table() {
 
 // Test: Add and find connection
 void test_add_and_find_connection() {
-    L2capConnection conn(0x0040, 0x0041);
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
     int result = connections->addConnection(conn);
     TEST_ASSERT_EQUAL(1, result);
 
@@ -53,7 +65,7 @@ void test_add_and_find_connection() {
 
 // Test: Get first connection handle
 void test_get_first_connection_handle() {
-    L2capConnection conn(0x0040, 0x0041);
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
     connections->addConnection(conn);
 
     uint16_t ch = 0;
@@ -64,7 +76,7 @@ void test_get_first_connection_handle() {
 
 // Test: Clear connections
 void test_clear_connections() {
-    L2capConnection conn(0x0040, 0x0041);
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
     connections->addConnection(conn);
 
     connections->clear();
@@ -78,7 +90,7 @@ void test_clear_connections() {
 
 // Test: Set LEDs with no connection
 void test_set_leds_no_connection() {
-    protocol->setLeds(0x0040, 0x0F);
+    protocol->setLeds(0x0040, ledCommand(0x0F));
 
     // Should not send anything
     TEST_ASSERT_EQUAL(0, mockSendCallCount);
@@ -86,10 +98,10 @@ void test_set_leds_no_connection() {
 
 // Test: Set LEDs with connection
 void test_set_leds_with_connection() {
-    L2capConnection conn(0x0040, 0x0041);
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
     connections->addConnection(conn);
 
-    protocol->setLeds(0x0040, 0x01);  // LED 1
+    protocol->setLeds(0x0040, ledCommand(0x01));  // LED 1
 
     // Verify packet was sent
     TEST_ASSERT_EQUAL(1, mockSendCallCount);
@@ -105,10 +117,10 @@ void test_set_leds_with_connection() {
 
 // Test: Set all LEDs
 void test_set_all_leds() {
-    L2capConnection conn(0x0040, 0x0041);
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
     connections->addConnection(conn);
 
-    protocol->setLeds(0x0040, 0x0F);  // All LEDs
+    protocol->setLeds(0x0040, ledCommand(0x0F));  // All LEDs
 
     TEST_ASSERT_EQUAL(3, mockLastPacketLen);
     TEST_ASSERT_EQUAL_UINT8(0xA2, mockLastPacket[0]);
@@ -118,23 +130,23 @@ void test_set_all_leds() {
 
 // Test: Set individual LEDs
 void test_set_individual_leds() {
-    L2capConnection conn(0x0040, 0x0041);
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
     connections->addConnection(conn);
 
     // LED 1
-    protocol->setLeds(0x0040, 0x01);
+    protocol->setLeds(0x0040, ledCommand(0x01));
     TEST_ASSERT_EQUAL_UINT8(0x10, mockLastPacket[2]);
 
     // LED 2
-    protocol->setLeds(0x0040, 0x02);
+    protocol->setLeds(0x0040, ledCommand(0x02));
     TEST_ASSERT_EQUAL_UINT8(0x20, mockLastPacket[2]);
 
     // LED 3
-    protocol->setLeds(0x0040, 0x04);
+    protocol->setLeds(0x0040, ledCommand(0x04));
     TEST_ASSERT_EQUAL_UINT8(0x40, mockLastPacket[2]);
 
     // LED 4
-    protocol->setLeds(0x0040, 0x08);
+    protocol->setLeds(0x0040, ledCommand(0x08));
     TEST_ASSERT_EQUAL_UINT8(0x80, mockLastPacket[2]);
 }
 
@@ -142,17 +154,17 @@ void test_set_individual_leds() {
 
 // Test: Set reporting mode with no connection
 void test_set_reporting_mode_no_connection() {
-    protocol->setReportingMode(0x0040, 0x30, false);
+    protocol->setReportingMode(0x0040, reportingModeCommand(0x30, false));
 
     TEST_ASSERT_EQUAL(0, mockSendCallCount);
 }
 
 // Test: Set reporting mode continuous
 void test_set_reporting_mode_continuous() {
-    L2capConnection conn(0x0040, 0x0041);
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
     connections->addConnection(conn);
 
-    protocol->setReportingMode(0x0040, 0x31, true);
+    protocol->setReportingMode(0x0040, reportingModeCommand(0x31, true));
 
     // Verify packet format: A2 12 TT MM
     TEST_ASSERT_EQUAL(4, mockLastPacketLen);
@@ -164,10 +176,10 @@ void test_set_reporting_mode_continuous() {
 
 // Test: Set reporting mode non-continuous
 void test_set_reporting_mode_non_continuous() {
-    L2capConnection conn(0x0040, 0x0041);
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
     connections->addConnection(conn);
 
-    protocol->setReportingMode(0x0040, 0x35, false);
+    protocol->setReportingMode(0x0040, reportingModeCommand(0x35, false));
 
     TEST_ASSERT_EQUAL(4, mockLastPacketLen);
     TEST_ASSERT_EQUAL_UINT8(0xA2, mockLastPacket[0]);
@@ -178,13 +190,13 @@ void test_set_reporting_mode_non_continuous() {
 
 // Test: Different reporting modes
 void test_different_reporting_modes() {
-    L2capConnection conn(0x0040, 0x0041);
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
     connections->addConnection(conn);
 
     uint8_t modes[] = {0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37};
 
     for (uint8_t mode : modes) {
-        protocol->setReportingMode(0x0040, mode, false);
+        protocol->setReportingMode(0x0040, reportingModeCommand(mode, false));
         TEST_ASSERT_EQUAL_UINT8(mode, mockLastPacket[3]);
     }
 }
@@ -200,7 +212,7 @@ void test_request_status_no_connection() {
 
 // Test: Request status with connection
 void test_request_status_with_connection() {
-    L2capConnection conn(0x0040, 0x0041);
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
     connections->addConnection(conn);
 
     protocol->requestStatus(0x0040);
@@ -216,7 +228,7 @@ void test_request_status_with_connection() {
 
 // Test: Write memory EEPROM
 void test_write_memory_eeprom() {
-    L2capConnection conn(0x0040, 0x0041);
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
     connections->addConnection(conn);
 
     uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -233,7 +245,7 @@ void test_write_memory_eeprom() {
 
 // Test: Write memory control register
 void test_write_memory_control_register() {
-    L2capConnection conn(0x0040, 0x0041);
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
     connections->addConnection(conn);
 
     uint8_t data[] = {0xAA, 0xBB};
@@ -254,7 +266,7 @@ void test_write_memory_no_connection() {
 
 // Test: Read memory EEPROM
 void test_read_memory_eeprom() {
-    L2capConnection conn(0x0040, 0x0041);
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
     connections->addConnection(conn);
 
     protocol->readMemory(0x0040, EEPROM_MEMORY, 0x00000020, 16);
@@ -270,7 +282,7 @@ void test_read_memory_eeprom() {
 
 // Test: Read memory control register
 void test_read_memory_control_register() {
-    L2capConnection conn(0x0040, 0x0041);
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
     connections->addConnection(conn);
 
     protocol->readMemory(0x0040, CONTROL_REGISTER, 0x00A400FA, 6);
@@ -291,19 +303,19 @@ void test_read_memory_no_connection() {
 
 // Test: Multiple connections
 void test_multiple_connections() {
-    L2capConnection conn1(0x0040, 0x0041);
-    L2capConnection conn2(0x0050, 0x0051);
+    L2capConnection conn1 = makeConnection(0x0040, 0x0041);
+    L2capConnection conn2 = makeConnection(0x0050, 0x0051);
 
     connections->addConnection(conn1);
     connections->addConnection(conn2);
 
     // Send to first connection
-    protocol->setLeds(0x0040, 0x01);
+    protocol->setLeds(0x0040, ledCommand(0x01));
     TEST_ASSERT_EQUAL_UINT16(0x0040, mockLastChannelHandle);
     TEST_ASSERT_EQUAL_UINT16(0x0041, mockLastRemoteCID);
 
     // Send to second connection
-    protocol->setLeds(0x0050, 0x02);
+    protocol->setLeds(0x0050, ledCommand(0x02));
     TEST_ASSERT_EQUAL_UINT16(0x0050, mockLastChannelHandle);
     TEST_ASSERT_EQUAL_UINT16(0x0051, mockLastRemoteCID);
 }
@@ -315,21 +327,21 @@ void test_uninitialized_protocol() {
     WiimoteProtocol uninitProtocol;
     // Don't call init()
 
-    L2capConnection conn(0x0040, 0x0041);
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
     connections->addConnection(conn);
 
     // Operations should be safe but do nothing
-    uninitProtocol.setLeds(0x0040, 0x01);
+    uninitProtocol.setLeds(0x0040, ledCommand(0x01));
     TEST_ASSERT_EQUAL(0, mockSendCallCount);
 }
 
 // Test: Re-initialization
 void test_reinitialization() {
-    L2capConnection conn(0x0040, 0x0041);
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
     connections->addConnection(conn);
 
     // First use
-    protocol->setLeds(0x0040, 0x01);
+    protocol->setLeds(0x0040, ledCommand(0x01));
     TEST_ASSERT_EQUAL(1, mockSendCallCount);
 
     // Re-init with new objects
@@ -342,12 +354,12 @@ void test_reinitialization() {
     mockSendCallCount = 0;
 
     // Should not work without connection in new table
-    protocol->setLeds(0x0040, 0x01);
+    protocol->setLeds(0x0040, ledCommand(0x01));
     TEST_ASSERT_EQUAL(0, mockSendCallCount);
 
     // Add connection and try again
     newConnections->addConnection(conn);
-    protocol->setLeds(0x0040, 0x01);
+    protocol->setLeds(0x0040, ledCommand(0x01));
     TEST_ASSERT_EQUAL(1, mockSendCallCount);
 
     delete newSender;
@@ -358,18 +370,18 @@ void test_reinitialization() {
 
 // Test: Rapid sequential operations
 void test_rapid_operations() {
-    L2capConnection conn(0x0040, 0x0041);
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
     connections->addConnection(conn);
 
     int operationCount = 0;
 
     for (int i = 0; i < 10; i++) {
-        protocol->setLeds(0x0040, i & 0x0F);
+        protocol->setLeds(0x0040, ledCommand(i & 0x0F));
         operationCount++;
     }
 
     for (int i = 0; i < 5; i++) {
-        protocol->setReportingMode(0x0040, 0x30 + i, true);
+        protocol->setReportingMode(0x0040, reportingModeCommand(0x30 + i, true));
         operationCount++;
     }
 
@@ -385,7 +397,7 @@ void test_rapid_operations() {
 void test_connection_table_capacity() {
     // Add up to max connections
     for (int i = 0; i < L2CAP_CONNECTION_LIST_SIZE; i++) {
-        L2capConnection conn(0x0040 + i, 0x0041 + i);
+        L2capConnection conn = makeConnection(0x0040 + i, 0x0041 + i);
         int result = connections->addConnection(conn);
         TEST_ASSERT_EQUAL(i + 1, result);
     }
@@ -403,25 +415,25 @@ void test_connection_table_capacity() {
 
 // Test: Invalid channel handle
 void test_invalid_channel_handle() {
-    L2capConnection conn(0x0040, 0x0041);
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
     connections->addConnection(conn);
 
     // Try to send to non-existent channel
-    protocol->setLeds(0x9999, 0x01);
+    protocol->setLeds(0x9999, ledCommand(0x01));
     TEST_ASSERT_EQUAL(0, mockSendCallCount);
 }
 
 // Test: Zero values
 void test_zero_values() {
-    L2capConnection conn(0x0040, 0x0041);
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
     connections->addConnection(conn);
 
     // Zero LEDs
-    protocol->setLeds(0x0040, 0x00);
+    protocol->setLeds(0x0040, ledCommand(0x00));
     TEST_ASSERT_EQUAL_UINT8(0x00, mockLastPacket[2]);
 
     // Zero reporting mode
-    protocol->setReportingMode(0x0040, 0x00, false);
+    protocol->setReportingMode(0x0040, reportingModeCommand(0x00, false));
     TEST_ASSERT_EQUAL_UINT8(0x00, mockLastPacket[3]);
 }
 

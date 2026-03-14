@@ -5,15 +5,20 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef __L2CAP_CONNECTION_H__
-#define __L2CAP_CONNECTION_H__
+#ifndef ESP32WIIMOTE_L2CAP_CONNECTION_H_
+#define ESP32WIIMOTE_L2CAP_CONNECTION_H_
 
 #include <stdint.h>
 
 class L2capConnection {
    public:
+    struct Endpoint {
+        uint16_t channelHandle;
+        uint16_t remoteCid;
+    };
+
     L2capConnection();
-    L2capConnection(uint16_t channelHandle, uint16_t remoteCid);
+    explicit L2capConnection(const Endpoint &endpoint);
 
     uint16_t ch;
     uint16_t remoteCID;
@@ -27,13 +32,13 @@ class L2capConnectionTable {
 
     void clear();
     int findConnection(uint16_t ch) const;
-    int addConnection(const L2capConnection& connection);
-    int getRemoteCid(uint16_t ch, uint16_t* remoteCID) const;
-    int getFirstConnectionHandle(uint16_t* ch) const;
+    int addConnection(const L2capConnection &connection);
+    int getRemoteCid(uint16_t ch, uint16_t *remoteCID) const;
+    int getFirstConnectionHandle(uint16_t *ch) const;
 
    private:
     L2capConnection list[L2CAP_CONNECTION_LIST_SIZE];
     int size;
 };
 
-#endif  // __L2CAP_CONNECTION_H__
+#endif  // ESP32WIIMOTE_L2CAP_CONNECTION_H_

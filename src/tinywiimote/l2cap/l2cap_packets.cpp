@@ -25,8 +25,7 @@ uint16_t make_l2cap_packet(uint8_t *buf, uint16_t channelID, const uint8_t *data
 
 uint16_t make_acl_l2cap_packet(uint8_t *buf,
                                uint16_t ch,
-                               uint8_t pbf,
-                               uint8_t bf,
+                               const AclPacketControl &control,
                                uint16_t channelID,
                                uint8_t *data,
                                uint8_t len) {
@@ -35,7 +34,8 @@ uint16_t make_acl_l2cap_packet(uint8_t *buf,
 
     UINT8_TO_STREAM(buf, H4_TYPE_ACL);
     UINT8_TO_STREAM(buf, ch & 0xFF);
-    UINT8_TO_STREAM(buf, ((ch >> 8) & 0x0F) | (pbf << 4) | (bf << 6));
+    UINT8_TO_STREAM(
+        buf, ((ch >> 8) & 0x0F) | (control.packetBoundaryFlag << 4) | (control.broadcastFlag << 6));
     UINT16_TO_STREAM(buf, l2capLen);
 
     return HCI_H4_ACL_PREAMBLE_SIZE + l2capLen;
@@ -58,10 +58,9 @@ void L2capPacketSender::sendAclL2capPacket(uint16_t ch,
     LOG_DEBUG("L2CAP: Sending ACL packet: ch=0x%04x remoteCID=0x%04x len=%d\n", ch, remoteCID,
               payloadLen);
 
-    const uint8_t pbf = 0b10;
-    const uint8_t bf = 0b00;
+    const AclPacketControl control = {0b10, 0b00};
 
     const uint16_t packetLen =
-        make_acl_l2cap_packet(tmpQueueData, ch, pbf, bf, remoteCID, payload, (uint8_t)payloadLen);
+        make_acl_l2cap_packet(tmpQueueData, ch, control, remoteCID, payload, (uint8_t)payloadLen);
     sendCallback(tmpQueueData, packetLen);
 }

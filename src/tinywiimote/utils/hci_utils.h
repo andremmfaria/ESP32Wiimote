@@ -5,8 +5,8 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef __HCI_UTILS_H__
-#define __HCI_UTILS_H__
+#ifndef ESP32WIIMOTE_HCI_UTILS_H_
+#define ESP32WIIMOTE_HCI_UTILS_H_
 
 #include <stdint.h>
 #include <string.h>
@@ -95,12 +95,4 @@ enum { H4_TYPE_COMMAND = 1, H4_TYPE_ACL = 2, H4_TYPE_SCO = 3, H4_TYPE_EVENT = 4 
 #define HCI_H4_ACL_PREAMBLE_SIZE (5)
 #define L2CAP_HEADER_LEN (4)
 
-/**
- * Format data as hex string for debugging
- * @param data Pointer to byte data
- * @param len Length of data
- * @return Pointer to static hex string buffer
- */
-char *format2Hex(uint8_t *data, uint16_t len);
-
-#endif  // __HCI_UTILS_H__
+#endif  // ESP32WIIMOTE_HCI_UTILS_H_
