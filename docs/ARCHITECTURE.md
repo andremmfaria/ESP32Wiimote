@@ -14,43 +14,43 @@ ESP32Wiimote is designed with a layered architecture separating hardware interfa
 
 ## Architecture Overview
 
-```
+```text
 ┌─────────────────────────────────────────────────────────┐
-│                     Application Layer                    │
-│              (ESP32Wiimote public API)                   │
+│                     Application Layer                   │
+│              (ESP32Wiimote public API)                  │
 └─────────────────────────────────────────────────────────┘
                           │
                           ↓
 ┌─────────────────────────────────────────────────────────┐
-│                    State Management                      │
-│    ButtonStateManager │ SensorStateManager               │
-│    WiimoteDataParser                                     │
+│                    State Management                     │
+│    ButtonStateManager │ SensorStateManager              │
+│    WiimoteDataParser                                    │
 └─────────────────────────────────────────────────────────┘
                           │
                           ↓
 ┌─────────────────────────────────────────────────────────┐
-│                   Protocol Layer                         │
-│    WiimoteProtocol │ WiimoteExtensions                   │
-│    WiimoteState │ WiimoteReports                         │
+│                   Protocol Layer                        │
+│    WiimoteProtocol │ WiimoteExtensions                  │
+│    WiimoteState │ WiimoteReports                        │
 └─────────────────────────────────────────────────────────┘
                           │
                           ↓
 ┌─────────────────────────────────────────────────────────┐
-│                   L2CAP Layer                            │
-│    L2capSignaling │ L2capConnection                      │
-│    L2capPacketSender                                     │
+│                   L2CAP Layer                           │
+│    L2capSignaling │ L2capConnection                     │
+│    L2capPacketSender                                    │
 └─────────────────────────────────────────────────────────┘
                           │
                           ↓
 ┌─────────────────────────────────────────────────────────┐
-│                   HCI Layer                              │
-│    HciEventContext │ HciCommands                         │
-│    HciQueueManager (TX/RX queues)                        │
+│                   HCI Layer                             │
+│    HciEventContext │ HciCommands                        │
+│    HciQueueManager (TX/RX queues)                       │
 └─────────────────────────────────────────────────────────┘
                           │
                           ↓
 ┌─────────────────────────────────────────────────────────┐
-│                   Hardware Layer                         │
+│                   Hardware Layer                        │
 │    ESP32 Bluetooth Controller (VHCI)                    │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -191,7 +191,7 @@ void mockL2capRawSendCallback(uint8_t* data, size_t len);
 
 **Output Reports:**
 
-```
+```text
 0x11 - Set LEDs
 0x12 - Set Reporting Mode
 0x15 - Request Status
@@ -201,7 +201,7 @@ void mockL2capRawSendCallback(uint8_t* data, size_t len);
 
 **Input Reports:**
 
-```
+```text
 0x20 - Status Information (battery, extensions)
 0x21 - Read Memory Response
 0x30 - Core Buttons
@@ -222,7 +222,7 @@ void mockL2capRawSendCallback(uint8_t* data, size_t len);
 
 - `L2capSignaling` - Connection request/response, configuration
 - `L2capConnection` - Connection state tracking
-- `L2capConnectionTable` - Multiple connection management
+- `L2capConnectionTable` - Connection bookkeeping helpers
 - `L2capPacketSender` - ACL packet construction
 
 **Responsibilities:**
@@ -231,10 +231,11 @@ void mockL2capRawSendCallback(uint8_t* data, size_t len);
 - MTU negotiation
 - Channel ID tracking
 - Encapsulate HID data in L2CAP frames
+- Enforce a single active Wiimote session in the production path
 
 **Connection Sequence:**
 
-```
+```text
 1. CONNECTION REQUEST  (0x02) → PSM 0x0013 (HID Control)
 2. CONNECTION RESPONSE (0x03) ← Remote CID assigned
 3. CONFIGURATION REQ   (0x04) → MTU, flags
@@ -266,7 +267,7 @@ void mockL2capRawSendCallback(uint8_t* data, size_t len);
 
 **Connection Flow:**
 
-```
+```text
 1. RESET (0x03 0x0C)
 2. READ_BD_ADDR (0x09 0x10)
 3. WRITE_SCAN_ENABLE (0x1A 0x0C)
@@ -295,6 +296,7 @@ void mockL2capRawSendCallback(uint8_t* data, size_t len);
 - Radio transmission/reception
 - Baseband processing
 - Hardware-accelerated Bluetooth stack
+- This project targets one active Wii Remote per ESP32 radio due to Bluetooth Classic HCI limits
 
 **Interface:**
 
@@ -363,7 +365,7 @@ esp_vhci_host_check_send_available();
 
 ### Outgoing (TX - ESP32 → Wiimote)
 
-```
+```text
 Application
   ↓ wiimote.requestBatteryUpdate()
 ESP32Wiimote
@@ -387,7 +389,7 @@ Wiimote
 
 ### Incoming (RX - Wiimote → ESP32)
 
-```
+```text
 Wiimote
   ↓ (radio reception)
 ESP32 Bluetooth Controller

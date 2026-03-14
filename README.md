@@ -2,12 +2,15 @@
 
 ESP32Wiimote is an Arduino library for ESP32 boards that connects to a Wii Remote (Wiimote) over Bluetooth Classic, with optional Nunchuk support.
 
+Due to ESP32 Bluetooth Classic HCI limitations, this project supports one active Wiimote connection per ESP32 radio.
+
 ## Features
 
 - ✅ Button input (A/B/C/Z/1/2/Minus/Home/Plus/D-Pad)
 - ✅ Wiimote accelerometer data
 - ✅ Nunchuk accelerometer and analog stick data
 - ✅ Connection state check via `isConnected()`
+- ✅ Single-controller operation (1 Wiimote per ESP32 radio, due to Bluetooth Classic HCI limits)
 - ✅ Battery level readout (0-100%) via `getBatteryLevel()`
 - ✅ Battery status requests via `requestBatteryUpdate()`
 - ✅ Comprehensive 4-level logging system (ERROR/WARN/INFO/DEBUG)
@@ -86,6 +89,8 @@ The demo now covers all available features:
 ## Usage
 
 No manual Bluetooth pairing is required.
+
+Connection model note: due to Bluetooth Classic HCI limitations, this library is designed for a single Wiimote connected to one ESP32 radio at a time.
 
 1. Press `1 + 2` on the Wii Remote.
 2. LED1 turns on when the connection is established.

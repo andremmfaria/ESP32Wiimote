@@ -63,7 +63,7 @@ pio run -e esp32dev
 
 ## Test Structure
 
-```
+```text
 test/
 ├── native/              # Fast unit tests (PC)
 │   ├── test_button_state/
@@ -187,25 +187,25 @@ TEST_IGNORE_MESSAGE("skipped because...");
 
 ## Troubleshooting
 
-**"command not found: pio"**
+### "command not found: pio"
 
 ```bash
 pip install --upgrade platformio
 export PATH=$PATH:~/.local/bin
 ```
 
-**"No such file or directory: ESP32Wiimote.h"**
+### "No such file or directory: ESP32Wiimote.h"
 
 - Set `test_build_src = yes` in platformio.ini
 - Already configured in this project ✓
 
-**Native tests fail with missing Arduino.h**
+### Native tests fail with missing Arduino.h
 
 - Ensure `test/mocks/Arduino.h` exists (provides Arduino API stub)
 - Check `platformio.ini` includes `-I test/mocks` in build_flags
 - Already configured in this project ✓
 
-**Tests pass but changes to production code don't fail tests**
+### Tests pass but changes to production code don't fail tests
 
 - Verify `platformio.ini` build_src_filter includes real source files (not stubs)
 - Check tests use real implementations from `src/`, not full mocks

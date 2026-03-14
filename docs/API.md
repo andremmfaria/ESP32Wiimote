@@ -54,6 +54,7 @@ void setup() {
 - Initializes Bluetooth in non-discoverable mode
 - Starts HCI packet queues
 - Registers VHCI callbacks
+- Supports one active Wiimote connection per ESP32 radio due to Bluetooth Classic HCI limitations
 - Must be called before any other methods
 
 ---
@@ -86,6 +87,10 @@ void loop() {
 Checks if Wiimote is currently connected.
 
 **Returns:** `true` if connected, `false` otherwise
+
+**Connection model:**
+
+- Single-controller design: one active Wiimote per ESP32 radio due to Bluetooth Classic HCI limitations
 
 **Example:**
 
