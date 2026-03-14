@@ -7,6 +7,7 @@
 
 #include "wiimote_protocol.h"
 
+#include "../../utils/protocol_codes.h"
 #include "../../utils/serial_logging.h"
 #include "../l2cap/l2cap_connection.h"
 #include "../l2cap/l2cap_packets.h"
@@ -19,16 +20,16 @@
 /**
  * Wiimote output report opcodes
  */
-#define WIIMOTE_RPT_SET_LEDS 0x11
-#define WIIMOTE_RPT_SET_REPORTING_MODE 0x12
-#define WIIMOTE_RPT_REQUEST_STATUS 0x15
-#define WIIMOTE_RPT_WRITE_MEMORY 0x16
-#define WIIMOTE_RPT_READ_MEMORY 0x17
+#define WIIMOTE_RPT_SET_LEDS ((uint8_t)WiimoteOutputReport::SET_LEDS)
+#define WIIMOTE_RPT_SET_REPORTING_MODE ((uint8_t)WiimoteOutputReport::SET_REPORTING_MODE)
+#define WIIMOTE_RPT_REQUEST_STATUS ((uint8_t)WiimoteOutputReport::REQUEST_STATUS)
+#define WIIMOTE_RPT_WRITE_MEMORY ((uint8_t)WiimoteOutputReport::WRITE_MEMORY)
+#define WIIMOTE_RPT_READ_MEMORY ((uint8_t)WiimoteOutputReport::READ_MEMORY)
 
 /**
  * HID output report prefix
  */
-#define HID_OUTPUT_REPORT 0xA2
+#define HID_OUTPUT_REPORT ((uint8_t)WiimoteHidPrefix::OUTPUT_REPORT)
 
 /**
  * Memory write/read constraints
@@ -93,7 +94,8 @@ void WiimoteProtocol::setLeds(uint16_t ch, uint8_t leds) {
     pb.append((uint8_t)(leds << 4));  // LED bits in high nibble
 
     sender->sendAclL2capPacket(ch, remoteCID, payload, pb.length());
-    LOG_DEBUG("queued acl_l2cap_packet(Set LEDs, leds=0x%02X)\n", leds);
+    LOG_DEBUG("queued acl_l2cap_packet(%s, leds=0x%02X)\n",
+              wiimoteOutputReportToString(WIIMOTE_RPT_SET_LEDS), leds);
 }
 
 /**
@@ -104,7 +106,8 @@ void WiimoteProtocol::setLeds(uint16_t ch, uint8_t leds) {
  * - MM is reporting mode
  */
 void WiimoteProtocol::setReportingMode(uint16_t ch, uint8_t mode, bool continuous) {
-    LOG_DEBUG("wiimote_set_reporting_mode mode=0x%02X continuous=%d\n", mode, continuous);
+    LOG_DEBUG("wiimote_set_reporting_mode mode=0x%02X (%s) continuous=%d\n", mode,
+              wiimoteReportingModeToString(mode), continuous);
 
     if (connections == nullptr || sender == nullptr) {
         return;
@@ -155,7 +158,8 @@ void WiimoteProtocol::requestStatus(uint16_t ch) {
     pb.append(0x00);                        // No rumble
 
     sender->sendAclL2capPacket(ch, remoteCID, payload, pb.length());
-    LOG_DEBUG("queued acl_l2cap_packet(Request Status)\n");
+    LOG_DEBUG("queued acl_l2cap_packet(%s)\n",
+              wiimoteOutputReportToString(WIIMOTE_RPT_REQUEST_STATUS));
 }
 
 /**
@@ -169,8 +173,8 @@ void WiimoteProtocol::writeMemory(uint16_t ch,
                                   uint32_t offset,
                                   const uint8_t *data,
                                   uint8_t length) {
-    LOG_DEBUG("wiimote_write_memory addr_space=%d offset=0x%06lX len=%d\n", address_space, offset,
-              length);
+    LOG_DEBUG("wiimote_write_memory addr_space=%d (%s) offset=0x%06lX len=%d\n", address_space,
+              wiimoteAddressSpaceToString(get_address_space_byte(address_space)), offset, length);
 
     if (connections == nullptr || sender == nullptr) {
         return;
@@ -212,8 +216,8 @@ void WiimoteProtocol::readMemory(uint16_t ch,
                                  address_space_t address_space,
                                  uint32_t offset,
                                  uint16_t size) {
-    LOG_DEBUG("wiimote_read_memory addr_space=%d offset=0x%06lX size=%d\n", address_space, offset,
-              size);
+    LOG_DEBUG("wiimote_read_memory addr_space=%d (%s) offset=0x%06lX size=%d\n", address_space,
+              wiimoteAddressSpaceToString(get_address_space_byte(address_space)), offset, size);
 
     if (connections == nullptr || sender == nullptr) {
         return;

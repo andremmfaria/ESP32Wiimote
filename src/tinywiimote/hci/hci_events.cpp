@@ -7,6 +7,7 @@
 
 #include "hci_events.h"
 
+#include "../../utils/hci_codes.h"
 #include "../../utils/serial_logging.h"
 #include "hci_commands.h"
 #include "hci_types.h"
@@ -75,54 +76,73 @@ void hci_events_reset_device(struct HciEventContext *ctx) {
 
 static void handle_command_complete(struct HciEventContext *ctx, uint8_t *data) {
     const uint16_t cmdOpcode = READ_UINT16_LE(data + 1);
+    const uint8_t status = data[3];
 
     switch (cmdOpcode) {
         case HCI_OPCODE_RESET: {
-            if (data[3] == 0x00) {
+            if (status == 0x00) {
                 LOG_DEBUG("HCI: Reset successful\n");
                 const uint16_t txLen = make_cmd_read_bd_addr(g_hciTxBuffer);
                 hci_send(ctx, txLen);
             } else {
-                LOG_ERROR("HCI: Reset failed with status=0x%02x\n", data[3]);
+                LOG_ERROR("HCI: %s (0x%04x) failed, status=0x%02x (%s)\n",
+                          hciOpcodeToString(cmdOpcode), cmdOpcode, status,
+                          hciStatusCodeToString(status));
             }
             break;
         }
 
         case HCI_OPCODE_READ_BD_ADDR: {
-            if (data[3] == 0x00) {
+            if (status == 0x00) {
                 static const uint8_t kName[] = "ESP32-BT-L2CAP";
                 const uint16_t txLen =
                     make_cmd_write_local_name(g_hciTxBuffer, kName, sizeof(kName));
                 hci_send(ctx, txLen);
+            } else {
+                LOG_ERROR("HCI: %s (0x%04x) failed, status=0x%02x (%s)\n",
+                          hciOpcodeToString(cmdOpcode), cmdOpcode, status,
+                          hciStatusCodeToString(status));
             }
             break;
         }
 
         case HCI_OPCODE_WRITE_LOCAL_NAME: {
-            if (data[3] == 0x00) {
+            if (status == 0x00) {
                 static const uint8_t kClassOfDevice[3] = {0x04, 0x05, 0x00};
                 const uint16_t txLen =
                     make_cmd_write_class_of_device(g_hciTxBuffer, kClassOfDevice);
                 hci_send(ctx, txLen);
+            } else {
+                LOG_ERROR("HCI: %s (0x%04x) failed, status=0x%02x (%s)\n",
+                          hciOpcodeToString(cmdOpcode), cmdOpcode, status,
+                          hciStatusCodeToString(status));
             }
             break;
         }
 
         case HCI_OPCODE_WRITE_CLASS_OF_DEVICE: {
-            if (data[3] == 0x00) {
+            if (status == 0x00) {
                 const uint16_t txLen = make_cmd_write_scan_enable(g_hciTxBuffer, 3);
                 hci_send(ctx, txLen);
+            } else {
+                LOG_ERROR("HCI: %s (0x%04x) failed, status=0x%02x (%s)\n",
+                          hciOpcodeToString(cmdOpcode), cmdOpcode, status,
+                          hciStatusCodeToString(status));
             }
             break;
         }
 
         case HCI_OPCODE_WRITE_SCAN_ENABLE: {
-            if (data[3] == 0x00) {
+            if (status == 0x00) {
                 LOG_INFO("HCI: Device initialized, starting inquiry\n");
                 clear_scanned_devices(ctx);
                 const uint16_t txLen = make_cmd_inquiry(g_hciTxBuffer, 0x9E8B33, 0x05, 0x00);
                 hci_send(ctx, txLen);
                 ctx->deviceInited = true;
+            } else {
+                LOG_ERROR("HCI: %s (0x%04x) failed, status=0x%02x (%s)\n",
+                          hciOpcodeToString(cmdOpcode), cmdOpcode, status,
+                          hciStatusCodeToString(status));
             }
             break;
         }
@@ -131,13 +151,27 @@ static void handle_command_complete(struct HciEventContext *ctx, uint8_t *data) 
             break;
 
         default:
+            if (status != 0x00) {
+                LOG_WARNING("HCI: %s (0x%04x) completed with error status=0x%02x (%s)\n",
+                            hciOpcodeToString(cmdOpcode), cmdOpcode, status,
+                            hciStatusCodeToString(status));
+            }
             break;
     }
 }
 
 static void handle_command_status(struct HciEventContext *ctx, const uint8_t *data) {
     (void)ctx;
-    (void)data;
+
+    const uint8_t status = data[0];
+    const uint8_t numHciCommandPackets = data[1];
+    const uint16_t cmdOpcode = READ_UINT16_LE(data + 2);
+
+    if (status != 0x00) {
+        LOG_WARNING("HCI: Command status for %s (0x%04x): status=0x%02x (%s), numPackets=%u\n",
+                    hciOpcodeToString(cmdOpcode), cmdOpcode, status, hciStatusCodeToString(status),
+                    numHciCommandPackets);
+    }
 }
 
 static void handle_inquiry_complete(struct HciEventContext *ctx, const uint8_t *data) {
@@ -221,8 +255,8 @@ static void handle_disconnection_complete(struct HciEventContext *ctx, uint8_t *
     const uint16_t connectionHandle = READ_UINT16_LE(data + 1);
     const uint8_t reason = data[3];
 
-    LOG_INFO("HCI: Disconnection complete! Handle: 0x%04x, Reason: 0x%02x\n", connectionHandle,
-             reason);
+    LOG_INFO("HCI: Disconnection complete! Handle: 0x%04x, Reason: 0x%02x (%s)\n", connectionHandle,
+             reason, hciDisconnectionReasonToString(reason));
 
     if (ctx->onDisconnected != nullptr) {
         ctx->onDisconnected(connectionHandle, reason, ctx->userData);
@@ -269,6 +303,8 @@ void hci_events_handle_event(struct HciEventContext *ctx,
             break;
 
         default:
+            LOG_DEBUG("HCI: Unhandled event 0x%02x (%s)\n", eventCode,
+                      hciEventCodeToString(eventCode));
             break;
     }
 }

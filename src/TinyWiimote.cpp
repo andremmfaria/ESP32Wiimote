@@ -25,6 +25,8 @@
 #include "tinywiimote/protocol/wiimote_reports.h"
 #include "tinywiimote/protocol/wiimote_state.h"
 #include "tinywiimote/utils/hci_utils.h"
+#include "utils/hci_codes.h"
+#include "utils/protocol_codes.h"
 #include "utils/serial_logging.h"
 
 #include <HardwareSerial.h>
@@ -32,11 +34,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
-
-#define L2CAP_CONNECT_RES 0x03
-#define L2CAP_CONFIG_REQ 0x04
-#define L2CAP_CONFIG_RES 0x05
-#define BTCODE_HID 0xA1
 
 struct TinyWiimoteRuntime {
     TwHciInterface _HciInterface;
@@ -69,7 +66,8 @@ static void on_acl_connected(uint16_t connectionHandle, void *userData) {
     (void)userData;
     LOG_INFO("TinyWiimote: ACL connection established! Handle: 0x%04x\n", connectionHandle);
     LOG_DEBUG("TinyWiimote: Sending L2CAP connection request...\n");
-    g_runtime._L2capSignaling.sendConnectionRequest(connectionHandle, 0x0013, 0x0045);
+    g_runtime._L2capSignaling.sendConnectionRequest(connectionHandle,
+                                                    (uint16_t)L2capPsm::HID_INTERRUPT, 0x0045);
 }
 
 static void on_disconnected(uint16_t connectionHandle, uint8_t reason, void *userData) {
@@ -77,8 +75,8 @@ static void on_disconnected(uint16_t connectionHandle, uint8_t reason, void *use
     (void)reason;
     (void)userData;
 
-    LOG_INFO("TinyWiimote: Wiimote disconnected! Handle: 0x%04x, Reason: 0x%02x\n",
-             connectionHandle, reason);
+    LOG_INFO("TinyWiimote: Wiimote disconnected! Handle: 0x%04x, Reason: 0x%02x (%s)\n",
+             connectionHandle, reason, hciDisconnectionReasonToString(reason));
     LOG_INFO("Wiimote lost\n");
     g_runtime._WiimoteState.reset();
     resetDeviceInternal();
@@ -94,25 +92,29 @@ static void handleL2capData(uint16_t ch, uint16_t channelID, uint8_t *data, uint
     uint8_t code = data[0];
 
     switch (data[0]) {
-        case L2CAP_CONNECT_RES:
+        case (uint8_t)L2capSignalingCode::CONNECTION_RESPONSE:
             if (len < 12) {
                 return;
             }
             g_runtime._L2capSignaling.handleConnectionResponse(ch, data, len);
             break;
 
-        case L2CAP_CONFIG_REQ:
+        case (uint8_t)L2capSignalingCode::CONFIGURATION_REQUEST:
             if (len < 12) {
                 return;
             }
             g_runtime._L2capSignaling.handleConfigurationRequest(ch, data, len);
             break;
 
-        case L2CAP_CONFIG_RES:
+        case (uint8_t)L2capSignalingCode::CONFIGURATION_RESPONSE:
             L2capSignaling::handleConfigurationResponse(data, len);
             break;
 
-        case BTCODE_HID: {
+        case (uint8_t)WiimoteHidPrefix::INPUT_REPORT: {
+            if (len > 1) {
+                LOG_DEBUG("TinyWiimote: HID input report=0x%02x (%s)\n", data[1],
+                          wiimoteInputReportToString(data[1]));
+            }
             if (!g_runtime._WiimoteState.isConnected()) {
                 LOG_INFO("TinyWiimote: Wiimote detected! Setting LED and marking as connected\n");
                 g_runtime._WiimoteProtocol.setLeds(ch, 0b0001);
@@ -130,7 +132,9 @@ static void handleL2capData(uint16_t ch, uint16_t channelID, uint8_t *data, uint
         }
 
         default:
-            LOG_DEBUG("L2CAP len=%d data=%s\n", len, format2Hex(data, len));
+            LOG_DEBUG("L2CAP: Unhandled code=0x%02x (signal=%s, hid=%s), len=%d data=%s\n", code,
+                      l2capSignalCodeToString(code), wiimoteHidPrefixToString(code), len,
+                      format2Hex(data, len));
             break;
     }
 }
