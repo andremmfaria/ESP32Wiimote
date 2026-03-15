@@ -67,7 +67,7 @@ void WiimoteDataParser::parseButtonData(const TinyWiimoteData &data, int &button
     }
 
     // Check for button state change
-    if ((filter_ & FilterButton) == 0) {
+    if (!hasFilterFlag(filter_, WiimoteDataFilter::Button)) {
         if (buttonState_->hasChanged()) {
             buttonChanged = 1;
         }
@@ -94,7 +94,7 @@ void WiimoteDataParser::parseAccelData(const TinyWiimoteData &data, int &accelCh
         accelState.zAxis = data.data[offs + 2];
         sensorState_->updateAccel(accelState);
 
-        if ((filter_ & FilterAccel) == 0) {
+        if (!hasFilterFlag(filter_, WiimoteDataFilter::Accel)) {
             accelChanged = 1;
         }
     } else {
@@ -142,14 +142,14 @@ void WiimoteDataParser::parseNunchukData(const TinyWiimoteData &data, ChangeFlag
         buttonState_->update(buttonState);
 
         // Check for nunchuk stick change
-        if ((filter_ & FilterNunchukStick) == 0) {
+        if (!hasFilterFlag(filter_, WiimoteDataFilter::NunchukStick)) {
             if (sensorState_->nunchukStickHasChanged()) {
                 flags.nunchukStickChanged = 1;
             }
         }
 
         // Check for accel change when nunchuk is active
-        if ((filter_ & FilterAccel) == 0) {
+        if (!hasFilterFlag(filter_, WiimoteDataFilter::Accel)) {
             flags.accelChanged = 1;
         }
     } else {

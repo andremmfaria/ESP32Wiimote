@@ -7,16 +7,16 @@
 
 // Compile TinyWiimote core into this test binary with renamed public symbols
 // to avoid collisions with existing native mocks used by other test suites.
-#define tinyWiimoteInit twReal_tinyWiimoteInit
-#define tinyWiimoteAvailable twReal_tinyWiimoteAvailable
-#define tinyWiimoteRead twReal_tinyWiimoteRead
-#define tinyWiimoteResetDevice twReal_tinyWiimoteResetDevice
-#define tinyWiimoteDeviceIsInited twReal_tinyWiimoteDeviceIsInited
-#define tinyWiimoteIsConnected twReal_tinyWiimoteIsConnected
-#define tinyWiimoteGetBatteryLevel twReal_tinyWiimoteGetBatteryLevel
-#define tinyWiimoteRequestBatteryUpdate twReal_tinyWiimoteRequestBatteryUpdate
-#define tinyWiimoteReqAccelerometer twReal_tinyWiimoteReqAccelerometer
-#define handleHciData twReal_handleHciData
+#define TINY_WIIMOTE_INIT twReal_tinyWiimoteInit
+#define TINY_WIIMOTE_AVAILABLE twReal_tinyWiimoteAvailable
+#define TINY_WIIMOTE_READ twReal_tinyWiimoteRead
+#define TINY_WIIMOTE_RESET_DEVICE twReal_tinyWiimoteResetDevice
+#define TINY_WIIMOTE_DEVICE_IS_INITED twReal_tinyWiimoteDeviceIsInited
+#define TINY_WIIMOTE_IS_CONNECTED twReal_tinyWiimoteIsConnected
+#define TINY_WIIMOTE_GET_BATTERY_LEVEL twReal_tinyWiimoteGetBatteryLevel
+#define TINY_WIIMOTE_REQUEST_BATTERY_UPDATE twReal_tinyWiimoteRequestBatteryUpdate
+#define TINY_WIIMOTE_REQ_ACCELEROMETER twReal_tinyWiimoteReqAccelerometer
+#define HANDLE_HCI_DATA twReal_handleHciData
 #include "../../../src/TinyWiimote.cpp"
 #undef tinyWiimoteInit
 #undef tinyWiimoteAvailable
@@ -53,7 +53,7 @@ static void buildAclFrame(uint8_t *out,
                           uint16_t l2capPayloadLen) {
     const uint16_t kAclLen = L2CAP_HEADER_LEN + l2capPayloadLen;
 
-    out[0] = H4TypeAcl;
+    out[0] = static_cast<uint8_t>(H4PacketType::Acl);
     out[1] = (uint8_t)(ch & 0xFF);
     out[2] = (uint8_t)(((ch >> 8) & 0x0F) | (0b10 << 4));  // PB=0b10, BC=0b00
     out[3] = (uint8_t)(kAclLen & 0xFF);
@@ -97,7 +97,7 @@ void testTinyWiimoteInitResetAndGuards() {
     twReal_tinyWiimoteResetDevice();
     TEST_ASSERT_TRUE(twReal_tinyWiimoteDeviceIsInited());
     TEST_ASSERT_GREATER_THAN(0, gSendCount);
-    TEST_ASSERT_EQUAL_UINT8(H4TypeCommand, gLastTx[0]);
+    TEST_ASSERT_EQUAL_UINT8(static_cast<uint8_t>(H4PacketType::Command), gLastTx[0]);
 
     // API guard paths.
     twReal_handleHciData(nullptr, 0);

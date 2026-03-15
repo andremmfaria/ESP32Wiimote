@@ -8,16 +8,7 @@
 
 #include <string.h>
 
-namespace {
-enum ControllerReportState {
-    KReportStateInit = 0,
-    KReportStateWaitAckOutReport,
-    KReportStateWaitReadControllerType,
-    KReportStateWaitReadResponse,
-};
-}  // namespace
-
-WiimoteExtensions::WiimoteExtensions() : controllerReportState_(KReportStateInit) {}
+WiimoteExtensions::WiimoteExtensions() = default;
 
 void WiimoteExtensions::init(WiimoteState *state,
                              const L2capConnectionTable *connectionTable,
@@ -25,7 +16,7 @@ void WiimoteExtensions::init(WiimoteState *state,
     state_ = state;
     connections_ = connectionTable;
     sender_ = sender;
-    controllerReportState_ = KReportStateInit;
+    controllerReportState_ = ControllerReportState::Init;
 }
 
 void WiimoteExtensions::handleReport(uint16_t ch, uint8_t *data, uint16_t len) {
@@ -41,7 +32,7 @@ void WiimoteExtensions::handleReport(uint16_t ch, uint8_t *data, uint16_t len) {
     }
 
     switch (controllerReportState_) {
-        case KReportStateInit:
+        case ControllerReportState::Init:
             if (data[1] == 0x20) {
                 uint8_t rawBattery = data[7];
                 LOG_DEBUG("Wiimote: Status report 0x20 - Raw battery value: 0x%02x (%d)\n",
@@ -51,7 +42,7 @@ void WiimoteExtensions::handleReport(uint16_t ch, uint8_t *data, uint16_t len) {
                     LOG_INFO("Extension controller connected\n");
                     protocol.writeMemory(ch, WiimoteAddressSpace::ControlRegister, 0xA400F0,
                                          (const uint8_t[]){0x55}, 1);
-                    controllerReportState_ = KReportStateWaitAckOutReport;
+                    controllerReportState_ = ControllerReportState::WaitAckOutReport;
                 } else {
                     LOG_INFO("Extension controller NOT connected\n");
                     state_->setNunchukConnected(false);
@@ -66,7 +57,7 @@ void WiimoteExtensions::handleReport(uint16_t ch, uint8_t *data, uint16_t len) {
             }
             break;
 
-        case KReportStateWaitAckOutReport:
+        case ControllerReportState::WaitAckOutReport:
             if (len < 6) {
                 break;
             }
@@ -74,28 +65,28 @@ void WiimoteExtensions::handleReport(uint16_t ch, uint8_t *data, uint16_t len) {
                 if (data[5] == 0x00) {
                     protocol.writeMemory(ch, WiimoteAddressSpace::ControlRegister, 0xA400FB,
                                          (const uint8_t[]){0x00}, 1);
-                    controllerReportState_ = KReportStateWaitReadControllerType;
+                    controllerReportState_ = ControllerReportState::WaitReadControllerType;
                 } else {
-                    controllerReportState_ = KReportStateInit;
+                    controllerReportState_ = ControllerReportState::Init;
                 }
             }
             break;
 
-        case KReportStateWaitReadControllerType:
+        case ControllerReportState::WaitReadControllerType:
             if (len < 6) {
                 break;
             }
             if ((data[1] == 0x22) && (data[4] == 0x16)) {
                 if (data[5] == 0x00) {
                     protocol.readMemory(ch, WiimoteAddressSpace::ControlRegister, 0xA400FA, 6);
-                    controllerReportState_ = KReportStateWaitReadResponse;
+                    controllerReportState_ = ControllerReportState::WaitReadResponse;
                 } else {
-                    controllerReportState_ = KReportStateInit;
+                    controllerReportState_ = ControllerReportState::Init;
                 }
             }
             break;
 
-        case KReportStateWaitReadResponse:
+        case ControllerReportState::WaitReadResponse:
             if (len < 13) {
                 break;
             }
@@ -113,13 +104,13 @@ void WiimoteExtensions::handleReport(uint16_t ch, uint8_t *data, uint16_t len) {
                             protocol.setReportingMode(ch, reportingModeCommand);
                         }
                     }
-                    controllerReportState_ = KReportStateInit;
+                    controllerReportState_ = ControllerReportState::Init;
                 }
             }
             break;
 
         default:
-            controllerReportState_ = KReportStateInit;
+            controllerReportState_ = ControllerReportState::Init;
             break;
     }
 }

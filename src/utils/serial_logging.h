@@ -11,17 +11,17 @@
 #include <stdarg.h>
 #include <stdint.h>
 
-enum WiimoteLogLevel : uint8_t {
-    WiimoteLogError = 0,
-    WiimoteLogWarning = 1,
-    WiimoteLogInfo = 2,
-    WiimoteLogDebug = 3,
+enum class WiimoteLogLevel : uint8_t {
+    Error = 0,
+    Warning = 1,
+    Info = 2,
+    Debug = 3,
 };
 
-#define WIIMOTE_LOG_ERROR ((uint8_t)WiimoteLogError)
-#define WIIMOTE_LOG_WARNING ((uint8_t)WiimoteLogWarning)
-#define WIIMOTE_LOG_INFO ((uint8_t)WiimoteLogInfo)
-#define WIIMOTE_LOG_DEBUG ((uint8_t)WiimoteLogDebug)
+static constexpr uint8_t kWiimoteLogError = static_cast<uint8_t>(WiimoteLogLevel::Error);
+static constexpr uint8_t kWiimoteLogWarning = static_cast<uint8_t>(WiimoteLogLevel::Warning);
+static constexpr uint8_t kWiimoteLogInfo = static_cast<uint8_t>(WiimoteLogLevel::Info);
+static constexpr uint8_t kWiimoteLogDebug = static_cast<uint8_t>(WiimoteLogLevel::Debug);
 
 #ifndef WIIMOTE_VERBOSE
 #define WIIMOTE_VERBOSE 2
@@ -35,28 +35,28 @@ void wiimoteLogPrint(uint8_t level, const char *prefix, const char *format, ...)
 inline void wiimoteLogError(const char *format, ...) {
     va_list args;
     va_start(args, format);
-    wiimoteLogVPrint(WIIMOTE_LOG_ERROR, "[ERROR] ", format, args);
+    wiimoteLogVPrint(kWiimoteLogError, "[ERROR] ", format, args);
     va_end(args);
 }
 
 inline void wiimoteLogWarn(const char *format, ...) {
     va_list args;
     va_start(args, format);
-    wiimoteLogVPrint(WIIMOTE_LOG_WARNING, "[WARN] ", format, args);
+    wiimoteLogVPrint(kWiimoteLogWarning, "[WARN] ", format, args);
     va_end(args);
 }
 
 inline void wiimoteLogInfo(const char *format, ...) {
     va_list args;
     va_start(args, format);
-    wiimoteLogVPrint(WIIMOTE_LOG_INFO, "[INFO] ", format, args);
+    wiimoteLogVPrint(kWiimoteLogInfo, "[INFO] ", format, args);
     va_end(args);
 }
 
 inline void wiimoteLogDebug(const char *format, ...) {
     va_list args;
     va_start(args, format);
-    wiimoteLogVPrint(WIIMOTE_LOG_DEBUG, "[DEBUG] ", format, args);
+    wiimoteLogVPrint(kWiimoteLogDebug, "[DEBUG] ", format, args);
     va_end(args);
 }
 

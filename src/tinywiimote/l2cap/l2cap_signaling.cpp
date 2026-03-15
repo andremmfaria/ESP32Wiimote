@@ -43,8 +43,8 @@ void L2capSignaling::handleConnectionResponse(uint16_t ch, uint8_t *data, uint16
         return;
     }
 
-    uint16_t dstCID = readUinT16Le(data + 4);
-    uint16_t result = readUinT16Le(data + 8);
+    uint16_t dstCID = readUInt16Le(data + 4);
+    uint16_t result = readUInt16Le(data + 8);
 
     LOG_DEBUG("L2CAP: %s: ch=0x%04x dstCID=0x%04x result=0x%04x (%s)\n",
               l2capSignalCodeToString((uint8_t)L2capSignalingCode::ConnectionResponse), ch, dstCID,
@@ -90,14 +90,14 @@ void L2capSignaling::handleConfigurationRequest(uint16_t ch, uint8_t *data, uint
     }
 
     uint8_t identifier = data[1];
-    uint16_t dataLen = readUinT16Le(data + 2);
-    uint16_t flags = readUinT16Le(data + 6);
+    uint16_t dataLen = readUInt16Le(data + 2);
+    uint16_t flags = readUInt16Le(data + 6);
 
     if (flags != 0x0000 || dataLen != 0x08 || data[8] != 0x01 || data[9] != 0x02) {
         return;
     }
 
-    uint16_t mtu = readUinT16Le(data + 10);
+    uint16_t mtu = readUInt16Le(data + 10);
     uint16_t remoteCID = 0;
     if (connections_->getRemoteCid(ch, &remoteCID) != 0) {
         LOG_DEBUG("L2CAP: Failed to get remote CID for ch=0x%04x\n", ch);

@@ -32,7 +32,7 @@ uint16_t makeAclL2capPacket(uint8_t *buf,
     uint8_t *l2capBuf = buf + HCI_H4_ACL_PREAMBLE_SIZE;
     uint16_t l2capLen = makeL2capPacket(l2capBuf, channelID, data, len);
 
-    streamU8ToLe(buf, H4TypeAcl);
+    streamU8ToLe(buf, static_cast<uint8_t>(H4PacketType::Acl));
     streamU8ToLe(buf, ch & 0xFF);
     streamU8ToLe(
         buf, ((ch >> 8) & 0x0F) | (control.packetBoundaryFlag << 4) | (control.broadcastFlag << 6));
