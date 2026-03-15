@@ -17,12 +17,21 @@
 /**
  * Filter flags for ignoring certain data types
  */
-enum {
-    FilterNone = 0x0000,
-    FilterButton = 0x0001,
-    FilterNunchukStick = 0x0004,
-    FilterAccel = 0x0008,
+enum class WiimoteDataFilter : uint16_t {
+    None = 0x0000,
+    Button = 0x0001,
+    NunchukStick = 0x0004,
+    Accel = 0x0008,
 };
+
+static constexpr int kFilterNone = static_cast<int>(WiimoteDataFilter::None);
+static constexpr int kFilterButton = static_cast<int>(WiimoteDataFilter::Button);
+static constexpr int kFilterNunchukStick = static_cast<int>(WiimoteDataFilter::NunchukStick);
+static constexpr int kFilterAccel = static_cast<int>(WiimoteDataFilter::Accel);
+
+static inline bool hasFilterFlag(int filter, WiimoteDataFilter flag) {
+    return (filter & static_cast<int>(flag)) != 0;
+}
 
 /**
  * Wiimote Data Parser

@@ -150,7 +150,7 @@ void hciEventsResetDevice(struct HciEventContext *ctx) {
 }
 
 static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *data) {
-    const uint16_t kCmdOpcode = readUinT16Le(data + 1);
+    const uint16_t kCmdOpcode = readUInt16Le(data + 1);
     const uint8_t kStatus = data[3];
 
     switch (kCmdOpcode) {
@@ -238,7 +238,7 @@ static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *da
 static void handleCommandStatus(struct HciEventContext *ctx, const uint8_t *data) {
     const uint8_t kStatus = data[0];
     const uint8_t kNumHciCommandPackets = data[1];
-    const uint16_t kCmdOpcode = readUinT16Le(data + 2);
+    const uint16_t kCmdOpcode = readUInt16Le(data + 2);
 
     if (kStatus != 0x00) {
         LOG_WARN("HCI: Command status for %s (0x%04x): status=0x%02x (%s), numPackets=%u\n",
@@ -327,7 +327,7 @@ static void handleConnectionComplete(struct HciEventContext *ctx, uint8_t *data)
         return;
     }
 
-    const uint16_t kConnectionHandle = readUinT16Le(data + 1);
+    const uint16_t kConnectionHandle = readUInt16Le(data + 1);
     LOG_INFO("HCI: Connection complete! Handle: 0x%04x\n", kConnectionHandle);
 
     if (ctx->hasCurrentConnectTarget) {
@@ -351,7 +351,7 @@ static void handleConnectionComplete(struct HciEventContext *ctx, uint8_t *data)
 }
 
 static void handleDisconnectionComplete(struct HciEventContext *ctx, const uint8_t *data) {
-    const uint16_t kConnectionHandle = readUinT16Le(data + 1);
+    const uint16_t kConnectionHandle = readUInt16Le(data + 1);
     const uint8_t kReason = data[3];
 
     LOG_INFO("HCI: Disconnection complete! Handle: 0x%04x, Reason: 0x%02x (%s)\n",

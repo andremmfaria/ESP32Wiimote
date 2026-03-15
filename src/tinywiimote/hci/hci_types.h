@@ -11,57 +11,57 @@
 #include <stdint.h>
 
 // HCI Events
-static constexpr uint8_t HCI_INQUIRY_COMP_EVT = 0x01;
-static constexpr uint8_t HCI_INQUIRY_RESULT_EVT = 0x02;
-static constexpr uint8_t HCI_CONNECTION_COMP_EVT = 0x03;
-static constexpr uint8_t HCI_DISCONNECTION_COMP_EVT = 0x05;
-static constexpr uint8_t HCI_RMT_NAME_REQUEST_COMP_EVT = 0x07;
-static constexpr uint8_t HCI_QOS_SETUP_COMP_EVT = 0x0D;
-static constexpr uint8_t HCI_COMMAND_COMPLETE_EVT = 0x0E;
-static constexpr uint8_t HCI_COMMAND_STATUS_EVT = 0x0F;
-static constexpr uint8_t HCI_NUM_COMPL_DATA_PKTS_EVT = 0x13;
+static constexpr uint8_t kHciInquiryCompEvt = 0x01;
+static constexpr uint8_t kHciInquiryResultEvt = 0x02;
+static constexpr uint8_t kHciConnectionCompEvt = 0x03;
+static constexpr uint8_t kHciDisconnectionCompEvt = 0x05;
+static constexpr uint8_t kHciRmtNameRequestCompEvt = 0x07;
+static constexpr uint8_t kHciQosSetupCompEvt = 0x0D;
+static constexpr uint8_t kHciCommandCompleteEvt = 0x0E;
+static constexpr uint8_t kHciCommandStatusEvt = 0x0F;
+static constexpr uint8_t kHciNumComplDataPktsEvt = 0x13;
 
 // Opcode Group Field (OGF)
-static constexpr uint16_t HCI_OGF_LINK_CONTROL = 0x01;
-static constexpr uint16_t HCI_OGF_CONTROL_BASEBAND = 0x03;
-static constexpr uint16_t HCI_OGF_INFORMATIONAL_PARAMETERS = 0x04;
+static constexpr uint16_t kHciOgfLinkControl = 0x01;
+static constexpr uint16_t kHciOgfControlBaseband = 0x03;
+static constexpr uint16_t kHciOgfInformationalParameters = 0x04;
 
 // Opcode Command Field (OCF)
-static constexpr uint16_t HCI_OCF_RESET = 0x0003;
-static constexpr uint16_t HCI_OCF_CHANGE_LOCAL_NAME = 0x0013;
-static constexpr uint16_t HCI_OCF_WRITE_CLASS_OF_DEVICE = 0x0024;
-static constexpr uint16_t HCI_OCF_WRITE_SCAN_ENABLE = 0x001A;
-static constexpr uint16_t HCI_OCF_READ_BD_ADDR = 0x0009;
-static constexpr uint16_t HCI_OCF_INQUIRY = 0x0001;
-static constexpr uint16_t HCI_OCF_INQUIRY_CANCEL = 0x0002;
-static constexpr uint16_t HCI_OCF_CREATE_CONNECTION = 0x0005;
-static constexpr uint16_t HCI_OCF_REMOTE_NAME_REQUEST = 0x0019;
+static constexpr uint16_t kHciOcfReset = 0x0003;
+static constexpr uint16_t kHciOcfChangeLocalName = 0x0013;
+static constexpr uint16_t kHciOcfWriteClassOfDevice = 0x0024;
+static constexpr uint16_t kHciOcfWriteScanEnable = 0x001A;
+static constexpr uint16_t kHciOcfReadBdAddr = 0x0009;
+static constexpr uint16_t kHciOcfInquiry = 0x0001;
+static constexpr uint16_t kHciOcfInquiryCancel = 0x0002;
+static constexpr uint16_t kHciOcfCreateConnection = 0x0005;
+static constexpr uint16_t kHciOcfRemoteNameRequest = 0x0019;
 
 // HCI Command opcodes
-static constexpr uint16_t HCI_OPCODE_RESET = HCI_OCF_RESET | (HCI_OGF_CONTROL_BASEBAND << 10);
-static constexpr uint16_t HCI_OPCODE_WRITE_LOCAL_NAME =
-    HCI_OCF_CHANGE_LOCAL_NAME | (HCI_OGF_CONTROL_BASEBAND << 10);
-static constexpr uint16_t HCI_OPCODE_WRITE_CLASS_OF_DEVICE =
-    HCI_OCF_WRITE_CLASS_OF_DEVICE | (HCI_OGF_CONTROL_BASEBAND << 10);
-static constexpr uint16_t HCI_OPCODE_WRITE_SCAN_ENABLE =
-    HCI_OCF_WRITE_SCAN_ENABLE | (HCI_OGF_CONTROL_BASEBAND << 10);
-static constexpr uint16_t HCI_OPCODE_READ_BD_ADDR =
-    HCI_OCF_READ_BD_ADDR | (HCI_OGF_INFORMATIONAL_PARAMETERS << 10);
-static constexpr uint16_t HCI_OPCODE_INQUIRY = HCI_OCF_INQUIRY | (HCI_OGF_LINK_CONTROL << 10);
-static constexpr uint16_t HCI_OPCODE_INQUIRY_CANCEL =
-    HCI_OCF_INQUIRY_CANCEL | (HCI_OGF_LINK_CONTROL << 10);
-static constexpr uint16_t HCI_OPCODE_CREATE_CONNECTION =
-    HCI_OCF_CREATE_CONNECTION | (HCI_OGF_LINK_CONTROL << 10);
-static constexpr uint16_t HCI_OPCODE_REMOTE_NAME_REQUEST =
-    HCI_OCF_REMOTE_NAME_REQUEST | (HCI_OGF_LINK_CONTROL << 10);
+static constexpr uint16_t kHciOpcodeReset = kHciOcfReset | (kHciOgfControlBaseband << 10);
+static constexpr uint16_t kHciOpcodeWriteLocalName =
+    kHciOcfChangeLocalName | (kHciOgfControlBaseband << 10);
+static constexpr uint16_t kHciOpcodeWriteClassOfDevice =
+    kHciOcfWriteClassOfDevice | (kHciOgfControlBaseband << 10);
+static constexpr uint16_t kHciOpcodeWriteScanEnable =
+    kHciOcfWriteScanEnable | (kHciOgfControlBaseband << 10);
+static constexpr uint16_t kHciOpcodeReadBdAddr =
+    kHciOcfReadBdAddr | (kHciOgfInformationalParameters << 10);
+static constexpr uint16_t kHciOpcodeInquiry = kHciOcfInquiry | (kHciOgfLinkControl << 10);
+static constexpr uint16_t kHciOpcodeInquiryCancel =
+    kHciOcfInquiryCancel | (kHciOgfLinkControl << 10);
+static constexpr uint16_t kHciOpcodeCreateConnection =
+    kHciOcfCreateConnection | (kHciOgfLinkControl << 10);
+static constexpr uint16_t kHciOpcodeRemoteNameRequest =
+    kHciOcfRemoteNameRequest | (kHciOgfLinkControl << 10);
 
 // Command parameter sizes
-static constexpr uint8_t HCIC_PARAM_SIZE_WRITE_LOCAL_NAME = 248;
-static constexpr uint8_t HCIC_PARAM_SIZE_WRITE_CLASS_OF_DEVICE = 3;
-static constexpr uint8_t HCIC_PARAM_SIZE_WRITE_SCAN_ENABLE = 1;
-static constexpr uint8_t HCIC_PARAM_SIZE_CREATE_CONNECTION = 13;
-static constexpr uint8_t HCIC_PARAM_SIZE_REMOTE_NAME_REQUEST = 10;
-static constexpr uint8_t HCIC_PARAM_SIZE_WRITE_INQUIRY_CANCEL = 0;
-static constexpr uint8_t HCIC_PARAM_SIZE_WRITE_INQUIRY = 5;
+static constexpr uint8_t kHcicParamSizeWriteLocalName = 248;
+static constexpr uint8_t kHcicParamSizeWriteClassOfDevice = 3;
+static constexpr uint8_t kHcicParamSizeWriteScanEnable = 1;
+static constexpr uint8_t kHcicParamSizeCreateConnection = 13;
+static constexpr uint8_t kHcicParamSizeRemoteNameRequest = 10;
+static constexpr uint8_t kHcicParamSizeWriteInquiryCancel = 0;
+static constexpr uint8_t kHcicParamSizeWriteInquiry = 5;
 
 #endif  // TINYWIIMOTE_HCI_TYPES_H

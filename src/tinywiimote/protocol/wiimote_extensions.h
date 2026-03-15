@@ -17,7 +17,14 @@ class WiimoteExtensions {
     void handleReport(uint16_t ch, uint8_t *data, uint16_t len);
 
    private:
-    int controllerReportState_ = 0;
+    enum class ControllerReportState : uint8_t {
+        Init = 0,
+        WaitAckOutReport,
+        WaitReadControllerType,
+        WaitReadResponse,
+    };
+
+    ControllerReportState controllerReportState_ = ControllerReportState::Init;
     WiimoteState *state_ = nullptr;
     const L2capConnectionTable *connections_ = nullptr;
     L2capPacketSender *sender_ = nullptr;

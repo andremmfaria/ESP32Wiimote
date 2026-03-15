@@ -16,7 +16,7 @@
  */
 
 // Bluetooth address length
-static constexpr int BD_ADDR_LEN = 6;
+static constexpr int kBdAddrLen = 6;
 
 /**
  * Byte stream manipulation helpers
@@ -31,14 +31,14 @@ static inline void streamU8ToLe(uint8_t *&p, uint8_t value) {
 }
 
 static inline void streamBdAddr(uint8_t *&p, const uint8_t *bdAddr) {
-    for (int i = 0; i < BD_ADDR_LEN; i++) {
-        *p++ = bdAddr[BD_ADDR_LEN - 1 - i];
+    for (int i = 0; i < kBdAddrLen; i++) {
+        *p++ = bdAddr[kBdAddrLen - 1 - i];
     }
 }
 
 static inline void streamToBdAddr(uint8_t *bdAddr, const uint8_t *p) {
-    for (int i = 0; i < BD_ADDR_LEN; i++) {
-        bdAddr[BD_ADDR_LEN - 1 - i] = p[i];
+    for (int i = 0; i < kBdAddrLen; i++) {
+        bdAddr[kBdAddrLen - 1 - i] = p[i];
     }
 }
 
@@ -58,7 +58,7 @@ static inline void streamArray(uint8_t *&p, const uint8_t *array, uint16_t len) 
  * @param data Pointer to byte array
  * @return 16-bit value
  */
-static inline uint16_t readUinT16Le(const uint8_t *data) {
+static inline uint16_t readUInt16Le(const uint8_t *data) {
     return ((uint16_t)data[1] << 8) | data[0];
 }
 
@@ -67,7 +67,7 @@ static inline uint16_t readUinT16Le(const uint8_t *data) {
  * @param data Pointer to byte array
  * @return 16-bit value
  */
-static inline uint16_t readUinT16Be(const uint8_t *data) {
+static inline uint16_t readUInt16Be(const uint8_t *data) {
     return ((uint16_t)data[0] << 8) | data[1];
 }
 
@@ -75,19 +75,19 @@ static inline uint16_t readUinT16Be(const uint8_t *data) {
  * Bluetooth address structure
  */
 struct BdAddrT {
-    uint8_t addr[BD_ADDR_LEN];
+    uint8_t addr[kBdAddrLen];
 };
 
 /**
  * H4 (UART) packet type identifiers
  */
-enum { H4TypeCommand = 1, H4TypeAcl = 2, H4TypeSco = 3, H4TypeEvent = 4 };
+enum class H4PacketType : uint8_t { Command = 1, Acl = 2, Sco = 3, Event = 4 };
 
 /**
  * HCI packet size constants
  */
-static constexpr uint16_t HCI_H4_CMD_PREAMBLE_SIZE = 4;
-static constexpr uint16_t HCI_H4_ACL_PREAMBLE_SIZE = 5;
-static constexpr uint16_t L2CAP_HEADER_LEN = 4;
+static constexpr uint16_t kHciH4CmdPreambleSize = 4;
+static constexpr uint16_t kHciH4AclPreambleSize = 5;
+static constexpr uint16_t kL2CapHeaderLen = 4;
 
 #endif  // ESP32_WIIMOTE_HCI_UTILS_H

@@ -156,10 +156,10 @@ static void handleAclData(uint8_t *data, size_t len) {
         return;
     }
 
-    uint16_t l2capLen = readUinT16Le(data + 4);
+    uint16_t l2capLen = readUInt16Le(data + 4);
     L2capFrameHeader header;
     header.connectionHandle = ch;
-    header.channelId = readUinT16Le(data + 6);
+    header.channelId = readUInt16Le(data + 6);
     if ((size_t)(8 + l2capLen) > len) {
         return;
     }
@@ -173,14 +173,14 @@ void handleHciData(uint8_t *data, size_t len) {
     }
 
     switch (data[0]) {
-        case H4TypeEvent:
+        case static_cast<uint8_t>(H4PacketType::Event):
             if (len >= 3 && (size_t)(3 + data[2]) <= len) {
                 HciEventPacket eventPacket = {data[1], data[2], data + 3};
                 hciEventsHandleEvent(&gRuntime.hciEventContext, eventPacket);
             }
             break;
 
-        case H4TypeAcl:
+        case static_cast<uint8_t>(H4PacketType::Acl):
             if (len >= 2) {
                 handleAclData(data + 1, len - 1);
             }

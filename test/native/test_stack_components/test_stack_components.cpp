@@ -115,7 +115,7 @@ void testL2capPacketBuilderAndSender() {
     uint16_t aclLen =
         makeAclL2capPacket(packet, 0x0040, control, 0x0001, payload, (uint8_t)sizeof(payload));
     TEST_ASSERT_EQUAL_UINT16(HCI_H4_ACL_PREAMBLE_SIZE + L2CAP_HEADER_LEN + sizeof(payload), aclLen);
-    TEST_ASSERT_EQUAL_UINT8(H4TypeAcl, packet[0]);
+    TEST_ASSERT_EQUAL_UINT8(static_cast<uint8_t>(H4PacketType::Acl), packet[0]);
 
     L2capPacketSender sender;
     sender.sendAclL2capPacket(0x0040, 0x0001, payload, sizeof(payload));

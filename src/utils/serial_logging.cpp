@@ -13,8 +13,8 @@
 #include <stdio.h>
 
 static uint8_t sanitizeLogLevel(uint8_t level) {
-    if (level > (uint8_t)WiimoteLogDebug) {
-        return (uint8_t)WiimoteLogDebug;
+    if (level > static_cast<uint8_t>(WiimoteLogLevel::Debug)) {
+        return static_cast<uint8_t>(WiimoteLogLevel::Debug);
     }
 
     return level;

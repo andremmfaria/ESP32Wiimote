@@ -10,21 +10,21 @@
 #include "hci_types.h"
 
 uint16_t makeCmdReset(uint8_t *buf) {
-    streamU8ToLe(buf, H4TypeCommand);
+    streamU8ToLe(buf, static_cast<uint8_t>(H4PacketType::Command));
     streamU16ToLe(buf, HCI_OPCODE_RESET);
     streamU8ToLe(buf, 0);
     return HCI_H4_CMD_PREAMBLE_SIZE;
 }
 
 uint16_t makeCmdReadBdAddr(uint8_t *buf) {
-    streamU8ToLe(buf, H4TypeCommand);
+    streamU8ToLe(buf, static_cast<uint8_t>(H4PacketType::Command));
     streamU16ToLe(buf, HCI_OPCODE_READ_BD_ADDR);
     streamU8ToLe(buf, 0);
     return HCI_H4_CMD_PREAMBLE_SIZE;
 }
 
 uint16_t makeCmdWriteLocalName(uint8_t *buf, const uint8_t *name, uint8_t len) {
-    streamU8ToLe(buf, H4TypeCommand);
+    streamU8ToLe(buf, static_cast<uint8_t>(H4PacketType::Command));
     streamU16ToLe(buf, HCI_OPCODE_WRITE_LOCAL_NAME);
     streamU8ToLe(buf, HCIC_PARAM_SIZE_WRITE_LOCAL_NAME);
 
@@ -37,7 +37,7 @@ uint16_t makeCmdWriteLocalName(uint8_t *buf, const uint8_t *name, uint8_t len) {
 }
 
 uint16_t makeCmdWriteClassOfDevice(uint8_t *buf, const uint8_t *cod) {
-    streamU8ToLe(buf, H4TypeCommand);
+    streamU8ToLe(buf, static_cast<uint8_t>(H4PacketType::Command));
     streamU16ToLe(buf, HCI_OPCODE_WRITE_CLASS_OF_DEVICE);
     streamU8ToLe(buf, HCIC_PARAM_SIZE_WRITE_CLASS_OF_DEVICE);
 
@@ -49,7 +49,7 @@ uint16_t makeCmdWriteClassOfDevice(uint8_t *buf, const uint8_t *cod) {
 }
 
 uint16_t makeCmdWriteScanEnable(uint8_t *buf, uint8_t mode) {
-    streamU8ToLe(buf, H4TypeCommand);
+    streamU8ToLe(buf, static_cast<uint8_t>(H4PacketType::Command));
     streamU16ToLe(buf, HCI_OPCODE_WRITE_SCAN_ENABLE);
     streamU8ToLe(buf, HCIC_PARAM_SIZE_WRITE_SCAN_ENABLE);
 
@@ -58,7 +58,7 @@ uint16_t makeCmdWriteScanEnable(uint8_t *buf, uint8_t mode) {
 }
 
 uint16_t makeCmdInquiry(uint8_t *buf, const HciInquiryParams &params) {
-    streamU8ToLe(buf, H4TypeCommand);
+    streamU8ToLe(buf, static_cast<uint8_t>(H4PacketType::Command));
     streamU16ToLe(buf, HCI_OPCODE_INQUIRY);
     streamU8ToLe(buf, HCIC_PARAM_SIZE_WRITE_INQUIRY);
 
@@ -72,7 +72,7 @@ uint16_t makeCmdInquiry(uint8_t *buf, const HciInquiryParams &params) {
 }
 
 uint16_t makeCmdInquiryCancel(uint8_t *buf) {
-    streamU8ToLe(buf, H4TypeCommand);
+    streamU8ToLe(buf, static_cast<uint8_t>(H4PacketType::Command));
     streamU16ToLe(buf, HCI_OPCODE_INQUIRY_CANCEL);
     streamU8ToLe(buf, HCIC_PARAM_SIZE_WRITE_INQUIRY_CANCEL);
 
@@ -80,7 +80,7 @@ uint16_t makeCmdInquiryCancel(uint8_t *buf) {
 }
 
 uint16_t makeCmdRemoteNameRequest(uint8_t *buf, const HciRemoteNameRequestParams &params) {
-    streamU8ToLe(buf, H4TypeCommand);
+    streamU8ToLe(buf, static_cast<uint8_t>(H4PacketType::Command));
     streamU16ToLe(buf, HCI_OPCODE_REMOTE_NAME_REQUEST);
     streamU8ToLe(buf, HCIC_PARAM_SIZE_REMOTE_NAME_REQUEST);
 
@@ -93,7 +93,7 @@ uint16_t makeCmdRemoteNameRequest(uint8_t *buf, const HciRemoteNameRequestParams
 }
 
 uint16_t makeCmdCreateConnection(uint8_t *buf, const HciCreateConnectionParams &params) {
-    streamU8ToLe(buf, H4TypeCommand);
+    streamU8ToLe(buf, static_cast<uint8_t>(H4PacketType::Command));
     streamU16ToLe(buf, HCI_OPCODE_CREATE_CONNECTION);
     streamU8ToLe(buf, HCIC_PARAM_SIZE_CREATE_CONNECTION);
 

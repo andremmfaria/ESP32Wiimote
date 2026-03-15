@@ -119,7 +119,7 @@ void testButtonPress() {
         if (wiimote.available() > 0) {
             ButtonState button = wiimote.getButtonState();
 
-            if ((button & ButtonA) != 0) {
+            if (buttonStateHas(button, kButtonA)) {
                 buttonPressed = true;
                 TEST_PRINT(">>> Button A detected! <<<");
                 break;
