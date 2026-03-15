@@ -27,19 +27,19 @@ static const unsigned long kStatsIntervalMs = 1000;
 static const unsigned long kBatteryIntervalMs = 3000;
 
 static void printButtonLine(ButtonState button) {
-    char ca = ((button & ButtonA) != 0) ? 'A' : '.';
-    char cb = ((button & ButtonB) != 0) ? 'B' : '.';
-    char cc = ((button & ButtonC) != 0) ? 'C' : '.';
-    char cz = ((button & ButtonZ) != 0) ? 'Z' : '.';
-    char c1 = ((button & ButtonOne) != 0) ? '1' : '.';
-    char c2 = ((button & ButtonTwo) != 0) ? '2' : '.';
-    char cminus = ((button & ButtonMinus) != 0) ? '-' : '.';
-    char cplus = ((button & ButtonPlus) != 0) ? '+' : '.';
-    char chome = ((button & ButtonHome) != 0) ? 'H' : '.';
-    char cleft = ((button & ButtonLeft) != 0) ? '<' : '.';
-    char cright = ((button & ButtonRight) != 0) ? '>' : '.';
-    char cup = ((button & ButtonUp) != 0) ? '^' : '.';
-    char cdown = ((button & ButtonDown) != 0) ? 'v' : '.';
+    char ca = buttonStateHas(button, kButtonA) ? 'A' : '.';
+    char cb = buttonStateHas(button, kButtonB) ? 'B' : '.';
+    char cc = buttonStateHas(button, kButtonC) ? 'C' : '.';
+    char cz = buttonStateHas(button, kButtonZ) ? 'Z' : '.';
+    char c1 = buttonStateHas(button, kButtonOne) ? '1' : '.';
+    char c2 = buttonStateHas(button, kButtonTwo) ? '2' : '.';
+    char cminus = buttonStateHas(button, kButtonMinus) ? '-' : '.';
+    char cplus = buttonStateHas(button, kButtonPlus) ? '+' : '.';
+    char chome = buttonStateHas(button, kButtonHome) ? 'H' : '.';
+    char cleft = buttonStateHas(button, kButtonLeft) ? '<' : '.';
+    char cright = buttonStateHas(button, kButtonRight) ? '>' : '.';
+    char cup = buttonStateHas(button, kButtonUp) ? '^' : '.';
+    char cdown = buttonStateHas(button, kButtonDown) ? 'v' : '.';
 
     Serial.printf("buttons: %05x = ", (int)button);
     Serial.print(ca);
@@ -81,13 +81,13 @@ void setup() {
     Serial.println("Bluetooth initialized successfully!");
 
     if (kIgnoreAccel) {
-        wiimote.addFilter(FilterAction::Ignore, FilterAccel);
+        wiimote.addFilter(FilterAction::Ignore, kFilterAccel);
     }
     if (kIgnoreNunchukStick) {
-        wiimote.addFilter(FilterAction::Ignore, FilterNunchukStick);
+        wiimote.addFilter(FilterAction::Ignore, kFilterNunchukStick);
     }
     if (kIgnoreButtons) {
-        wiimote.addFilter(FilterAction::Ignore, FilterButton);
+        wiimote.addFilter(FilterAction::Ignore, kFilterButton);
     }
 
     lastStatsMs = millis();

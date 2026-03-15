@@ -20,7 +20,7 @@ uint16_t makeL2capPacket(uint8_t *buf, uint16_t channelID, const uint8_t *data, 
     streamU16ToLe(buf, len);
     streamU16ToLe(buf, channelID);
     streamArray(buf, data, len);
-    return L2CAP_HEADER_LEN + len;
+    return kL2CapHeaderLen + len;
 }
 
 uint16_t makeAclL2capPacket(uint8_t *buf,
@@ -29,7 +29,7 @@ uint16_t makeAclL2capPacket(uint8_t *buf,
                             uint16_t channelID,
                             uint8_t *data,
                             uint8_t len) {
-    uint8_t *l2capBuf = buf + HCI_H4_ACL_PREAMBLE_SIZE;
+    uint8_t *l2capBuf = buf + kHciH4AclPreambleSize;
     uint16_t l2capLen = makeL2capPacket(l2capBuf, channelID, data, len);
 
     streamU8ToLe(buf, static_cast<uint8_t>(H4PacketType::Acl));
@@ -38,7 +38,7 @@ uint16_t makeAclL2capPacket(uint8_t *buf,
         buf, ((ch >> 8) & 0x0F) | (control.packetBoundaryFlag << 4) | (control.broadcastFlag << 6));
     streamU16ToLe(buf, l2capLen);
 
-    return HCI_H4_ACL_PREAMBLE_SIZE + l2capLen;
+    return kHciH4AclPreambleSize + l2capLen;
 }
 
 void L2capPacketSender::sendAclL2capPacket(uint16_t ch,

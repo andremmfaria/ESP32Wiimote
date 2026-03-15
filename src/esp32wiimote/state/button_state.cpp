@@ -7,7 +7,7 @@
 
 #include "button_state.h"
 
-ButtonStateManager::ButtonStateManager() : current_(NoButton), previous_(NoButton) {}
+ButtonStateManager::ButtonStateManager() : current_(kNoButton), previous_(kNoButton) {}
 
 void ButtonStateManager::update(ButtonState currentState) {
     current_ = currentState;

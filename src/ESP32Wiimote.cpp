@@ -133,7 +133,7 @@ void ESP32Wiimote::addFilter(FilterAction action, int filter) {
     if (action == FilterAction::Ignore) {
         dataParser_->setFilter(dataParser_->getFilter() | filter);
 
-        if ((filter & FilterAccel) != 0) {
+        if ((filter & kFilterAccel) != 0) {
             tinyWiimoteReqAccelerometer(false);
         }
     }

@@ -22,16 +22,16 @@ void setup() {
     }
 
     if (kIgnoreAccel) {
-        wiimote.addFilter(FilterAction::Ignore, FilterAccel);
-        Serial.println("Filter enabled: FilterAccel");
+        wiimote.addFilter(FilterAction::Ignore, kFilterAccel);
+        Serial.println("Filter enabled: kFilterAccel");
     }
     if (kIgnoreNunchukStick) {
-        wiimote.addFilter(FilterAction::Ignore, FilterNunchukStick);
-        Serial.println("Filter enabled: FilterNunchukStick");
+        wiimote.addFilter(FilterAction::Ignore, kFilterNunchukStick);
+        Serial.println("Filter enabled: kFilterNunchukStick");
     }
     if (kIgnoreButtons) {
-        wiimote.addFilter(FilterAction::Ignore, FilterButton);
-        Serial.println("Filter enabled: FilterButton");
+        wiimote.addFilter(FilterAction::Ignore, kFilterButton);
+        Serial.println("Filter enabled: kFilterButton");
     }
 
     Serial.println("Ready. Press 1 + 2.");

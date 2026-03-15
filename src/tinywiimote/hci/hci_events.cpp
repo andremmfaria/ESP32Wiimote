@@ -24,7 +24,7 @@ static void clearScannedDevices(struct HciEventContext *ctx) {
 
 static int findScannedDevice(struct HciEventContext *ctx, struct BdAddrT bdAddr) {
     for (int i = 0; i < ctx->scannedDeviceCount; i++) {
-        if (memcmp(ctx->scannedDevices[i].bdAddr.addr, bdAddr.addr, BD_ADDR_LEN) == 0) {
+        if (memcmp(ctx->scannedDevices[i].bdAddr.addr, bdAddr.addr, kBdAddrLen) == 0) {
             return i;
         }
     }
@@ -32,7 +32,7 @@ static int findScannedDevice(struct HciEventContext *ctx, struct BdAddrT bdAddr)
 }
 
 static int addScannedDevice(struct HciEventContext *ctx, struct HciScannedDevice scanned) {
-    if (ctx->scannedDeviceCount >= HCI_SCANNED_DEVICE_LIST_SIZE) {
+    if (ctx->scannedDeviceCount >= kHciScannedDeviceListSize) {
         return -1;
     }
     ctx->scannedDevices[ctx->scannedDeviceCount++] = scanned;
@@ -40,7 +40,7 @@ static int addScannedDevice(struct HciEventContext *ctx, struct HciScannedDevice
 }
 
 static bool isSameBdAddr(const struct BdAddrT &a, const struct BdAddrT &b) {
-    return memcmp(a.addr, b.addr, BD_ADDR_LEN) == 0;
+    return memcmp(a.addr, b.addr, kBdAddrLen) == 0;
 }
 
 static void hciSend(struct HciEventContext *ctx, uint16_t len) {
@@ -154,7 +154,7 @@ static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *da
     const uint8_t kStatus = data[3];
 
     switch (kCmdOpcode) {
-        case HCI_OPCODE_RESET: {
+        case kHciOpcodeReset: {
             if (kStatus == 0x00) {
                 LOG_DEBUG("HCI: Reset successful\n");
                 const uint16_t kTxLen = makeCmdReadBdAddr(gHciTxBuffer);
@@ -167,7 +167,7 @@ static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *da
             break;
         }
 
-        case HCI_OPCODE_READ_BD_ADDR: {
+        case kHciOpcodeReadBdAddr: {
             if (kStatus == 0x00) {
                 static const uint8_t kName[] = "ESP32-BT-L2CAP";
                 const uint16_t kTxLen = makeCmdWriteLocalName(gHciTxBuffer, kName, sizeof(kName));
@@ -180,7 +180,7 @@ static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *da
             break;
         }
 
-        case HCI_OPCODE_WRITE_LOCAL_NAME: {
+        case kHciOpcodeWriteLocalName: {
             if (kStatus == 0x00) {
                 static const uint8_t kClassOfDevice[3] = {0x04, 0x05, 0x00};
                 const uint16_t kTxLen = makeCmdWriteClassOfDevice(gHciTxBuffer, kClassOfDevice);
@@ -193,7 +193,7 @@ static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *da
             break;
         }
 
-        case HCI_OPCODE_WRITE_CLASS_OF_DEVICE: {
+        case kHciOpcodeWriteClassOfDevice: {
             if (kStatus == 0x00) {
                 const uint16_t kTxLen = makeCmdWriteScanEnable(gHciTxBuffer, 3);
                 hciSend(ctx, kTxLen);
@@ -205,7 +205,7 @@ static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *da
             break;
         }
 
-        case HCI_OPCODE_WRITE_SCAN_ENABLE: {
+        case kHciOpcodeWriteScanEnable: {
             if (kStatus == 0x00) {
                 if (isFastReconnectCacheValid(ctx)) {
                     LOG_INFO("HCI: Fast reconnect: trying cached Wiimote address\n");
@@ -222,7 +222,7 @@ static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *da
             break;
         }
 
-        case HCI_OPCODE_INQUIRY_CANCEL:
+        case kHciOpcodeInquiryCancel:
             break;
 
         default:
@@ -245,7 +245,7 @@ static void handleCommandStatus(struct HciEventContext *ctx, const uint8_t *data
                  hciOpcodeToString(kCmdOpcode), kCmdOpcode, kStatus, hciStatusCodeToString(kStatus),
                  kNumHciCommandPackets);
 
-        if (kCmdOpcode == HCI_OPCODE_CREATE_CONNECTION) {
+        if (kCmdOpcode == kHciOpcodeCreateConnection) {
             fallbackFromFastReconnectToInquiry(ctx);
         }
     }
@@ -370,31 +370,31 @@ void hciEventsHandleEvent(struct HciEventContext *ctx, const HciEventPacket &pac
     }
 
     switch (packet.eventCode) {
-        case HCI_INQUIRY_COMP_EVT:
+        case kHciInquiryCompEvt:
             handleInquiryComplete(ctx, packet.data);
             break;
 
-        case HCI_INQUIRY_RESULT_EVT:
+        case kHciInquiryResultEvt:
             handleInquiryResult(ctx, packet.data);
             break;
 
-        case HCI_CONNECTION_COMP_EVT:
+        case kHciConnectionCompEvt:
             handleConnectionComplete(ctx, packet.data);
             break;
 
-        case HCI_DISCONNECTION_COMP_EVT:
+        case kHciDisconnectionCompEvt:
             handleDisconnectionComplete(ctx, packet.data);
             break;
 
-        case HCI_RMT_NAME_REQUEST_COMP_EVT:
+        case kHciRmtNameRequestCompEvt:
             handleRemoteNameRequestComplete(ctx, packet.data);
             break;
 
-        case HCI_COMMAND_COMPLETE_EVT:
+        case kHciCommandCompleteEvt:
             handleCommandComplete(ctx, packet.data);
             break;
 
-        case HCI_COMMAND_STATUS_EVT:
+        case kHciCommandStatusEvt:
             handleCommandStatus(ctx, packet.data);
             break;
 

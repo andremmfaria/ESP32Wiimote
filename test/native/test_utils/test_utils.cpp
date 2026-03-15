@@ -9,14 +9,15 @@
 extern char *format2Hex(uint8_t *data, uint16_t len);
 
 void setUp(void) {
-    wiimoteSetLogLevel(WIIMOTE_LOG_WARNING);
+    wiimoteSetLogLevel(kWiimoteLogWarning);
 }
 
 void tearDown(void) {}
 
 void testL2capSignalCodeToString() {
-    TEST_ASSERT_EQUAL_STRING("CONNECTION_REQUEST",
-                             l2capSignalCodeToString((uint8_t)L2capSignalingCode::ConnectionRequest));
+    TEST_ASSERT_EQUAL_STRING(
+        "CONNECTION_REQUEST",
+        l2capSignalCodeToString((uint8_t)L2capSignalingCode::ConnectionRequest));
     TEST_ASSERT_EQUAL_STRING(
         "CONNECTION_RESPONSE",
         l2capSignalCodeToString((uint8_t)L2capSignalingCode::ConnectionResponse));
@@ -37,10 +38,10 @@ void testL2capSignalingResultToString() {
     TEST_ASSERT_EQUAL_STRING(
         "PSM_NOT_SUPPORTED",
         l2capSignalingResultToString((uint16_t)L2capSignalingResult::PsmNotSupported));
-    TEST_ASSERT_EQUAL_STRING("SECURITY_BLOCK",
-                             l2capSignalingResultToString((uint16_t)L2capSignalingResult::SecurityBlock));
-    TEST_ASSERT_EQUAL_STRING("NO_RESOURCES",
-                             l2capSignalingResultToString((uint16_t)L2capSignalingResult::NoResources));
+    TEST_ASSERT_EQUAL_STRING("SECURITY_BLOCK", l2capSignalingResultToString(
+                                                   (uint16_t)L2capSignalingResult::SecurityBlock));
+    TEST_ASSERT_EQUAL_STRING(
+        "NO_RESOURCES", l2capSignalingResultToString((uint16_t)L2capSignalingResult::NoResources));
     TEST_ASSERT_EQUAL_STRING("UNKNOWN_RESULT", l2capSignalingResultToString(0xFFFF));
 }
 
@@ -51,17 +52,19 @@ void testWiimoteCodeToStringHelpers() {
                              wiimoteHidPrefixToString((uint8_t)WiimoteHidPrefix::OutputReport));
     TEST_ASSERT_EQUAL_STRING("UNKNOWN_HID_PREFIX", wiimoteHidPrefixToString(0x00));
 
-    TEST_ASSERT_EQUAL_STRING("STATUS_INFORMATION",
-                             wiimoteInputReportToString((uint8_t)WiimoteInputReport::StatusInformation));
-    TEST_ASSERT_EQUAL_STRING("READ_MEMORY_DATA",
-                             wiimoteInputReportToString((uint8_t)WiimoteInputReport::ReadMemoryData));
+    TEST_ASSERT_EQUAL_STRING(
+        "STATUS_INFORMATION",
+        wiimoteInputReportToString((uint8_t)WiimoteInputReport::StatusInformation));
+    TEST_ASSERT_EQUAL_STRING("READ_MEMORY_DATA", wiimoteInputReportToString(
+                                                     (uint8_t)WiimoteInputReport::ReadMemoryData));
     TEST_ASSERT_EQUAL_STRING("CORE_BUTTONS",
                              wiimoteInputReportToString((uint8_t)WiimoteInputReport::CoreButtons));
     TEST_ASSERT_EQUAL_STRING(
         "CORE_BUTTONS_ACCEL",
         wiimoteInputReportToString((uint8_t)WiimoteInputReport::CoreButtonsAccel));
-    TEST_ASSERT_EQUAL_STRING("CORE_BUTTONS_EXT8",
-                             wiimoteInputReportToString((uint8_t)WiimoteInputReport::CoreButtonsExT8));
+    TEST_ASSERT_EQUAL_STRING(
+        "CORE_BUTTONS_EXT8",
+        wiimoteInputReportToString((uint8_t)WiimoteInputReport::CoreButtonsExT8));
     TEST_ASSERT_EQUAL_STRING(
         "CORE_BUTTONS_ACCEL_EXT16",
         wiimoteInputReportToString((uint8_t)WiimoteInputReport::CoreButtonsAccelExT16));
@@ -72,19 +75,18 @@ void testWiimoteCodeToStringHelpers() {
     TEST_ASSERT_EQUAL_STRING(
         "SET_REPORTING_MODE",
         wiimoteOutputReportToString((uint8_t)WiimoteOutputReport::SetReportingMode));
-    TEST_ASSERT_EQUAL_STRING("REQUEST_STATUS",
-                             wiimoteOutputReportToString((uint8_t)WiimoteOutputReport::RequestStatus));
-    TEST_ASSERT_EQUAL_STRING("WRITE_MEMORY",
-                             wiimoteOutputReportToString((uint8_t)WiimoteOutputReport::WriteMemory));
+    TEST_ASSERT_EQUAL_STRING(
+        "REQUEST_STATUS", wiimoteOutputReportToString((uint8_t)WiimoteOutputReport::RequestStatus));
+    TEST_ASSERT_EQUAL_STRING(
+        "WRITE_MEMORY", wiimoteOutputReportToString((uint8_t)WiimoteOutputReport::WriteMemory));
     TEST_ASSERT_EQUAL_STRING("READ_MEMORY",
                              wiimoteOutputReportToString((uint8_t)WiimoteOutputReport::ReadMemory));
     TEST_ASSERT_EQUAL_STRING("UNKNOWN_OUTPUT_REPORT", wiimoteOutputReportToString(0xFF));
 
     TEST_ASSERT_EQUAL_STRING("EEPROM",
                              wiimoteAddressSpaceToString((uint8_t)WiimoteAddressSpace::EEPROM));
-    TEST_ASSERT_EQUAL_STRING(
-        "ControlRegister",
-        wiimoteAddressSpaceToString((uint8_t)WiimoteAddressSpace::ControlRegister));
+    TEST_ASSERT_EQUAL_STRING("ControlRegister", wiimoteAddressSpaceToString(
+                                                    (uint8_t)WiimoteAddressSpace::ControlRegister));
     TEST_ASSERT_EQUAL_STRING("UNKNOWN_ADDRESS_SPACE", wiimoteAddressSpaceToString(0xFF));
 
     TEST_ASSERT_EQUAL_STRING("IDLE",
@@ -129,22 +131,22 @@ void testFormat2HexTruncatedPayload() {
 
 void testLogLevelSanitization() {
     wiimoteSetLogLevel(0xFF);
-    TEST_ASSERT_EQUAL_UINT8(WIIMOTE_LOG_DEBUG, wiimoteGetLogLevel());
+    TEST_ASSERT_EQUAL_UINT8(kWiimoteLogDebug, wiimoteGetLogLevel());
 
-    wiimoteSetLogLevel(WIIMOTE_LOG_ERROR);
-    TEST_ASSERT_EQUAL_UINT8(WIIMOTE_LOG_ERROR, wiimoteGetLogLevel());
+    wiimoteSetLogLevel(kWiimoteLogError);
+    TEST_ASSERT_EQUAL_UINT8(kWiimoteLogError, wiimoteGetLogLevel());
 }
 
 void testWiimoteLogPrintGuardsAndPrintPath() {
-    wiimoteSetLogLevel(WIIMOTE_LOG_INFO);
+    wiimoteSetLogLevel(kWiimoteLogInfo);
 
     // Guard paths.
-    wiimoteLogPrint(WIIMOTE_LOG_INFO, "[INFO] ", nullptr);
-    wiimoteLogPrint(WIIMOTE_LOG_INFO, nullptr, "hello");
-    wiimoteLogPrint(WIIMOTE_LOG_DEBUG, "[DEBUG] ", "hidden");
+    wiimoteLogPrint(kWiimoteLogInfo, "[INFO] ", nullptr);
+    wiimoteLogPrint(kWiimoteLogInfo, nullptr, "hello");
+    wiimoteLogPrint(kWiimoteLogDebug, "[DEBUG] ", "hidden");
 
     // Executed print path.
-    wiimoteLogPrint(WIIMOTE_LOG_INFO, "[INFO] ", "value=%d", 42);
+    wiimoteLogPrint(kWiimoteLogInfo, "[INFO] ", "value=%d", 42);
 }
 
 #ifdef NATIVE_TEST
