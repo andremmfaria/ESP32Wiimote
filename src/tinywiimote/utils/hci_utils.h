@@ -16,7 +16,7 @@
  */
 
 // Bluetooth address length
-#define BD_ADDR_LEN (6)
+static constexpr int BD_ADDR_LEN = 6;
 
 /**
  * Byte stream manipulation macros
@@ -91,8 +91,8 @@ enum { H4TypeCommand = 1, H4TypeAcl = 2, H4TypeSco = 3, H4TypeEvent = 4 };
 /**
  * HCI packet size constants
  */
-#define HCI_H4_CMD_PREAMBLE_SIZE (4)
-#define HCI_H4_ACL_PREAMBLE_SIZE (5)
-#define L2CAP_HEADER_LEN (4)
+static constexpr uint16_t HCI_H4_CMD_PREAMBLE_SIZE = 4;
+static constexpr uint16_t HCI_H4_ACL_PREAMBLE_SIZE = 5;
+static constexpr uint16_t L2CAP_HEADER_LEN = 4;
 
 #endif  // ESP32_WIIMOTE_HCI_UTILS_H

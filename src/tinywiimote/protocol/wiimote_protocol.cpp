@@ -17,24 +17,19 @@
 
 #include <string.h>
 
-/**
- * Wiimote output report opcodes
- */
-#define WIIMOTE_RPT_SET_LEDS ((uint8_t)WiimoteOutputReport::SetLeds)
-#define WIIMOTE_RPT_SET_REPORTING_MODE ((uint8_t)WiimoteOutputReport::SetReportingMode)
-#define WIIMOTE_RPT_REQUEST_STATUS ((uint8_t)WiimoteOutputReport::RequestStatus)
-#define WIIMOTE_RPT_WRITE_MEMORY ((uint8_t)WiimoteOutputReport::WriteMemory)
-#define WIIMOTE_RPT_READ_MEMORY ((uint8_t)WiimoteOutputReport::ReadMemory)
-
-/**
- * HID output report prefix
- */
-#define HID_OUTPUT_REPORT ((uint8_t)WiimoteHidPrefix::OutputReport)
-
-/**
- * Memory write/read constraints
- */
-#define EEPROM_DATA_SIZE (16)
+namespace {
+static constexpr uint8_t kWiimoteRptSetLeds = static_cast<uint8_t>(WiimoteOutputReport::SetLeds);
+static constexpr uint8_t kWiimoteRptSetReportingMode =
+    static_cast<uint8_t>(WiimoteOutputReport::SetReportingMode);
+static constexpr uint8_t kWiimoteRptRequestStatus =
+    static_cast<uint8_t>(WiimoteOutputReport::RequestStatus);
+static constexpr uint8_t kWiimoteRptWriteMemory =
+    static_cast<uint8_t>(WiimoteOutputReport::WriteMemory);
+static constexpr uint8_t kWiimoteRptReadMemory =
+    static_cast<uint8_t>(WiimoteOutputReport::ReadMemory);
+static constexpr uint8_t kHidOutputReport = static_cast<uint8_t>(WiimoteHidPrefix::OutputReport);
+static constexpr uint8_t kEepromDataSize = 16;
+}  // namespace
 
 WiimoteProtocol::WiimoteProtocol() : connections_(nullptr), sender_(nullptr), payload_{0} {}
 
@@ -45,8 +40,8 @@ void WiimoteProtocol::init(const L2capConnectionTable *connectionTable,
 }
 
 bool WiimoteProtocol::isValidMemorySize(uint16_t size, const char *operation) {
-    if (size > EEPROM_DATA_SIZE) {
-        LOG_ERROR("%s size %d exceeds maximum %d\n", operation, size, EEPROM_DATA_SIZE);
+    if (size > kEepromDataSize) {
+        LOG_ERROR("%s size %d exceeds maximum %d\n", operation, size, kEepromDataSize);
         return false;
     }
     return true;
@@ -72,13 +67,13 @@ void WiimoteProtocol::setLeds(uint16_t ch, const WiimoteLedCommand &command) {
 
     // Build output report: A2 11 LL
     PayloadBuilder pb(payload_, sizeof(payload_));
-    pb.append(HID_OUTPUT_REPORT);             // 0xA2
-    pb.append(WIIMOTE_RPT_SET_LEDS);          // 0x11
+    pb.append(kHidOutputReport);              // 0xA2
+    pb.append(kWiimoteRptSetLeds);            // 0x11
     pb.append((uint8_t)(command.leds << 4));  // LED bits in high nibble
 
     sender_->sendAclL2capPacket(ch, remoteCID, payload_, pb.length());
     LOG_DEBUG("queued acl_l2cap_packet(%s, leds=0x%02X)\n",
-              wiimoteOutputReportToString(WIIMOTE_RPT_SET_LEDS), command.leds);
+              wiimoteOutputReportToString(kWiimoteRptSetLeds), command.leds);
 }
 
 /**
@@ -106,10 +101,10 @@ void WiimoteProtocol::setReportingMode(uint16_t ch, const WiimoteReportingModeCo
 
     // Build output report: A2 12 TT MM
     PayloadBuilder pb(payload_, sizeof(payload_));
-    pb.append(HID_OUTPUT_REPORT);               // 0xA2
-    pb.append(WIIMOTE_RPT_SET_REPORTING_MODE);  // 0x12
-    pb.append(contReportIsDesired);             // Continuous flag
-    pb.append(command.mode);                    // Reporting mode
+    pb.append(kHidOutputReport);             // 0xA2
+    pb.append(kWiimoteRptSetReportingMode);  // 0x12
+    pb.append(contReportIsDesired);          // Continuous flag
+    pb.append(command.mode);                 // Reporting mode
 
     sender_->sendAclL2capPacket(ch, remoteCID, payload_, pb.length());
     LOG_DEBUG("queued acl_l2cap_packet(Set Reporting Mode)\n");
@@ -136,13 +131,13 @@ void WiimoteProtocol::requestStatus(uint16_t ch) {
 
     // Build output report: A2 15 00
     PayloadBuilder pb(payload_, sizeof(payload_));
-    pb.append(HID_OUTPUT_REPORT);           // 0xA2
-    pb.append(WIIMOTE_RPT_REQUEST_STATUS);  // 0x15
-    pb.append(0x00);                        // No rumble
+    pb.append(kHidOutputReport);          // 0xA2
+    pb.append(kWiimoteRptRequestStatus);  // 0x15
+    pb.append(0x00);                      // No rumble
 
     sender_->sendAclL2capPacket(ch, remoteCID, payload_, pb.length());
     LOG_DEBUG("queued acl_l2cap_packet(%s)\n",
-              wiimoteOutputReportToString(WIIMOTE_RPT_REQUEST_STATUS));
+              wiimoteOutputReportToString(kWiimoteRptRequestStatus));
 }
 
 /**
@@ -176,15 +171,15 @@ void WiimoteProtocol::writeMemory(uint16_t ch,
 
     // Build output report header
     PayloadBuilder pb(payload_, sizeof(payload_));
-    pb.append(HID_OUTPUT_REPORT);         // 0xA2
-    pb.append(WIIMOTE_RPT_WRITE_MEMORY);  // 0x16
-    pb.append(addressSpaceByte);          // MM
-    pb.appendU24BE(offset);               // 24-bit offset (big-endian)
-    pb.append(length);                    // Length of data to write
+    pb.append(kHidOutputReport);        // 0xA2
+    pb.append(kWiimoteRptWriteMemory);  // 0x16
+    pb.append(addressSpaceByte);        // MM
+    pb.appendU24BE(offset);             // 24-bit offset (big-endian)
+    pb.append(length);                  // Length of data to write
 
     // Clear data area and copy user data
-    pb.reserveZeroed(EEPROM_DATA_SIZE);
-    memcpy(&payload_[pb.length() - EEPROM_DATA_SIZE], data, length);
+    pb.reserveZeroed(kEepromDataSize);
+    memcpy(&payload_[pb.length() - kEepromDataSize], data, length);
 
     sender_->sendAclL2capPacket(ch, remoteCID, payload_, pb.length());
     LOG_DEBUG("queued acl_l2cap_packet(Write Memory)\n");
@@ -220,11 +215,11 @@ void WiimoteProtocol::readMemory(uint16_t ch,
 
     // Build output report
     PayloadBuilder pb(payload_, sizeof(payload_));
-    pb.append(HID_OUTPUT_REPORT);        // 0xA2
-    pb.append(WIIMOTE_RPT_READ_MEMORY);  // 0x17
-    pb.append(addressSpaceByte);         // MM
-    pb.appendU24BE(offset);              // 24-bit offset (big-endian)
-    pb.appendU16BE(size);                // 16-bit size (big-endian)
+    pb.append(kHidOutputReport);       // 0xA2
+    pb.append(kWiimoteRptReadMemory);  // 0x17
+    pb.append(addressSpaceByte);       // MM
+    pb.appendU24BE(offset);            // 24-bit offset (big-endian)
+    pb.appendU16BE(size);              // 16-bit size (big-endian)
 
     sender_->sendAclL2capPacket(ch, remoteCID, payload_, pb.length());
     LOG_DEBUG("queued acl_l2cap_packet(Read Memory)\n");

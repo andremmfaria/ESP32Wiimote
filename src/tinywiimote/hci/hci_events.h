@@ -19,7 +19,7 @@ typedef void (*HciAclConnectedFunc)(uint16_t connectionHandle, void *userData);
 typedef void (*HciDisconnectedFunc)(uint16_t connectionHandle, uint8_t reason, void *userData);
 typedef uint32_t (*HciGetTimeMsFunc)(void *userData);
 
-#define HCI_SCANNED_DEVICE_LIST_SIZE 16
+static constexpr int HCI_SCANNED_DEVICE_LIST_SIZE = 16;
 
 struct HciScannedDevice {
     struct BdAddrT bdAddr;
