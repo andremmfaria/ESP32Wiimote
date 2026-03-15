@@ -215,7 +215,7 @@ void testMultipleTxSends() {
 
     TEST_ASSERT_GREATER_THAN(0, successCount);
     char msg[64];
-    sprintf(msg, "Successfully sent %d/10 packets", successCount);
+    snprintf(msg, sizeof(msg), "Successfully sent %d/10 packets", successCount);
     TEST_PRINT(msg);
 }
 
@@ -238,7 +238,7 @@ void testMultipleRxSends() {
 
     TEST_ASSERT_GREATER_THAN(0, successCount);
     char msg[64];
-    sprintf(msg, "Successfully sent %d/10 packets", successCount);
+    snprintf(msg, sizeof(msg), "Successfully sent %d/10 packets", successCount);
     TEST_PRINT(msg);
 }
 
@@ -332,7 +332,7 @@ void testTinywiimoteBatteryLevel() {
 void testHeapMemoryBeforeBt() {
     size_t freeBefore = ESP.getFreeHeap();
     char msg[64];
-    sprintf(msg, "Free heap before BT: %d bytes", freeBefore);
+    snprintf(msg, sizeof(msg), "Free heap before BT: %d bytes", freeBefore);
     TEST_PRINT(msg);
 
     TEST_ASSERT_GREATER_THAN(10000, freeBefore);  // Should have at least 10KB
@@ -347,7 +347,7 @@ void testHeapMemoryAfterBt() {
 
     size_t freeAfter = ESP.getFreeHeap();
     char msg[64];
-    sprintf(msg, "Free heap after BT: %d bytes", freeAfter);
+    snprintf(msg, sizeof(msg), "Free heap after BT: %d bytes", freeAfter);
     TEST_PRINT(msg);
 
     // BT uses significant memory, but should still have some free
