@@ -49,7 +49,8 @@ void WiimoteExtensions::handleReport(uint16_t ch, uint8_t *data, uint16_t len) {
                 state_->setBatteryLevel(rawBattery);
                 if ((data[4] & 0x02) != 0) {
                     LOG_INFO("Extension controller connected\n");
-                    protocol.writeMemory(ch, ControlRegister, 0xA400F0, (const uint8_t[]){0x55}, 1);
+                    protocol.writeMemory(ch, WiimoteAddressSpace::ControlRegister, 0xA400F0,
+                                         (const uint8_t[]){0x55}, 1);
                     controllerReportState_ = KReportStateWaitAckOutReport;
                 } else {
                     LOG_INFO("Extension controller NOT connected\n");
@@ -71,7 +72,8 @@ void WiimoteExtensions::handleReport(uint16_t ch, uint8_t *data, uint16_t len) {
             }
             if ((data[1] == 0x22) && (data[4] == 0x16)) {
                 if (data[5] == 0x00) {
-                    protocol.writeMemory(ch, ControlRegister, 0xA400FB, (const uint8_t[]){0x00}, 1);
+                    protocol.writeMemory(ch, WiimoteAddressSpace::ControlRegister, 0xA400FB,
+                                         (const uint8_t[]){0x00}, 1);
                     controllerReportState_ = KReportStateWaitReadControllerType;
                 } else {
                     controllerReportState_ = KReportStateInit;
@@ -85,7 +87,7 @@ void WiimoteExtensions::handleReport(uint16_t ch, uint8_t *data, uint16_t len) {
             }
             if ((data[1] == 0x22) && (data[4] == 0x16)) {
                 if (data[5] == 0x00) {
-                    protocol.readMemory(ch, ControlRegister, 0xA400FA, 6);
+                    protocol.readMemory(ch, WiimoteAddressSpace::ControlRegister, 0xA400FA, 6);
                     controllerReportState_ = KReportStateWaitReadResponse;
                 } else {
                     controllerReportState_ = KReportStateInit;

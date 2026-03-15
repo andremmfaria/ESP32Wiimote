@@ -8,6 +8,7 @@
 #ifndef ESP32_WIIMOTE_WIIMOTE_PROTOCOL_H
 #define ESP32_WIIMOTE_WIIMOTE_PROTOCOL_H
 
+#include "../../utils/protocol_codes.h"
 #include "../l2cap/l2cap_connection.h"
 #include "../l2cap/l2cap_packets.h"
 
@@ -22,11 +23,6 @@
  * - Data reporting mode configuration
  * - Memory/register read/write operations
  */
-
-/**
- * Memory address space types
- */
-typedef enum { EepromMemory = 0x00, ControlRegister = 0x04 } address_space_t;
 
 struct WiimoteLedCommand {
     uint8_t leds;
@@ -47,11 +43,11 @@ class WiimoteProtocol {
     void setReportingMode(uint16_t ch, const WiimoteReportingModeCommand &command);
     void requestStatus(uint16_t ch);
     void writeMemory(uint16_t ch,
-                     address_space_t addressSpace,
+                     WiimoteAddressSpace addressSpace,
                      uint32_t offset,
                      const uint8_t *data,
                      uint8_t length);
-    void readMemory(uint16_t ch, address_space_t addressSpace, uint32_t offset, uint16_t size);
+    void readMemory(uint16_t ch, WiimoteAddressSpace addressSpace, uint32_t offset, uint16_t size);
 
    private:
     /**

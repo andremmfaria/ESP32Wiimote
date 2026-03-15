@@ -232,7 +232,7 @@ void testWriteMemoryEeprom() {
     connections->addConnection(conn);
 
     uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
-    protocol->writeMemory(0x0040, EepromMemory, 0x00000010, data, sizeof(data));
+    protocol->writeMemory(0x0040, WiimoteAddressSpace::EEPROM, 0x00000010, data, sizeof(data));
 
     // Verify packet sent
     TEST_ASSERT_EQUAL(1, mockSendCallCount);
@@ -249,7 +249,8 @@ void testWriteMemoryControlRegister() {
     connections->addConnection(conn);
 
     uint8_t data[] = {0xAA, 0xBB};
-    protocol->writeMemory(0x0040, ControlRegister, 0x00A400F0, data, sizeof(data));
+    protocol->writeMemory(0x0040, WiimoteAddressSpace::ControlRegister, 0x00A400F0, data,
+                          sizeof(data));
 
     TEST_ASSERT_EQUAL(1, mockSendCallCount);
     TEST_ASSERT_EQUAL_UINT8(0xA2, mockLastPacket[0]);
@@ -262,7 +263,8 @@ void testWriteMemoryPacketLayoutAndPadding() {
     connections->addConnection(conn);
 
     uint8_t data[] = {0xDE, 0xAD, 0xBE};
-    protocol->writeMemory(0x0040, ControlRegister, 0x00A400F0, data, sizeof(data));
+    protocol->writeMemory(0x0040, WiimoteAddressSpace::ControlRegister, 0x00A400F0, data,
+                          sizeof(data));
 
     // Packet format: A2 16 MM O1 O2 O3 LL [16-byte payload, zero-padded]
     TEST_ASSERT_EQUAL(23, mockLastPacketLen);
@@ -288,7 +290,7 @@ void testWriteMemoryOversizedPayloadIsRejected() {
     connections->addConnection(conn);
 
     uint8_t data[17] = {0};
-    protocol->writeMemory(0x0040, EepromMemory, 0x00000010, data, sizeof(data));
+    protocol->writeMemory(0x0040, WiimoteAddressSpace::EEPROM, 0x00000010, data, sizeof(data));
 
     TEST_ASSERT_EQUAL(0, mockSendCallCount);
 }
@@ -296,7 +298,7 @@ void testWriteMemoryOversizedPayloadIsRejected() {
 // Test: Write memory with no connection
 void testWriteMemoryNoConnection() {
     uint8_t data[] = {0x01};
-    protocol->writeMemory(0x0040, EepromMemory, 0x00000010, data, sizeof(data));
+    protocol->writeMemory(0x0040, WiimoteAddressSpace::EEPROM, 0x00000010, data, sizeof(data));
 
     TEST_ASSERT_EQUAL(0, mockSendCallCount);
 }
@@ -306,7 +308,7 @@ void testReadMemoryEeprom() {
     L2capConnection conn = makeConnection(0x0040, 0x0041);
     connections->addConnection(conn);
 
-    protocol->readMemory(0x0040, EepromMemory, 0x00000020, 16);
+    protocol->readMemory(0x0040, WiimoteAddressSpace::EEPROM, 0x00000020, 16);
 
     // Verify packet sent
     TEST_ASSERT_EQUAL(1, mockSendCallCount);
@@ -322,7 +324,7 @@ void testReadMemoryControlRegister() {
     L2capConnection conn = makeConnection(0x0040, 0x0041);
     connections->addConnection(conn);
 
-    protocol->readMemory(0x0040, ControlRegister, 0x00A400FA, 6);
+    protocol->readMemory(0x0040, WiimoteAddressSpace::ControlRegister, 0x00A400FA, 6);
 
     TEST_ASSERT_EQUAL(1, mockSendCallCount);
     TEST_ASSERT_EQUAL_UINT8(0xA2, mockLastPacket[0]);
@@ -334,7 +336,7 @@ void testReadMemoryPacketLayout() {
     L2capConnection conn = makeConnection(0x0040, 0x0041);
     connections->addConnection(conn);
 
-    protocol->readMemory(0x0040, ControlRegister, 0x00A400FA, 6);
+    protocol->readMemory(0x0040, WiimoteAddressSpace::ControlRegister, 0x00A400FA, 6);
 
     // Packet format: A2 17 MM O1 O2 O3 S1 S2
     TEST_ASSERT_EQUAL(8, mockLastPacketLen);
@@ -353,14 +355,14 @@ void testReadMemoryOversizedSizeIsRejected() {
     L2capConnection conn = makeConnection(0x0040, 0x0041);
     connections->addConnection(conn);
 
-    protocol->readMemory(0x0040, EepromMemory, 0x00000020, 17);
+    protocol->readMemory(0x0040, WiimoteAddressSpace::EEPROM, 0x00000020, 17);
 
     TEST_ASSERT_EQUAL(0, mockSendCallCount);
 }
 
 // Test: Read memory with no connection
 void testReadMemoryNoConnection() {
-    protocol->readMemory(0x0040, EepromMemory, 0x00000020, 16);
+    protocol->readMemory(0x0040, WiimoteAddressSpace::EEPROM, 0x00000020, 16);
 
     TEST_ASSERT_EQUAL(0, mockSendCallCount);
 }
