@@ -264,7 +264,7 @@ static void handleInquiryResult(struct HciEventContext *ctx, const uint8_t *data
         const int kPos = 1 + ((6 + 1 + 2 + 3 + 2) * i);
 
         struct BdAddrT bdAddr;
-        STREAM_TO_BDADDR(bdAddr.addr, data + kPos);
+        streamToBdAddr(bdAddr.addr, data + kPos);
 
         int idx = findScannedDevice(ctx, bdAddr);
         if (idx != -1) {
@@ -297,7 +297,7 @@ static void handleInquiryResult(struct HciEventContext *ctx, const uint8_t *data
 
 static void handleRemoteNameRequestComplete(struct HciEventContext *ctx, uint8_t *data) {
     struct BdAddrT bdAddr;
-    STREAM_TO_BDADDR(bdAddr.addr, data + 1);
+    streamToBdAddr(bdAddr.addr, data + 1);
 
     char *name = (char *)(data + 7);
 

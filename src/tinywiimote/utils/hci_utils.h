@@ -19,39 +19,34 @@
 static constexpr int BD_ADDR_LEN = 6;
 
 /**
- * Byte stream manipulation macros
+ * Byte stream manipulation helpers
  */
-#define UINT16_TO_STREAM(p, u16)        \
-    {                                   \
-        *(p)++ = (uint8_t)(u16);        \
-        *(p)++ = (uint8_t)((u16) >> 8); \
-    }
+static inline void streamU16ToLe(uint8_t *&p, uint16_t value) {
+    *p++ = static_cast<uint8_t>(value);
+    *p++ = static_cast<uint8_t>(value >> 8);
+}
 
-#define UINT8_TO_STREAM(p, u8)  \
-    {                           \
-        *(p)++ = (uint8_t)(u8); \
-    }
+static inline void streamU8ToLe(uint8_t *&p, uint8_t value) {
+    *p++ = value;
+}
 
-#define BDADDR_TO_STREAM(p, a)                            \
-    {                                                     \
-        int ijk;                                          \
-        for (ijk = 0; ijk < BD_ADDR_LEN; ijk++)           \
-            *(p)++ = (uint8_t)(a)[BD_ADDR_LEN - 1 - ijk]; \
+static inline void streamBdAddr(uint8_t *&p, const uint8_t *bdAddr) {
+    for (int i = 0; i < BD_ADDR_LEN; i++) {
+        *p++ = bdAddr[BD_ADDR_LEN - 1 - i];
     }
+}
 
-#define STREAM_TO_BDADDR(a, p)                     \
-    {                                              \
-        int ijk;                                   \
-        for (ijk = 0; ijk < BD_ADDR_LEN; ijk++)    \
-            (a)[BD_ADDR_LEN - 1 - ijk] = (p)[ijk]; \
+static inline void streamToBdAddr(uint8_t *bdAddr, const uint8_t *p) {
+    for (int i = 0; i < BD_ADDR_LEN; i++) {
+        bdAddr[BD_ADDR_LEN - 1 - i] = p[i];
     }
+}
 
-#define ARRAY_TO_STREAM(p, a, len)        \
-    {                                     \
-        int ijk;                          \
-        for (ijk = 0; ijk < (len); ijk++) \
-            *(p)++ = (uint8_t)(a)[ijk];   \
+static inline void streamArray(uint8_t *&p, const uint8_t *array, uint16_t len) {
+    for (uint16_t i = 0; i < len; i++) {
+        *p++ = array[i];
     }
+}
 
 /**
  * Byte extraction utilities
