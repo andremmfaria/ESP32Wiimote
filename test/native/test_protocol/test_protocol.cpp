@@ -256,6 +256,43 @@ void testWriteMemoryControlRegister() {
     TEST_ASSERT_EQUAL_UINT8(0x16, mockLastPacket[1]);
 }
 
+// Test: Write memory packet layout and zero padding
+void testWriteMemoryPacketLayoutAndPadding() {
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
+    connections->addConnection(conn);
+
+    uint8_t data[] = {0xDE, 0xAD, 0xBE};
+    protocol->writeMemory(0x0040, ControlRegister, 0x00A400F0, data, sizeof(data));
+
+    // Packet format: A2 16 MM O1 O2 O3 LL [16-byte payload, zero-padded]
+    TEST_ASSERT_EQUAL(23, mockLastPacketLen);
+    TEST_ASSERT_EQUAL_UINT8(0xA2, mockLastPacket[0]);
+    TEST_ASSERT_EQUAL_UINT8(0x16, mockLastPacket[1]);
+    TEST_ASSERT_EQUAL_UINT8(0x04, mockLastPacket[2]);
+    TEST_ASSERT_EQUAL_UINT8(0xA4, mockLastPacket[3]);
+    TEST_ASSERT_EQUAL_UINT8(0x00, mockLastPacket[4]);
+    TEST_ASSERT_EQUAL_UINT8(0xF0, mockLastPacket[5]);
+    TEST_ASSERT_EQUAL_UINT8(sizeof(data), mockLastPacket[6]);
+    TEST_ASSERT_EQUAL_UINT8(0xDE, mockLastPacket[7]);
+    TEST_ASSERT_EQUAL_UINT8(0xAD, mockLastPacket[8]);
+    TEST_ASSERT_EQUAL_UINT8(0xBE, mockLastPacket[9]);
+
+    for (int i = 10; i < 23; i++) {
+        TEST_ASSERT_EQUAL_UINT8(0x00, mockLastPacket[i]);
+    }
+}
+
+// Test: Write memory size guard blocks oversized payload
+void testWriteMemoryOversizedPayloadIsRejected() {
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
+    connections->addConnection(conn);
+
+    uint8_t data[17] = {0};
+    protocol->writeMemory(0x0040, EepromMemory, 0x00000010, data, sizeof(data));
+
+    TEST_ASSERT_EQUAL(0, mockSendCallCount);
+}
+
 // Test: Write memory with no connection
 void testWriteMemoryNoConnection() {
     uint8_t data[] = {0x01};
@@ -290,6 +327,35 @@ void testReadMemoryControlRegister() {
     TEST_ASSERT_EQUAL(1, mockSendCallCount);
     TEST_ASSERT_EQUAL_UINT8(0xA2, mockLastPacket[0]);
     TEST_ASSERT_EQUAL_UINT8(0x17, mockLastPacket[1]);
+}
+
+// Test: Read memory packet layout
+void testReadMemoryPacketLayout() {
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
+    connections->addConnection(conn);
+
+    protocol->readMemory(0x0040, ControlRegister, 0x00A400FA, 6);
+
+    // Packet format: A2 17 MM O1 O2 O3 S1 S2
+    TEST_ASSERT_EQUAL(8, mockLastPacketLen);
+    TEST_ASSERT_EQUAL_UINT8(0xA2, mockLastPacket[0]);
+    TEST_ASSERT_EQUAL_UINT8(0x17, mockLastPacket[1]);
+    TEST_ASSERT_EQUAL_UINT8(0x04, mockLastPacket[2]);
+    TEST_ASSERT_EQUAL_UINT8(0xA4, mockLastPacket[3]);
+    TEST_ASSERT_EQUAL_UINT8(0x00, mockLastPacket[4]);
+    TEST_ASSERT_EQUAL_UINT8(0xFA, mockLastPacket[5]);
+    TEST_ASSERT_EQUAL_UINT8(0x00, mockLastPacket[6]);
+    TEST_ASSERT_EQUAL_UINT8(0x06, mockLastPacket[7]);
+}
+
+// Test: Read memory size guard blocks oversized size
+void testReadMemoryOversizedSizeIsRejected() {
+    L2capConnection conn = makeConnection(0x0040, 0x0041);
+    connections->addConnection(conn);
+
+    protocol->readMemory(0x0040, EepromMemory, 0x00000020, 17);
+
+    TEST_ASSERT_EQUAL(0, mockSendCallCount);
 }
 
 // Test: Read memory with no connection
@@ -468,9 +534,13 @@ int main(int argc, char **argv) {
     // Memory operation tests
     RUN_TEST(testWriteMemoryEeprom);
     RUN_TEST(testWriteMemoryControlRegister);
+    RUN_TEST(testWriteMemoryPacketLayoutAndPadding);
+    RUN_TEST(testWriteMemoryOversizedPayloadIsRejected);
     RUN_TEST(testWriteMemoryNoConnection);
     RUN_TEST(testReadMemoryEeprom);
     RUN_TEST(testReadMemoryControlRegister);
+    RUN_TEST(testReadMemoryPacketLayout);
+    RUN_TEST(testReadMemoryOversizedSizeIsRejected);
     RUN_TEST(testReadMemoryNoConnection);
 
     // Multiple connections tests
@@ -519,9 +589,13 @@ void setup() {
     // Memory operation tests
     RUN_TEST(testWriteMemoryEeprom);
     RUN_TEST(testWriteMemoryControlRegister);
+    RUN_TEST(testWriteMemoryPacketLayoutAndPadding);
+    RUN_TEST(testWriteMemoryOversizedPayloadIsRejected);
     RUN_TEST(testWriteMemoryNoConnection);
     RUN_TEST(testReadMemoryEeprom);
     RUN_TEST(testReadMemoryControlRegister);
+    RUN_TEST(testReadMemoryPacketLayout);
+    RUN_TEST(testReadMemoryOversizedSizeIsRejected);
     RUN_TEST(testReadMemoryNoConnection);
 
     // Multiple connections tests

@@ -75,6 +75,7 @@
 
 plans/
 ESP32Wiimote.ino
+plans/
 
 ### PlatformIO ###
 .pio/
