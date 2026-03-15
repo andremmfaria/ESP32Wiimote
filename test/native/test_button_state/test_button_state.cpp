@@ -69,14 +69,14 @@ void testResetChangeFlag() {
 
 // Test: Multiple button combination
 void testMultipleButtonsCombination() {
-    ButtonState combo = (ButtonState)(ButtonA | ButtonB | ButtonOne);
+    ButtonState combo = buttonStateOr(buttonStateOr(ButtonA, ButtonB), ButtonOne);
     buttonState->update(combo);
 
     ButtonState current = buttonState->getCurrent();
     TEST_ASSERT_EQUAL(combo, current);
-    TEST_ASSERT_TRUE(current & ButtonA);
-    TEST_ASSERT_TRUE(current & ButtonB);
-    TEST_ASSERT_TRUE(current & ButtonOne);
+    TEST_ASSERT_TRUE(buttonStateHas(current, ButtonA));
+    TEST_ASSERT_TRUE(buttonStateHas(current, ButtonB));
+    TEST_ASSERT_TRUE(buttonStateHas(current, ButtonOne));
 }
 
 // Test: Nunchuk buttons

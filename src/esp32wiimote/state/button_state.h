@@ -30,6 +30,18 @@ typedef enum {
     NoButton = 0x00000000
 } ButtonState;
 
+static inline ButtonState buttonStateFromRaw(uint32_t raw) {
+    return static_cast<ButtonState>(raw);
+}
+
+static inline ButtonState buttonStateOr(ButtonState lhs, ButtonState rhs) {
+    return static_cast<ButtonState>(static_cast<uint32_t>(lhs) | static_cast<uint32_t>(rhs));
+}
+
+static inline bool buttonStateHas(ButtonState state, ButtonState flag) {
+    return (static_cast<uint32_t>(state) & static_cast<uint32_t>(flag)) != 0U;
+}
+
 /**
  * Button State Manager - Tracks button state changes
  */
