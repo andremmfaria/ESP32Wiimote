@@ -17,9 +17,9 @@ void L2capPacketSender::setSendCallback(L2capRawSendFunc callback) {
 }
 
 uint16_t makeL2capPacket(uint8_t *buf, uint16_t channelID, const uint8_t *data, uint16_t len) {
-    UINT16_TO_STREAM(buf, len);
-    UINT16_TO_STREAM(buf, channelID);
-    ARRAY_TO_STREAM(buf, data, len);
+    streamU16ToLe(buf, len);
+    streamU16ToLe(buf, channelID);
+    streamArray(buf, data, len);
     return L2CAP_HEADER_LEN + len;
 }
 
@@ -32,11 +32,11 @@ uint16_t makeAclL2capPacket(uint8_t *buf,
     uint8_t *l2capBuf = buf + HCI_H4_ACL_PREAMBLE_SIZE;
     uint16_t l2capLen = makeL2capPacket(l2capBuf, channelID, data, len);
 
-    UINT8_TO_STREAM(buf, H4TypeAcl);
-    UINT8_TO_STREAM(buf, ch & 0xFF);
-    UINT8_TO_STREAM(
+    streamU8ToLe(buf, H4TypeAcl);
+    streamU8ToLe(buf, ch & 0xFF);
+    streamU8ToLe(
         buf, ((ch >> 8) & 0x0F) | (control.packetBoundaryFlag << 4) | (control.broadcastFlag << 6));
-    UINT16_TO_STREAM(buf, l2capLen);
+    streamU16ToLe(buf, l2capLen);
 
     return HCI_H4_ACL_PREAMBLE_SIZE + l2capLen;
 }
