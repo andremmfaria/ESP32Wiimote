@@ -12,8 +12,8 @@
 //   Under the following terms:
 //     NonCommercial — You may not use the material for commercial purposes.
 
-#ifndef ESP32WIIMOTE_TINYWIIMOTE_H_
-#define ESP32WIIMOTE_TINYWIIMOTE_H_
+#ifndef ESP32_WIIMOTE_TINYWIIMOTE_H
+#define ESP32_WIIMOTE_TINYWIIMOTE_H
 
 #include "tinywiimote/protocol/wiimote_reports.h"
 
@@ -22,23 +22,23 @@
 #include <stdint.h>
 
 struct TwHciInterface {
-    void (*hci_send_packet)(uint8_t *data, size_t len);
+    void (*hciSendPacket)(uint8_t *data, size_t len);
 };
 
-void TinyWiimoteInit(struct TwHciInterface hciInterface);
-int TinyWiimoteAvailable();
-TinyWiimoteData TinyWiimoteRead();
+void tinyWiimoteInit(struct TwHciInterface hciInterface);
+int tinyWiimoteAvailable();
+TinyWiimoteData tinyWiimoteRead();
 
-void TinyWiimoteResetDevice();
-bool TinyWiimoteDeviceIsInited();
-bool TinyWiimoteIsConnected();
-uint8_t TinyWiimoteGetBatteryLevel();
-void TinyWiimoteRequestBatteryUpdate();
+void tinyWiimoteResetDevice();
+bool tinyWiimoteDeviceIsInited();
+bool tinyWiimoteIsConnected();
+uint8_t tinyWiimoteGetBatteryLevel();
+void tinyWiimoteRequestBatteryUpdate();
 
-void TinyWiimoteReqAccelerometer(bool use);
+void tinyWiimoteReqAccelerometer(bool use);
 
 void handleHciData(uint8_t *data, size_t len);
 
 char *format2Hex(uint8_t *data, uint16_t len);
 
-#endif  // ESP32WIIMOTE_TINYWIIMOTE_H_
+#endif  // ESP32_WIIMOTE_TINYWIIMOTE_H

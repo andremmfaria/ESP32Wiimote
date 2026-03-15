@@ -23,6 +23,8 @@ extern "C" __attribute__((weak)) bool btInUse(void) {
     return true;
 }
 
+bool BluetoothController::initialized = false;
+
 BluetoothController::BluetoothController() = default;
 
 bool BluetoothController::init(HciCallbacksHandler *hciCallbacks, HciQueueManager *queueManager) {
@@ -61,7 +63,7 @@ bool BluetoothController::init(HciCallbacksHandler *hciCallbacks, HciQueueManage
 
     // Initialize TinyWiimote with HCI interface
     LOG_DEBUG("BtController: Initializing TinyWiimote...\n");
-    TinyWiimoteInit(*hciCallbacks->getHciInterface());
+    tinyWiimoteInit(*hciCallbacks->getHciInterface());
     LOG_DEBUG("BtController: TinyWiimote initialized\n");
 
     // Set queue manager for callbacks
@@ -85,11 +87,11 @@ bool BluetoothController::init(HciCallbacksHandler *hciCallbacks, HciQueueManage
     }
     LOG_DEBUG("BtController: VHCI callbacks registered successfully!\n");
 
-    _initialized = true;
+    initialized = true;
     LOG_INFO("BtController: Bluetooth controller initialization complete!\n");
     return true;
 }
 
 bool BluetoothController::isStarted() {
-    return btStarted();
+    return initialized && btStarted();
 }

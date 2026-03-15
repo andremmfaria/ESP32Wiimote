@@ -5,10 +5,10 @@
 ESP32Wiimote wiimote;
 
 // Demo options
-static const bool ENABLE_VERBOSE_INPUT_LOG = true;
-static const bool IGNORE_ACCEL = false;
-static const bool IGNORE_NUNCHUK_STICK = false;
-static const bool IGNORE_BUTTONS = false;
+static const bool kEnableVerboseInputLog = true;
+static const bool kIgnoreAccel = false;
+static const bool kIgnoreNunchukStick = false;
+static const bool kIgnoreButtons = false;
 
 // Runtime state
 static bool wasConnected = false;
@@ -17,23 +17,23 @@ static unsigned long lastBatteryMs = 0;
 static int numLoopRuns = 0;
 static int numInputUpdates = 0;
 
-static const unsigned long STATS_INTERVAL_MS = 1000;
-static const unsigned long BATTERY_INTERVAL_MS = 3000;
+static const unsigned long kStatsIntervalMs = 1000;
+static const unsigned long kBatteryIntervalMs = 3000;
 
 static void printButtonLine(ButtonState button) {
-    char ca = ((button & BUTTON_A) != 0) ? 'A' : '.';
-    char cb = ((button & BUTTON_B) != 0) ? 'B' : '.';
-    char cc = ((button & BUTTON_C) != 0) ? 'C' : '.';
-    char cz = ((button & BUTTON_Z) != 0) ? 'Z' : '.';
-    char c1 = ((button & BUTTON_ONE) != 0) ? '1' : '.';
-    char c2 = ((button & BUTTON_TWO) != 0) ? '2' : '.';
-    char cminus = ((button & BUTTON_MINUS) != 0) ? '-' : '.';
-    char cplus = ((button & BUTTON_PLUS) != 0) ? '+' : '.';
-    char chome = ((button & BUTTON_HOME) != 0) ? 'H' : '.';
-    char cleft = ((button & BUTTON_LEFT) != 0) ? '<' : '.';
-    char cright = ((button & BUTTON_RIGHT) != 0) ? '>' : '.';
-    char cup = ((button & BUTTON_UP) != 0) ? '^' : '.';
-    char cdown = ((button & BUTTON_DOWN) != 0) ? 'v' : '.';
+    char ca = ((button & ButtonA) != 0) ? 'A' : '.';
+    char cb = ((button & ButtonB) != 0) ? 'B' : '.';
+    char cc = ((button & ButtonC) != 0) ? 'C' : '.';
+    char cz = ((button & ButtonZ) != 0) ? 'Z' : '.';
+    char c1 = ((button & ButtonOne) != 0) ? '1' : '.';
+    char c2 = ((button & ButtonTwo) != 0) ? '2' : '.';
+    char cminus = ((button & ButtonMinus) != 0) ? '-' : '.';
+    char cplus = ((button & ButtonPlus) != 0) ? '+' : '.';
+    char chome = ((button & ButtonHome) != 0) ? 'H' : '.';
+    char cleft = ((button & ButtonLeft) != 0) ? '<' : '.';
+    char cright = ((button & ButtonRight) != 0) ? '>' : '.';
+    char cup = ((button & ButtonUp) != 0) ? '^' : '.';
+    char cdown = ((button & ButtonDown) != 0) ? 'v' : '.';
 
     Serial.printf("buttons: %05x = ", (int)button);
     Serial.print(ca);
@@ -74,14 +74,14 @@ void setup() {
 
     Serial.println("Bluetooth initialized successfully!");
 
-    if (IGNORE_ACCEL) {
-        wiimote.addFilter(ACTION_IGNORE, FILTER_ACCEL);
+    if (kIgnoreAccel) {
+        wiimote.addFilter(FilterAction::Ignore, FilterAccel);
     }
-    if (IGNORE_NUNCHUK_STICK) {
-        wiimote.addFilter(ACTION_IGNORE, FILTER_NUNCHUK_STICK);
+    if (kIgnoreNunchukStick) {
+        wiimote.addFilter(FilterAction::Ignore, FilterNunchukStick);
     }
-    if (IGNORE_BUTTONS) {
-        wiimote.addFilter(ACTION_IGNORE, FILTER_BUTTON);
+    if (kIgnoreButtons) {
+        wiimote.addFilter(FilterAction::Ignore, FilterButton);
     }
 
     lastStatsMs = millis();
@@ -101,7 +101,7 @@ void loop() {
     }
 
     unsigned long now = millis();
-    if (isConnected && (now - lastBatteryMs >= BATTERY_INTERVAL_MS)) {
+    if (isConnected && (now - lastBatteryMs >= kBatteryIntervalMs)) {
         printBatteryLine();
         lastBatteryMs = now;
     }
@@ -112,7 +112,7 @@ void loop() {
         NunchukState nunchuk = wiimote.getNunchukState();
         numInputUpdates++;
 
-        if (ENABLE_VERBOSE_INPUT_LOG) {
+        if (kEnableVerboseInputLog) {
             printButtonLine(button);
             Serial.printf(", wiimote.axis: %3u/%3u/%3u", accel.xAxis, accel.yAxis, accel.zAxis);
             Serial.printf(", nunchuk.axis: %3u/%3u/%3u", nunchuk.xAxis, nunchuk.yAxis,
@@ -121,13 +121,13 @@ void loop() {
         }
     }
 
-    if (now - lastStatsMs >= STATS_INTERVAL_MS) {
+    if (now - lastStatsMs >= kStatsIntervalMs) {
         Serial.printf("stats: loops/s=%d, updates/s=%d, connected=%d\n", numLoopRuns,
                       numInputUpdates, (int)isConnected);
         numLoopRuns = 0;
         numInputUpdates = 0;
-        lastStatsMs += STATS_INTERVAL_MS;
-        if ((now - lastStatsMs) >= STATS_INTERVAL_MS) {
+        lastStatsMs += kStatsIntervalMs;
+        if ((now - lastStatsMs) >= kStatsIntervalMs) {
             lastStatsMs = now;
         }
     }

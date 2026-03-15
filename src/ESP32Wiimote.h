@@ -5,8 +5,8 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef ESP32WIIMOTE_ESP32WIIMOTE_H_
-#define ESP32WIIMOTE_ESP32WIIMOTE_H_
+#ifndef ESP32_WIIMOTE_ES_P32_WIIMOTE_H
+#define ESP32_WIIMOTE_ES_P32_WIIMOTE_H
 
 #include "TinyWiimote.h"
 #include "esp32wiimote/bt_controller.h"
@@ -24,7 +24,7 @@ enum class FilterAction : uint8_t {
     Ignore = 0,
 };
 
-static constexpr FilterAction ACTION_IGNORE = FilterAction::Ignore;
+static constexpr FilterAction kActionIgnore = FilterAction::Ignore;
 
 /**
  * ESP32Wiimote - Main Wiimote controller interface for ESP32
@@ -44,7 +44,7 @@ class ESP32Wiimote {
      * Create ESP32Wiimote instance
      * @param NUNCHUK_STICK_THRESHOLD Sensitivity threshold for nunchuk stick changes (default: 1)
      */
-    ESP32Wiimote(int NUNCHUK_STICK_THRESHOLD = 1);
+    ESP32Wiimote(int nunchukStickThreshold = 1);
 
     /**
      * Initialize Bluetooth and HCI queues
@@ -115,18 +115,18 @@ class ESP32Wiimote {
     /**
      * Add filter to ignore certain data types
      * @param action Filter action (ACTION_IGNORE)
-     * @param filter Filter type (FILTER_BUTTON, FILTER_ACCEL, etc.)
+     * @param filter Filter type (FilterButton, FilterAccel, etc.)
      */
     void addFilter(FilterAction action, int filter);
 
    private:
     // Component managers
-    BluetoothController *_btController;
-    HciCallbacksHandler *_hciCallbacks;
-    HciQueueManager *_queueManager;
-    ButtonStateManager *_buttonState;
-    SensorStateManager *_sensorState;
-    WiimoteDataParser *_dataParser;
+    BluetoothController *btController_;
+    HciCallbacksHandler *hciCallbacks_;
+    HciQueueManager *queueManager_;
+    ButtonStateManager *buttonState_;
+    SensorStateManager *sensorState_;
+    WiimoteDataParser *dataParser_;
 };
 
-#endif  // ESP32WIIMOTE_ESP32WIIMOTE_H_
+#endif  // ESP32_WIIMOTE_ES_P32_WIIMOTE_H

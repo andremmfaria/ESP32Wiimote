@@ -5,8 +5,8 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef TINYWIIMOTE_HCI_TYPES_H_
-#define TINYWIIMOTE_HCI_TYPES_H_
+#ifndef TINYWIIMOTE_HCI_TYPES_H
+#define TINYWIIMOTE_HCI_TYPES_H
 
 #include <stdint.h>
 
@@ -58,4 +58,4 @@
 #define HCIC_PARAM_SIZE_WRITE_INQUIRY_CANCEL 0
 #define HCIC_PARAM_SIZE_WRITE_INQUIRY 5
 
-#endif  // TINYWIIMOTE_HCI_TYPES_H_
+#endif  // TINYWIIMOTE_HCI_TYPES_H

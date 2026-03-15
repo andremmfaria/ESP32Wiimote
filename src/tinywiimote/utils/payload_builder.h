@@ -5,8 +5,8 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef PAYLOAD_BUILDER_H_
-#define PAYLOAD_BUILDER_H_
+#ifndef PAYLOAD_BUILDER_H
+#define PAYLOAD_BUILDER_H
 
 #include <stdint.h>
 #include <string.h>
@@ -27,9 +27,9 @@
  */
 class PayloadBuilder {
    private:
-    uint8_t *_buffer;
-    uint16_t _position{0};
-    uint16_t _capacity;
+    uint8_t *buffer_;
+    uint16_t position_{0};
+    uint16_t capacity_;
 
    public:
     /**
@@ -37,15 +37,15 @@ class PayloadBuilder {
      * @param buf Pointer to buffer
      * @param cap Buffer capacity
      */
-    PayloadBuilder(uint8_t *buf, uint16_t cap) : _buffer(buf), _capacity(cap) {}
+    PayloadBuilder(uint8_t *buf, uint16_t cap) : buffer_(buf), capacity_(cap) {}
 
     /**
      * Append a single byte
      * @param val Byte value
      */
     void append(uint8_t val) {
-        if (_position < _capacity) {
-            _buffer[_position++] = val;
+        if (position_ < capacity_) {
+            buffer_[position_++] = val;
         }
     }
 
@@ -83,8 +83,8 @@ class PayloadBuilder {
      * @param len Number of bytes to append
      */
     void appendBytes(const uint8_t *data, uint16_t len) {
-        for (uint16_t i = 0; i < len && _position < _capacity; i++) {
-            _buffer[_position++] = data[i];
+        for (uint16_t i = 0; i < len && position_ < capacity_; i++) {
+            buffer_[position_++] = data[i];
         }
     }
 
@@ -93,8 +93,8 @@ class PayloadBuilder {
      * @param count Number of zero bytes to append
      */
     void appendZeros(uint16_t count) {
-        for (uint16_t i = 0; i < count && _position < _capacity; i++) {
-            _buffer[_position++] = 0x00;
+        for (uint16_t i = 0; i < count && position_ < capacity_; i++) {
+            buffer_[position_++] = 0x00;
         }
     }
 
@@ -104,9 +104,9 @@ class PayloadBuilder {
      * @param count Number of bytes to zero-fill
      */
     void reserveZeroed(uint16_t count) {
-        if (_position + count <= _capacity) {
-            memset(&_buffer[_position], 0, count);
-            _position += count;
+        if (position_ + count <= capacity_) {
+            memset(&buffer_[position_], 0, count);
+            position_ += count;
         }
     }
 
@@ -114,13 +114,13 @@ class PayloadBuilder {
      * Get current payload length
      * @return Number of bytes written
      */
-    uint16_t length() const { return _position; }
+    uint16_t length() const { return position_; }
 
     /**
      * Get pointer to buffer
      * @return Buffer pointer
      */
-    uint8_t *data() const { return _buffer; }
+    uint8_t *data() const { return buffer_; }
 };
 
-#endif  // PAYLOAD_BUILDER_H_
+#endif  // PAYLOAD_BUILDER_H

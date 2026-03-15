@@ -5,19 +5,23 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef WIIMOTE_VERBOSE_H
-#define WIIMOTE_VERBOSE_H
-
-#include "Arduino.h"
+#ifndef ESP32_WIIMOTE_UTILS_SERIAL_LOGGING_H
+#define ESP32_WIIMOTE_UTILS_SERIAL_LOGGING_H
 
 #include <stdarg.h>
+#include <stdint.h>
 
 enum WiimoteLogLevel : uint8_t {
-    WIIMOTE_LOG_ERROR = 0,
-    WIIMOTE_LOG_WARNING = 1,
-    WIIMOTE_LOG_INFO = 2,
-    WIIMOTE_LOG_DEBUG = 3,
+    WiimoteLogError = 0,
+    WiimoteLogWarning = 1,
+    WiimoteLogInfo = 2,
+    WiimoteLogDebug = 3,
 };
+
+#define WIIMOTE_LOG_ERROR ((uint8_t)WiimoteLogError)
+#define WIIMOTE_LOG_WARNING ((uint8_t)WiimoteLogWarning)
+#define WIIMOTE_LOG_INFO ((uint8_t)WiimoteLogInfo)
+#define WIIMOTE_LOG_DEBUG ((uint8_t)WiimoteLogDebug)
 
 uint8_t wiimoteGetLogLevel();
 void wiimoteSetLogLevel(uint8_t level);
@@ -28,4 +32,4 @@ void wiimoteLogPrint(uint8_t level, const char *prefix, const char *format, ...)
 #define LOG_INFO(...) wiimoteLogPrint(WIIMOTE_LOG_INFO, "[INFO] ", __VA_ARGS__)
 #define LOG_DEBUG(...) wiimoteLogPrint(WIIMOTE_LOG_DEBUG, "[DEBUG] ", __VA_ARGS__)
 
-#endif  // WIIMOTE_VERBOSE_H
+#endif  // ESP32_WIIMOTE_UTILS_SERIAL_LOGGING_H

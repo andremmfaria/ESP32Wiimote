@@ -5,8 +5,8 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef ESP32WIIMOTE_DATA_PARSER_H_
-#define ESP32WIIMOTE_DATA_PARSER_H_
+#ifndef ESP32_WIIMOTE_DATA_PARSER_H
+#define ESP32_WIIMOTE_DATA_PARSER_H
 
 #include "TinyWiimote.h"
 #include "state/button_state.h"
@@ -18,10 +18,10 @@
  * Filter flags for ignoring certain data types
  */
 enum {
-    FILTER_NONE = 0x0000,
-    FILTER_BUTTON = 0x0001,
-    FILTER_NUNCHUK_STICK = 0x0004,
-    FILTER_ACCEL = 0x0008,
+    FilterNone = 0x0000,
+    FilterButton = 0x0001,
+    FilterNunchukStick = 0x0004,
+    FilterAccel = 0x0008,
 };
 
 /**
@@ -55,9 +55,9 @@ class WiimoteDataParser {
         int nunchukStickChanged;
     };
 
-    ButtonStateManager *_buttonState;
-    SensorStateManager *_sensorState;
-    int _filter;
+    ButtonStateManager *buttonState_;
+    SensorStateManager *sensorState_;
+    int filter_;
 
     /**
      * Parse button data from Wiimote report
@@ -75,4 +75,4 @@ class WiimoteDataParser {
     void parseNunchukData(const TinyWiimoteData &data, ChangeFlags &flags);
 };
 
-#endif  // ESP32WIIMOTE_DATA_PARSER_H_
+#endif  // ESP32_WIIMOTE_DATA_PARSER_H

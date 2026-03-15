@@ -16,22 +16,18 @@
 #include <string.h>
 
 HciQueueManager::HciQueueManager(size_t rxQueueSize, size_t txQueueSize)
-    : _txQueue(nullptr), _rxQueue(nullptr), _rxQueueSize(rxQueueSize), _txQueueSize(txQueueSize) {}
-
-HciQueueManager::~HciQueueManager() {
-    // FreeRTOS queues cleanup would happen here if needed
-}
+    : txQueue_(nullptr), rxQueue_(nullptr), rxQueueSize_(rxQueueSize), txQueueSize_(txQueueSize) {}
 
 bool HciQueueManager::createQueues() {
     LOG_DEBUG("HciQueue: Creating TX and RX queues...\n");
-    _txQueue = xQueueCreate(_txQueueSize, sizeof(struct HciQueueData *));
-    if (_txQueue == nullptr) {
+    txQueue_ = xQueueCreate(txQueueSize_, sizeof(struct HciQueueData *));
+    if (txQueue_ == nullptr) {
         LOG_ERROR("HciQueue: xQueueCreate(txQueue) failed\n");
         return false;
     }
 
-    _rxQueue = xQueueCreate(_rxQueueSize, sizeof(struct HciQueueData *));
-    if (_rxQueue == nullptr) {
+    rxQueue_ = xQueueCreate(rxQueueSize_, sizeof(struct HciQueueData *));
+    if (rxQueue_ == nullptr) {
         LOG_ERROR("HciQueue: xQueueCreate(rxQueue) failed\n");
         return false;
     }
@@ -70,7 +66,12 @@ bool HciQueueManager::sendToQueue(xQueueHandle queue,
 }
 
 bool HciQueueManager::sendToTxQueue(uint8_t *data, size_t len) {
-    bool result = sendToQueue(_txQueue, data, len, "sendToTxQueue");
+    if (txQueue_ == nullptr) {
+        LOG_WARN("HciQueue: TX queue is not initialized\n");
+        return false;
+    }
+
+    bool result = sendToQueue(txQueue_, data, len, "sendToTxQueue");
     if (result && (data != nullptr) && (len != 0U)) {
         LOG_DEBUG("RECV <= %s\n", format2Hex(data, len));
     }
@@ -78,7 +79,12 @@ bool HciQueueManager::sendToTxQueue(uint8_t *data, size_t len) {
 }
 
 bool HciQueueManager::sendToRxQueue(uint8_t *data, size_t len) {
-    bool result = sendToQueue(_rxQueue, data, len, "sendToRxQueue");
+    if (rxQueue_ == nullptr) {
+        LOG_WARN("HciQueue: RX queue is not initialized\n");
+        return false;
+    }
+
+    bool result = sendToQueue(rxQueue_, data, len, "sendToRxQueue");
     if (result && (data != nullptr) && (len != 0U)) {
         LOG_DEBUG("SEND => %s\n", format2Hex(data, len));
     }
@@ -86,13 +92,13 @@ bool HciQueueManager::sendToRxQueue(uint8_t *data, size_t len) {
 }
 
 void HciQueueManager::processTxQueue() {
-    if (uxQueueMessagesWaiting(_txQueue) != 0U) {
+    if (txQueue_ != nullptr && uxQueueMessagesWaiting(txQueue_) != 0U) {
         bool ok = esp_vhci_host_check_send_available();
         LOG_DEBUG("esp_vhci_host_check_send_available=%d\n", ok);
 
         if (ok) {
             HciQueueData *queuedata = nullptr;
-            if (xQueueReceive(_txQueue, reinterpret_cast<void *>(&queuedata), 0) == pdTRUE) {
+            if (xQueueReceive(txQueue_, reinterpret_cast<void *>(&queuedata), 0) == pdTRUE) {
                 esp_vhci_host_send_packet(queuedata->data, queuedata->len);
                 LOG_DEBUG("SEND => %s\n", format2Hex(queuedata->data, queuedata->len));
                 free(queuedata);
@@ -102,9 +108,9 @@ void HciQueueManager::processTxQueue() {
 }
 
 void HciQueueManager::processRxQueue() {
-    if (uxQueueMessagesWaiting(_rxQueue) != 0U) {
+    if (rxQueue_ != nullptr && uxQueueMessagesWaiting(rxQueue_) != 0U) {
         HciQueueData *queuedata = nullptr;
-        if (xQueueReceive(_rxQueue, reinterpret_cast<void *>(&queuedata), 0) == pdTRUE) {
+        if (xQueueReceive(rxQueue_, reinterpret_cast<void *>(&queuedata), 0) == pdTRUE) {
             handleHciData(queuedata->data, queuedata->len);
             free(queuedata);
         }
@@ -112,9 +118,9 @@ void HciQueueManager::processRxQueue() {
 }
 
 bool HciQueueManager::hasTxPending() const {
-    return uxQueueMessagesWaiting(_txQueue) > 0;
+    return txQueue_ != nullptr && uxQueueMessagesWaiting(txQueue_) > 0U;
 }
 
 bool HciQueueManager::hasRxPending() const {
-    return uxQueueMessagesWaiting(_rxQueue) > 0;
+    return rxQueue_ != nullptr && uxQueueMessagesWaiting(rxQueue_) > 0U;
 }

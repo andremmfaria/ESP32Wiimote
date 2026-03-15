@@ -7,6 +7,8 @@
 
 #include "serial_logging.h"
 
+#include <Arduino.h>
+
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -15,25 +17,25 @@
 #endif
 
 static uint8_t sanitizeLogLevel(uint8_t level) {
-    if (level > WIIMOTE_LOG_DEBUG) {
-        return WIIMOTE_LOG_DEBUG;
+    if (level > (uint8_t)WiimoteLogDebug) {
+        return (uint8_t)WiimoteLogDebug;
     }
 
     return level;
 }
 
-static uint8_t g_wiimoteLogLevel = sanitizeLogLevel(WIIMOTE_VERBOSE);
+static uint8_t gWiimoteLogLevel = sanitizeLogLevel(WIIMOTE_VERBOSE);
 
 uint8_t wiimoteGetLogLevel() {
-    return g_wiimoteLogLevel;
+    return gWiimoteLogLevel;
 }
 
 void wiimoteSetLogLevel(uint8_t level) {
-    g_wiimoteLogLevel = sanitizeLogLevel(level);
+    gWiimoteLogLevel = sanitizeLogLevel(level);
 }
 
 void wiimoteLogPrint(uint8_t level, const char *prefix, const char *format, ...) {
-    if (format == nullptr || prefix == nullptr || level > g_wiimoteLogLevel) {
+    if (format == nullptr || prefix == nullptr || level > gWiimoteLogLevel) {
         return;
     }
 
@@ -42,10 +44,10 @@ void wiimoteLogPrint(uint8_t level, const char *prefix, const char *format, ...)
     char buffer[256];
     va_list args;
     va_start(args, format);
-    const int written = vsnprintf(buffer, sizeof(buffer), format, args);
+    const int kWritten = vsnprintf(buffer, sizeof(buffer), format, args);
     va_end(args);
 
-    if (written <= 0) {
+    if (kWritten <= 0) {
         return;
     }
 

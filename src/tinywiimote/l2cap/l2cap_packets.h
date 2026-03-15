@@ -5,8 +5,8 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef ESP32WIIMOTE_L2CAP_PACKETS_H_
-#define ESP32WIIMOTE_L2CAP_PACKETS_H_
+#ifndef ESP32_WIIMOTE_L2_CAP_PACKETS_H
+#define ESP32_WIIMOTE_L2_CAP_PACKETS_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -26,16 +26,16 @@ class L2capPacketSender {
     void sendAclL2capPacket(uint16_t ch, uint16_t remoteCID, uint8_t *payload, uint16_t payloadLen);
 
    private:
-    L2capRawSendFunc sendCallback;
-    uint8_t tmpQueueData[256];
+    L2capRawSendFunc sendCallback_{nullptr};
+    uint8_t tmpQueueData_[256];
 };
 
-uint16_t make_l2cap_packet(uint8_t *buf, uint16_t channelID, const uint8_t *data, uint16_t len);
-uint16_t make_acl_l2cap_packet(uint8_t *buf,
-                               uint16_t ch,
-                               const AclPacketControl &control,
-                               uint16_t channelID,
-                               uint8_t *data,
-                               uint8_t len);
+uint16_t makeL2capPacket(uint8_t *buf, uint16_t channelID, const uint8_t *data, uint16_t len);
+uint16_t makeAclL2capPacket(uint8_t *buf,
+                            uint16_t ch,
+                            const AclPacketControl &control,
+                            uint16_t channelID,
+                            uint8_t *data,
+                            uint8_t len);
 
-#endif  // ESP32WIIMOTE_L2CAP_PACKETS_H_
+#endif  // ESP32_WIIMOTE_L2_CAP_PACKETS_H

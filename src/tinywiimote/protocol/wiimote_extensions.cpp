@@ -8,52 +8,53 @@
 
 #include <string.h>
 
-enum {
-    REPORT_STATE_INIT = 0,
-    REPORT_STATE_WAIT_ACK_OUT_REPORT,
-    REPORT_STATE_WAIT_READ_COTRLLER_TYPE,
-    REPORT_STATE_WAIT_READ_RESPONSE,
+namespace {
+enum ControllerReportState {
+    KReportStateInit = 0,
+    KReportStateWaitAckOutReport,
+    KReportStateWaitReadControllerType,
+    KReportStateWaitReadResponse,
 };
+}  // namespace
 
-WiimoteExtensions::WiimoteExtensions() : controllerReportState(REPORT_STATE_INIT) {}
+WiimoteExtensions::WiimoteExtensions() : controllerReportState_(KReportStateInit) {}
 
-void WiimoteExtensions::init(WiimoteState *wiimoteState,
+void WiimoteExtensions::init(WiimoteState *state,
                              const L2capConnectionTable *connectionTable,
-                             L2capPacketSender *packetSender) {
-    state = wiimoteState;
-    connections = connectionTable;
-    sender = packetSender;
-    controllerReportState = REPORT_STATE_INIT;
+                             L2capPacketSender *sender) {
+    state_ = state;
+    connections_ = connectionTable;
+    sender_ = sender;
+    controllerReportState_ = KReportStateInit;
 }
 
 void WiimoteExtensions::handleReport(uint16_t ch, uint8_t *data, uint16_t len) {
-    if (state == nullptr || connections == nullptr || sender == nullptr) {
+    if (state_ == nullptr || connections_ == nullptr || sender_ == nullptr) {
         return;
     }
 
     WiimoteProtocol protocol;
-    protocol.init(connections, sender);
+    protocol.init(connections_, sender_);
 
     if (len < 8) {
         return;
     }
 
-    switch (controllerReportState) {
-        case REPORT_STATE_INIT:
+    switch (controllerReportState_) {
+        case KReportStateInit:
             if (data[1] == 0x20) {
                 uint8_t rawBattery = data[7];
                 LOG_DEBUG("Wiimote: Status report 0x20 - Raw battery value: 0x%02x (%d)\n",
                           rawBattery, rawBattery);
-                state->setBatteryLevel(rawBattery);
+                state_->setBatteryLevel(rawBattery);
                 if ((data[4] & 0x02) != 0) {
                     LOG_INFO("Extension controller connected\n");
-                    protocol.writeMemory(ch, CONTROL_REGISTER, 0xA400F0, (const uint8_t[]){0x55},
-                                         1);
-                    controllerReportState = REPORT_STATE_WAIT_ACK_OUT_REPORT;
+                    protocol.writeMemory(ch, ControlRegister, 0xA400F0, (const uint8_t[]){0x55}, 1);
+                    controllerReportState_ = KReportStateWaitAckOutReport;
                 } else {
                     LOG_INFO("Extension controller NOT connected\n");
-                    state->setNunchukConnected(false);
-                    if (state->getUseAccelerometer()) {
+                    state_->setNunchukConnected(false);
+                    if (state_->getUseAccelerometer()) {
                         WiimoteReportingModeCommand reportingModeCommand = {0x31, false};
                         protocol.setReportingMode(ch, reportingModeCommand);
                     } else {
@@ -64,36 +65,35 @@ void WiimoteExtensions::handleReport(uint16_t ch, uint8_t *data, uint16_t len) {
             }
             break;
 
-        case REPORT_STATE_WAIT_ACK_OUT_REPORT:
+        case KReportStateWaitAckOutReport:
             if (len < 6) {
                 break;
             }
             if ((data[1] == 0x22) && (data[4] == 0x16)) {
                 if (data[5] == 0x00) {
-                    protocol.writeMemory(ch, CONTROL_REGISTER, 0xA400FB, (const uint8_t[]){0x00},
-                                         1);
-                    controllerReportState = REPORT_STATE_WAIT_READ_COTRLLER_TYPE;
+                    protocol.writeMemory(ch, ControlRegister, 0xA400FB, (const uint8_t[]){0x00}, 1);
+                    controllerReportState_ = KReportStateWaitReadControllerType;
                 } else {
-                    controllerReportState = REPORT_STATE_INIT;
+                    controllerReportState_ = KReportStateInit;
                 }
             }
             break;
 
-        case REPORT_STATE_WAIT_READ_COTRLLER_TYPE:
+        case KReportStateWaitReadControllerType:
             if (len < 6) {
                 break;
             }
             if ((data[1] == 0x22) && (data[4] == 0x16)) {
                 if (data[5] == 0x00) {
-                    protocol.readMemory(ch, CONTROL_REGISTER, 0xA400FA, 6);
-                    controllerReportState = REPORT_STATE_WAIT_READ_RESPONSE;
+                    protocol.readMemory(ch, ControlRegister, 0xA400FA, 6);
+                    controllerReportState_ = KReportStateWaitReadResponse;
                 } else {
-                    controllerReportState = REPORT_STATE_INIT;
+                    controllerReportState_ = KReportStateInit;
                 }
             }
             break;
 
-        case REPORT_STATE_WAIT_READ_RESPONSE:
+        case KReportStateWaitReadResponse:
             if (len < 13) {
                 break;
             }
@@ -102,8 +102,8 @@ void WiimoteExtensions::handleReport(uint16_t ch, uint8_t *data, uint16_t len) {
                     if (memcmp(data + 7, (const uint8_t[]){0x00, 0x00, 0xA4, 0x20, 0x00, 0x00},
                                6) == 0) {
                         LOG_INFO("Nunchuk detected\n");
-                        state->setNunchukConnected(true);
-                        if (state->getUseAccelerometer()) {
+                        state_->setNunchukConnected(true);
+                        if (state_->getUseAccelerometer()) {
                             WiimoteReportingModeCommand reportingModeCommand = {0x35, false};
                             protocol.setReportingMode(ch, reportingModeCommand);
                         } else {
@@ -111,13 +111,13 @@ void WiimoteExtensions::handleReport(uint16_t ch, uint8_t *data, uint16_t len) {
                             protocol.setReportingMode(ch, reportingModeCommand);
                         }
                     }
-                    controllerReportState = REPORT_STATE_INIT;
+                    controllerReportState_ = KReportStateInit;
                 }
             }
             break;
 
         default:
-            controllerReportState = REPORT_STATE_INIT;
+            controllerReportState_ = KReportStateInit;
             break;
     }
 }

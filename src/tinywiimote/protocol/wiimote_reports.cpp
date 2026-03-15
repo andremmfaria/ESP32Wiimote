@@ -8,41 +8,40 @@ WiimoteReports::WiimoteReports() {
 }
 
 void WiimoteReports::clear() {
-    cnt = 0;
-    wp = 0;
-    rp = 0;
+    itemCount_ = 0;
+    writeIndex_ = 0;
+    readIndex_ = 0;
 }
 
 void WiimoteReports::put(uint8_t number, const uint8_t *data, uint8_t len) {
-    if (data == nullptr) {
+    if (data == nullptr || itemCount_ >= RECEIVED_DATA_MAX_NUM) {
         return;
     }
 
-    if (cnt < RECEIVED_DATA_MAX_NUM) {
-        TinyWiimoteData *target = &(reports[wp]);
-        len = std::min<uint8_t>(len, RECEIVED_DATA_MAX_LEN);
-        memcpy(target->data, data, len);
-        target->number = number;
-        target->len = len;
-        wp = (wp + 1) % RECEIVED_DATA_MAX_NUM;
-        cnt++;
-    }
+    const uint8_t kBoundedLen = std::min<uint8_t>(len, RECEIVED_DATA_MAX_LEN);
+    TinyWiimoteData *target = &reportBuffer_[writeIndex_];
+    memcpy(target->data, data, kBoundedLen);
+    target->number = number;
+    target->len = kBoundedLen;
+
+    writeIndex_ = (writeIndex_ + 1) % RECEIVED_DATA_MAX_NUM;
+    itemCount_++;
 }
 
 int WiimoteReports::available() const {
-    return cnt;
+    return itemCount_;
 }
 
 TinyWiimoteData WiimoteReports::read() {
-    TinyWiimoteData target;
-    target.number = 0;
-    target.len = 0;
+    TinyWiimoteData target = {};
 
-    if (cnt > 0) {
-        target = reports[rp];
-        rp = (rp + 1) % RECEIVED_DATA_MAX_NUM;
-        cnt--;
+    if (itemCount_ == 0) {
+        return target;
     }
+
+    target = reportBuffer_[readIndex_];
+    readIndex_ = (readIndex_ + 1) % RECEIVED_DATA_MAX_NUM;
+    itemCount_--;
 
     return target;
 }

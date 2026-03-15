@@ -23,13 +23,13 @@
 /**
  * Constructor - Initialize all component managers
  */
-ESP32Wiimote::ESP32Wiimote(int NUNCHUK_STICK_THRESHOLD) {
-    _btController = new BluetoothController();
-    _hciCallbacks = new HciCallbacksHandler();
-    _queueManager = new HciQueueManager(32, 32);
-    _buttonState = new ButtonStateManager();
-    _sensorState = new SensorStateManager(NUNCHUK_STICK_THRESHOLD);
-    _dataParser = new WiimoteDataParser(_buttonState, _sensorState);
+ESP32Wiimote::ESP32Wiimote(int nunchukStickThreshold) {
+    btController_ = new BluetoothController();
+    hciCallbacks_ = new HciCallbacksHandler();
+    queueManager_ = new HciQueueManager(32, 32);
+    buttonState_ = new ButtonStateManager();
+    sensorState_ = new SensorStateManager(nunchukStickThreshold);
+    dataParser_ = new WiimoteDataParser(buttonState_, sensorState_);
 }
 
 /**
@@ -42,7 +42,7 @@ bool ESP32Wiimote::init() {
 
     // Initialize Bluetooth controller (which initializes TinyWiimote, queues, and VHCI callbacks)
     LOG_DEBUG("ESP32Wiimote: Calling BluetoothController::init()...\n");
-    if (!_btController->init(_hciCallbacks, _queueManager)) {
+    if (!BluetoothController::init(hciCallbacks_, queueManager_)) {
         LOG_ERROR("ESP32Wiimote: Bluetooth controller initialization failed!\n");
         return false;
     }
@@ -61,8 +61,8 @@ void ESP32Wiimote::task() {
     }
 
     // Process pending HCI packets
-    _queueManager->processTxQueue();
-    _queueManager->processRxQueue();
+    queueManager_->processTxQueue();
+    queueManager_->processRxQueue();
 }
 
 /**
@@ -70,49 +70,49 @@ void ESP32Wiimote::task() {
  * Delegates to data parser
  */
 int ESP32Wiimote::available() {
-    return _dataParser->parseData();
+    return dataParser_->parseData();
 }
 
 /**
  * Get current button state
  */
 ButtonState ESP32Wiimote::getButtonState() {
-    return _buttonState->getCurrent();
+    return buttonState_->getCurrent();
 }
 
 /**
  * Get current accelerometer state
  */
 struct AccelState ESP32Wiimote::getAccelState() {
-    return _sensorState->getAccel();
+    return sensorState_->getAccel();
 }
 
 /**
  * Get current nunchuk state
  */
 struct NunchukState ESP32Wiimote::getNunchukState() {
-    return _sensorState->getNunchuk();
+    return sensorState_->getNunchuk();
 }
 
 /**
  * Check if Wiimote is connected
  */
 bool ESP32Wiimote::isConnected() {
-    return TinyWiimoteIsConnected();
+    return tinyWiimoteIsConnected();
 }
 
 /**
  * Get battery level
  */
 uint8_t ESP32Wiimote::getBatteryLevel() {
-    return TinyWiimoteGetBatteryLevel();
+    return tinyWiimoteGetBatteryLevel();
 }
 
 /**
  * Request battery status update
  */
 void ESP32Wiimote::requestBatteryUpdate() {
-    TinyWiimoteRequestBatteryUpdate();
+    tinyWiimoteRequestBatteryUpdate();
 }
 
 void ESP32Wiimote::setLogLevel(uint8_t level) {
@@ -128,10 +128,10 @@ uint8_t ESP32Wiimote::getLogLevel() {
  */
 void ESP32Wiimote::addFilter(FilterAction action, int filter) {
     if (action == FilterAction::Ignore) {
-        _dataParser->setFilter(_dataParser->getFilter() | filter);
+        dataParser_->setFilter(dataParser_->getFilter() | filter);
 
-        if ((filter & FILTER_ACCEL) != 0) {
-            TinyWiimoteReqAccelerometer(false);
+        if ((filter & FilterAccel) != 0) {
+            tinyWiimoteReqAccelerometer(false);
         }
     }
 }

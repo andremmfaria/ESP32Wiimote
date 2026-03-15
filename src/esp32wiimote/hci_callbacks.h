@@ -5,8 +5,8 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef ESP32WIIMOTE_HCI_CALLBACKS_H_
-#define ESP32WIIMOTE_HCI_CALLBACKS_H_
+#ifndef ESP32_WIIMOTE_HCI_CALLBACKS_H
+#define ESP32_WIIMOTE_HCI_CALLBACKS_H
 
 #include "TinyWiimote.h"
 #include "esp_bt.h"
@@ -56,9 +56,9 @@ class HciCallbacksHandler {
     static void hciHostSendPacket(uint8_t *data, size_t len);
 
    private:
-    static HciQueueManager *_queueManager;
-    struct TwHciInterface _hciInterface;
-    esp_vhci_host_callback_t _vhciCallback;
+    static HciQueueManager *queueManager;
+    struct TwHciInterface hciInterface_;
+    esp_vhci_host_callback_t vhciCallback_;
 };
 
-#endif  // ESP32WIIMOTE_HCI_CALLBACKS_H_
+#endif  // ESP32_WIIMOTE_HCI_CALLBACKS_H

@@ -5,8 +5,8 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef ESP32WIIMOTE_BUTTON_STATE_H_
-#define ESP32WIIMOTE_BUTTON_STATE_H_
+#ifndef ESP32_WIIMOTE_BUTTON_STATE_H
+#define ESP32_WIIMOTE_BUTTON_STATE_H
 
 #include <stdint.h>
 
@@ -14,20 +14,20 @@
  * Button State Type - Represents Wiimote button states
  */
 typedef enum {
-    BUTTON_Z = 0x00020000,   // nunchuk
-    BUTTON_C = 0x00010000,   // nunchuk
-    BUTTON_PLUS = 0x00001000,
-    BUTTON_UP = 0x00000800,  // vertical orientation
-    BUTTON_DOWN = 0x00000400,
-    BUTTON_RIGHT = 0x00000200,
-    BUTTON_LEFT = 0x00000100,
-    BUTTON_HOME = 0x00000080,
-    BUTTON_MINUS = 0x00000010,
-    BUTTON_A = 0x00000008,
-    BUTTON_B = 0x00000004,
-    BUTTON_ONE = 0x00000002,
-    BUTTON_TWO = 0x00000001,
-    NO_BUTTON = 0x00000000
+    ButtonZ = 0x00020000,   // nunchuk
+    ButtonC = 0x00010000,   // nunchuk
+    ButtonPlus = 0x00001000,
+    ButtonUp = 0x00000800,  // vertical orientation
+    ButtonDown = 0x00000400,
+    ButtonRight = 0x00000200,
+    ButtonLeft = 0x00000100,
+    ButtonHome = 0x00000080,
+    ButtonMinus = 0x00000010,
+    ButtonA = 0x00000008,
+    ButtonB = 0x00000004,
+    ButtonOne = 0x00000002,
+    ButtonTwo = 0x00000001,
+    NoButton = 0x00000000
 } ButtonState;
 
 /**
@@ -64,8 +64,8 @@ class ButtonStateManager {
     void resetChangeFlag();
 
    private:
-    ButtonState _current;
-    ButtonState _previous;
+    ButtonState current_;
+    ButtonState previous_;
 };
 
-#endif  // ESP32WIIMOTE_BUTTON_STATE_H_
+#endif  // ESP32_WIIMOTE_BUTTON_STATE_H

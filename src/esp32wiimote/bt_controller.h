@@ -5,8 +5,8 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef ESP32WIIMOTE_BT_CONTROLLER_H_
-#define ESP32WIIMOTE_BT_CONTROLLER_H_
+#ifndef ESP32_WIIMOTE_BT_CONTROLLER_H
+#define ESP32_WIIMOTE_BT_CONTROLLER_H
 
 #include <stdint.h>
 
@@ -28,7 +28,7 @@ class BluetoothController {
      * @param queueManager Queue manager for packet routing
      * @return true if initialization successful, false otherwise
      */
-    bool init(HciCallbacksHandler *hciCallbacks, HciQueueManager *queueManager);
+    static bool init(HciCallbacksHandler *hciCallbacks, HciQueueManager *queueManager);
 
     /**
      * Check if Bluetooth is started
@@ -36,7 +36,7 @@ class BluetoothController {
     static bool isStarted();
 
    private:
-    bool _initialized = false;
+    static bool initialized;
 };
 
-#endif  // ESP32WIIMOTE_BT_CONTROLLER_H_
+#endif  // ESP32_WIIMOTE_BT_CONTROLLER_H

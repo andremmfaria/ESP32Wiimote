@@ -43,28 +43,28 @@ void tearDown(void) {
 // ===== Bluetooth Controller Tests =====
 
 // Test: Create BluetoothController instance
-void test_create_bluetooth_controller() {
+void testCreateBluetoothController() {
     TEST_PRINT("Creating BluetoothController...");
     btController = new BluetoothController();
     TEST_ASSERT_NOT_NULL(btController);
 }
 
 // Test: Create HCI queue manager
-void test_create_hci_queue_manager() {
+void testCreateHciQueueManager() {
     TEST_PRINT("Creating HCI queue manager...");
     queueManager = new HciQueueManager(32, 32);
     TEST_ASSERT_NOT_NULL(queueManager);
 }
 
 // Test: Create HCI callback handler
-void test_create_hci_callbacks() {
+void testCreateHciCallbacks() {
     TEST_PRINT("Creating HCI callback handler...");
     hciCallbacks = new HciCallbacksHandler();
     TEST_ASSERT_NOT_NULL(hciCallbacks);
 }
 
 // Test: Create FreeRTOS queues
-void test_create_queues() {
+void testCreateQueues() {
     if (queueManager == nullptr) {
         queueManager = new HciQueueManager(32, 32);
     }
@@ -75,7 +75,7 @@ void test_create_queues() {
 }
 
 // Test: Initialize Bluetooth controller
-void test_initialize_bluetooth_controller() {
+void testInitializeBluetoothController() {
     if (btController == nullptr) {
         btController = new BluetoothController();
     }
@@ -90,7 +90,7 @@ void test_initialize_bluetooth_controller() {
     TEST_PRINT("Initializing Bluetooth controller...");
     TEST_PRINT("This may take several seconds...");
 
-    bool result = btController->init(hciCallbacks, queueManager);
+    bool result = BluetoothController::init(hciCallbacks, queueManager);
     TEST_ASSERT_TRUE_MESSAGE(result, "Bluetooth controller initialization failed");
 
     btInitialized = true;
@@ -98,20 +98,20 @@ void test_initialize_bluetooth_controller() {
 }
 
 // Test: Verify Bluetooth controller is started
-void test_bluetooth_controller_is_started() {
+void testBluetoothControllerIsStarted() {
     if (!btInitialized || (btController == nullptr)) {
         TEST_IGNORE_MESSAGE("Bluetooth not initialized, skipping");
         return;
     }
 
-    TEST_ASSERT_TRUE_MESSAGE(btController->isStarted(),
+    TEST_ASSERT_TRUE_MESSAGE(BluetoothController::isStarted(),
                              "Bluetooth controller should be started after init");
 }
 
 // ===== HCI Queue Tests =====
 
 // Test: Send to TX queue
-void test_send_to_tx_queue() {
+void testSendToTxQueue() {
     if (queueManager == nullptr) {
         TEST_IGNORE_MESSAGE("Queue manager not available, skipping");
         return;
@@ -124,7 +124,7 @@ void test_send_to_tx_queue() {
 }
 
 // Test: Check TX queue has pending
-void test_tx_queue_has_pending() {
+void testTxQueueHasPending() {
     if (queueManager == nullptr) {
         TEST_IGNORE_MESSAGE("Queue manager not available, skipping");
         return;
@@ -140,7 +140,7 @@ void test_tx_queue_has_pending() {
 }
 
 // Test: Process TX queue
-void test_process_tx_queue() {
+void testProcessTxQueue() {
     if (queueManager == nullptr) {
         TEST_IGNORE_MESSAGE("Queue manager not available, skipping");
         return;
@@ -153,7 +153,7 @@ void test_process_tx_queue() {
 }
 
 // Test: Send to RX queue
-void test_send_to_rx_queue() {
+void testSendToRxQueue() {
     if (queueManager == nullptr) {
         TEST_IGNORE_MESSAGE("Queue manager not available, skipping");
         return;
@@ -166,7 +166,7 @@ void test_send_to_rx_queue() {
 }
 
 // Test: Check RX queue has pending
-void test_rx_queue_has_pending() {
+void testRxQueueHasPending() {
     if (queueManager == nullptr) {
         TEST_IGNORE_MESSAGE("Queue manager not available, skipping");
         return;
@@ -182,7 +182,7 @@ void test_rx_queue_has_pending() {
 }
 
 // Test: Process RX queue
-void test_process_rx_queue() {
+void testProcessRxQueue() {
     if (queueManager == nullptr) {
         TEST_IGNORE_MESSAGE("Queue manager not available, skipping");
         return;
@@ -197,7 +197,7 @@ void test_process_rx_queue() {
 // ===== Queue Stress Tests =====
 
 // Test: Multiple sequential sends to TX queue
-void test_multiple_tx_sends() {
+void testMultipleTxSends() {
     if (queueManager == nullptr) {
         TEST_IGNORE_MESSAGE("Queue manager not available, skipping");
         return;
@@ -220,7 +220,7 @@ void test_multiple_tx_sends() {
 }
 
 // Test: Multiple sequential sends to RX queue
-void test_multiple_rx_sends() {
+void testMultipleRxSends() {
     if (queueManager == nullptr) {
         TEST_IGNORE_MESSAGE("Queue manager not available, skipping");
         return;
@@ -243,7 +243,7 @@ void test_multiple_rx_sends() {
 }
 
 // Test: Alternating TX/RX sends
-void test_alternating_tx_rx_sends() {
+void testAlternatingTxRxSends() {
     if (queueManager == nullptr) {
         TEST_IGNORE_MESSAGE("Queue manager not available, skipping");
         return;
@@ -263,7 +263,7 @@ void test_alternating_tx_rx_sends() {
 }
 
 // Test: Send large packet
-void test_send_large_packet() {
+void testSendLargePacket() {
     if (queueManager == nullptr) {
         TEST_IGNORE_MESSAGE("Queue manager not available, skipping");
         return;
@@ -282,7 +282,7 @@ void test_send_large_packet() {
 }
 
 // Test: Send empty packet
-void test_send_empty_packet() {
+void testSendEmptyPacket() {
     if (queueManager == nullptr) {
         TEST_IGNORE_MESSAGE("Queue manager not available, skipping");
         return;
@@ -298,30 +298,30 @@ void test_send_empty_packet() {
 // ===== TinyWiimote Stack Tests =====
 
 // Test: TinyWiimote initial state
-void test_tinywiimote_initial_state() {
+void testTinywiimoteInitialState() {
     TEST_PRINT("Checking TinyWiimote initial state...");
 
-    bool isConnected = TinyWiimoteIsConnected();
+    bool isConnected = tinyWiimoteIsConnected();
     TEST_ASSERT_FALSE_MESSAGE(isConnected, "Should not be connected initially");
 
-    bool deviceInited = TinyWiimoteDeviceIsInited();
+    bool deviceInited = tinyWiimoteDeviceIsInited();
     // Device init state depends on whether BT was initialized
     TEST_PRINT(deviceInited ? "Device is initialized" : "Device not initialized");
 }
 
 // Test: TinyWiimote data availability
-void test_tinywiimote_data_availability() {
+void testTinywiimoteDataAvailability() {
     TEST_PRINT("Checking TinyWiimote data availability...");
 
-    int available = TinyWiimoteAvailable();
+    int available = tinyWiimoteAvailable();
     TEST_ASSERT_EQUAL(0, available);  // No data without connection
 }
 
 // Test: TinyWiimote battery level
-void test_tinywiimote_battery_level() {
+void testTinywiimoteBatteryLevel() {
     TEST_PRINT("Checking TinyWiimote battery level...");
 
-    uint8_t battery = TinyWiimoteGetBatteryLevel();
+    uint8_t battery = tinyWiimoteGetBatteryLevel();
     // Without connection, battery should be 0
     TEST_ASSERT_EQUAL_UINT8(0, battery);
 }
@@ -329,7 +329,7 @@ void test_tinywiimote_battery_level() {
 // ===== Memory and Resource Tests =====
 
 // Test: Heap memory check before BT init
-void test_heap_memory_before_bt() {
+void testHeapMemoryBeforeBt() {
     size_t freeBefore = ESP.getFreeHeap();
     char msg[64];
     sprintf(msg, "Free heap before BT: %d bytes", freeBefore);
@@ -339,7 +339,7 @@ void test_heap_memory_before_bt() {
 }
 
 // Test: Heap memory check after BT init
-void test_heap_memory_after_bt() {
+void testHeapMemoryAfterBt() {
     if (!btInitialized) {
         TEST_IGNORE_MESSAGE("Bluetooth not initialized, skipping");
         return;
@@ -357,7 +357,7 @@ void test_heap_memory_after_bt() {
 // ===== Cleanup Tests =====
 
 // Test: Safe cleanup (run last)
-void test_cleanup() {
+void testCleanup() {
     TEST_PRINT("Testing cleanup...");
 
     // Note: We don't actually delete objects here because other tests may still need them
@@ -379,43 +379,43 @@ void setup() {
     TEST_PRINT("========================================\n");
 
     // Object creation tests
-    RUN_TEST(test_create_bluetooth_controller);
-    RUN_TEST(test_create_hci_queue_manager);
-    RUN_TEST(test_create_hci_callbacks);
-    RUN_TEST(test_create_queues);
+    RUN_TEST(testCreateBluetoothController);
+    RUN_TEST(testCreateHciQueueManager);
+    RUN_TEST(testCreateHciCallbacks);
+    RUN_TEST(testCreateQueues);
 
     // Memory check before BT init
-    RUN_TEST(test_heap_memory_before_bt);
+    RUN_TEST(testHeapMemoryBeforeBt);
 
     // Bluetooth initialization (may take several seconds)
-    RUN_TEST(test_initialize_bluetooth_controller);
-    RUN_TEST(test_bluetooth_controller_is_started);
+    RUN_TEST(testInitializeBluetoothController);
+    RUN_TEST(testBluetoothControllerIsStarted);
 
     // Memory check after BT init
-    RUN_TEST(test_heap_memory_after_bt);
+    RUN_TEST(testHeapMemoryAfterBt);
 
     // HCI queue tests
-    RUN_TEST(test_send_to_tx_queue);
-    RUN_TEST(test_tx_queue_has_pending);
-    RUN_TEST(test_process_tx_queue);
-    RUN_TEST(test_send_to_rx_queue);
-    RUN_TEST(test_rx_queue_has_pending);
-    RUN_TEST(test_process_rx_queue);
+    RUN_TEST(testSendToTxQueue);
+    RUN_TEST(testTxQueueHasPending);
+    RUN_TEST(testProcessTxQueue);
+    RUN_TEST(testSendToRxQueue);
+    RUN_TEST(testRxQueueHasPending);
+    RUN_TEST(testProcessRxQueue);
 
     // Queue stress tests
-    RUN_TEST(test_multiple_tx_sends);
-    RUN_TEST(test_multiple_rx_sends);
-    RUN_TEST(test_alternating_tx_rx_sends);
-    RUN_TEST(test_send_large_packet);
-    RUN_TEST(test_send_empty_packet);
+    RUN_TEST(testMultipleTxSends);
+    RUN_TEST(testMultipleRxSends);
+    RUN_TEST(testAlternatingTxRxSends);
+    RUN_TEST(testSendLargePacket);
+    RUN_TEST(testSendEmptyPacket);
 
     // TinyWiimote stack tests
-    RUN_TEST(test_tinywiimote_initial_state);
-    RUN_TEST(test_tinywiimote_data_availability);
-    RUN_TEST(test_tinywiimote_battery_level);
+    RUN_TEST(testTinywiimoteInitialState);
+    RUN_TEST(testTinywiimoteDataAvailability);
+    RUN_TEST(testTinywiimoteBatteryLevel);
 
     // Cleanup
-    RUN_TEST(test_cleanup);
+    RUN_TEST(testCleanup);
 
     UNITY_END();
 }

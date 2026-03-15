@@ -13,30 +13,30 @@
 #include "queue/hci_queue.h"
 
 // Static member initialization
-HciQueueManager *HciCallbacksHandler::_queueManager = nullptr;
+HciQueueManager *HciCallbacksHandler::queueManager = nullptr;
 
 HciCallbacksHandler::HciCallbacksHandler() {
-    _hciInterface.hci_send_packet = hciHostSendPacket;
+    hciInterface_.hciSendPacket = hciHostSendPacket;
 }
 
 void HciCallbacksHandler::setQueueManager(HciQueueManager *queueManager) {
-    _queueManager = queueManager;
+    HciCallbacksHandler::queueManager = queueManager;
 }
 
 const struct TwHciInterface *HciCallbacksHandler::getHciInterface() const {
-    return &_hciInterface;
+    return &hciInterface_;
 }
 
 esp_vhci_host_callback_t *HciCallbacksHandler::getVhciCallback() {
-    _vhciCallback.notify_host_recv = notifyHostRecv;
-    _vhciCallback.notify_host_send_available = notifyHostSendAvailable;
-    return &_vhciCallback;
+    vhciCallback_.notify_host_recv = notifyHostRecv;
+    vhciCallback_.notify_host_send_available = notifyHostSendAvailable;
+    return &vhciCallback_;
 }
 
 void HciCallbacksHandler::notifyHostSendAvailable() {
     LOG_DEBUG("notifyHostSendAvailable\n");
-    if (!TinyWiimoteDeviceIsInited()) {
-        TinyWiimoteResetDevice();
+    if (!tinyWiimoteDeviceIsInited()) {
+        tinyWiimoteResetDevice();
     }
 }
 
@@ -47,7 +47,7 @@ int HciCallbacksHandler::notifyHostRecv(uint8_t *data, uint16_t len) {
     }
     LOG_DEBUG("\n");
 
-    if ((_queueManager != nullptr) && _queueManager->sendToRxQueue(data, len)) {
+    if ((queueManager != nullptr) && queueManager->sendToRxQueue(data, len)) {
         return ESP_OK;
     }
     LOG_ERROR("HciCallback: Failed to send data to RX queue\n");
@@ -55,8 +55,8 @@ int HciCallbacksHandler::notifyHostRecv(uint8_t *data, uint16_t len) {
 }
 
 void HciCallbacksHandler::hciHostSendPacket(uint8_t *data, size_t len) {
-    if (_queueManager != nullptr) {
-        _queueManager->sendToTxQueue(data, len);
+    if (queueManager != nullptr) {
+        queueManager->sendToTxQueue(data, len);
     } else {
         LOG_WARN("HciCallback: Queue manager not set, cannot send packet\n");
     }

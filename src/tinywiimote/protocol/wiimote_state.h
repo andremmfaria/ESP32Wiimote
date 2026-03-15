@@ -22,10 +22,10 @@ class WiimoteState {
     bool getUseAccelerometer() const;
 
    private:
-    bool wiimoteConnected;
-    bool nunchukConnected;
-    uint8_t batteryLevel;
-    bool useAccelerometer;
+    bool wiimoteConnected_;
+    bool nunchukConnected_;
+    uint8_t batteryLevel_;
+    bool useAccelerometer_;
 };
 
 #endif
