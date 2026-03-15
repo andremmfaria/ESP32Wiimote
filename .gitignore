@@ -84,3 +84,7 @@ ESP32Wiimote.ino
 .platformio
 platformio.ini.bak
 compile_commands.json
+
+### Coverage ###
+coverage/
+*.gcov

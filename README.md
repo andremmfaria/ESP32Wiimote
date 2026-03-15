@@ -193,10 +193,35 @@ See [API Reference](docs/API.md#filtering) for details.
 
 ESP32Wiimote includes comprehensive unit tests and integration tests.
 
+### Build Script (Recommended)
+
+Use the root build script for all common tasks:
+
+```bash
+./build.sh help
+```
+
+Common targets:
+
+```bash
+./build.sh test:native
+./build.sh test:coverage
+./build.sh test:dev
+./build.sh test:dev:build
+./build.sh release
+```
+
+Set serial port for hardware targets:
+
+```bash
+ESP32_PORT=/dev/ttyUSB0 ./build.sh test:dev
+ESP32_PORT=/dev/ttyUSB0 ./build.sh upload:dev
+```
+
 ### Run Native Tests (No Hardware)
 
 ```bash
-pio test -e native
+./build.sh test:native
 ```
 
 Fast unit tests run on your PC in ~1.5 seconds. No ESP32 required!
@@ -204,10 +229,24 @@ Fast unit tests run on your PC in ~1.5 seconds. No ESP32 required!
 ### Run Integration Tests (ESP32 + Wiimote)
 
 ```bash
-pio test -e esp32dev --upload-port /dev/ttyUSB0 -v
+ESP32_PORT=/dev/ttyUSB0 ./build.sh test:dev
 ```
 
-Hardware tests with a real Wiimote. The `-v` flag shows test action prompts.
+Hardware tests with a real Wiimote.
+
+### Coverage Reports
+
+```bash
+./build.sh test:coverage
+```
+
+Coverage outputs are written under `coverage/`:
+
+- `coverage/gcovr-summary.txt`
+- `coverage/gcovr.xml`
+- `coverage/html-gcovr/index.html`
+- `coverage/lcov.info`
+- `coverage/html-lcov/index.html`
 
 See [Testing Guide](docs/TESTING.md) for complete instructions.
 
