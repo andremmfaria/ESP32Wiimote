@@ -34,15 +34,23 @@ run_coverage() {
     rm -rf coverage/html-gcovr coverage/html-lcov
     mkdir -p coverage/html-gcovr coverage/html-lcov
 
-    # Generate gcovr summary + XML + HTML details.
+    # Generate gcovr reports for covered files.
     gcovr \
         --root . \
         --filter src \
         --exclude 'test/.*' \
         --exclude '.*/.pio/.*' \
         --txt \
-        --output coverage/gcovr-summary.txt \
+        --output coverage/gcovr-covered-summary.txt \
         --print-summary
+
+    gcovr \
+        --root . \
+        --filter src \
+        --exclude 'test/.*' \
+        --exclude '.*/.pio/.*' \
+        --csv \
+        --output coverage/gcovr.csv
 
     gcovr \
         --root . \
@@ -59,6 +67,79 @@ run_coverage() {
         --exclude '.*/.pio/.*' \
         --html-details \
         --output coverage/html-gcovr/index.html
+
+    # Build a full source inventory report so missing instrumentation is explicit.
+    find src -type f | sort > coverage/src-all-files.txt
+    awk -F, 'NR > 1 {print $1}' coverage/gcovr.csv | sort > coverage/src-covered-files.txt || true
+
+    # Compose a full summary including files without gcov data as 0% coverage.
+    awk -F, '
+        NR == 1 {next}
+        {
+            file = $1;
+            lineTotal[file] = $2;
+            lineExec[file] = $3;
+            linePct[file] = $4;
+        }
+        END {
+            for (f in lineTotal) {
+                print f "|" lineTotal[f] "|" lineExec[f] "|" linePct[f];
+            }
+        }
+    ' coverage/gcovr.csv | sort > coverage/gcovr-covered-map.txt
+
+    {
+        printf '%-46s %8s %8s %8s   %s\n' "File" "Lines" "Exec" "Cover" "Status"
+        printf '%-46s %8s %8s %8s   %s\n' "----------------------------------------------" "--------" "--------" "--------" "----------------"
+
+        totalLines=0
+        totalExec=0
+
+        while IFS= read -r srcFile; do
+            if coveredLine=$(grep -F "${srcFile}|" coverage/gcovr-covered-map.txt); then
+                lines=$(echo "$coveredLine" | cut -d'|' -f2)
+                execLines=$(echo "$coveredLine" | cut -d'|' -f3)
+                coverRaw=$(echo "$coveredLine" | cut -d'|' -f4)
+                cover=$(awk -v p="$coverRaw" 'BEGIN { printf "%.1f%%", p * 100.0 }')
+                status="COVERAGE_DATA"
+            else
+                lines=$(wc -l < "$srcFile")
+                execLines=0
+                cover="0.0%"
+                status="NO_COVERAGE_DATA"
+            fi
+
+            totalLines=$((totalLines + lines))
+            totalExec=$((totalExec + execLines))
+
+            printf '%-46s %8d %8d %8s   %s\n' "$srcFile" "$lines" "$execLines" "$cover" "$status"
+        done < coverage/src-all-files.txt
+
+        if [ "$totalLines" -gt 0 ]; then
+            totalPct=$(awk -v e="$totalExec" -v t="$totalLines" 'BEGIN { printf "%.1f%%", (e / t) * 100 }')
+        else
+            totalPct="0.0%"
+        fi
+
+        printf '%-46s %8s %8s %8s\n' "----------------------------------------------" "--------" "--------" "--------"
+        printf '%-46s %8d %8d %8s\n' "TOTAL" "$totalLines" "$totalExec" "$totalPct"
+    } > coverage/gcovr-summary.txt
+
+    {
+        echo "# Source Coverage Status"
+        echo
+        echo "Legend:"
+        echo "  COVERAGE_DATA = file has gcov data in this run"
+        echo "  NO_COVERAGE_DATA = file has no gcov data in this run"
+        echo
+        while IFS= read -r srcFile; do
+            if grep -qx "$srcFile" coverage/src-covered-files.txt; then
+                echo "COVERAGE_DATA $srcFile"
+            else
+                echo "NO_COVERAGE_DATA $srcFile"
+            fi
+        done < coverage/src-all-files.txt
+    } > coverage/src-coverage-status.txt
 
     # Generate lcov + genhtml report.
     lcov \
@@ -82,8 +163,11 @@ run_coverage() {
 
     echo "Coverage outputs:"
     echo "  - coverage/gcovr-summary.txt"
+    echo "  - coverage/gcovr-covered-summary.txt"
+    echo "  - coverage/gcovr.csv"
     echo "  - coverage/gcovr.xml"
     echo "  - coverage/html-gcovr/index.html"
+    echo "  - coverage/src-coverage-status.txt"
     echo "  - coverage/lcov.info"
     echo "  - coverage/html-lcov/index.html"
 }
