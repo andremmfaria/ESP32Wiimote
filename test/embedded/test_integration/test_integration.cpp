@@ -93,7 +93,7 @@ void testBatteryLevel() {
 
     uint8_t battery = ESP32Wiimote::getBatteryLevel();
     char battMsg[50];
-    sprintf(battMsg, "Battery level: %d%%", battery);
+    snprintf(battMsg, sizeof(battMsg), "Battery level: %d%%", battery);
     TEST_PRINT(battMsg);
 
     // Battery should be between 0 and 100%
@@ -151,7 +151,8 @@ void testAccelerometerData() {
     AccelState accel = wiimote.getAccelState();
 
     char accelMsg[100];
-    sprintf(accelMsg, "Accel: X=%d, Y=%d, Z=%d", accel.xAxis, accel.yAxis, accel.zAxis);
+    snprintf(accelMsg, sizeof(accelMsg), "Accel: X=%d, Y=%d, Z=%d", accel.xAxis, accel.yAxis,
+             accel.zAxis);
     TEST_PRINT(accelMsg);
 
     // Accelerometer values should be reasonable (not all zeros in normal use)
