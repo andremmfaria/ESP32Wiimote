@@ -24,20 +24,56 @@ WarningsAsErrors: >
   bugprone-infinite-loop
 
 CheckOptions:
-  # Require _t suffix style for type aliases (matches existing uint8_t etc)
+  # Naming convention for automated refactors.
+  # - Types: PascalCase
+  # - Functions/methods/variables/parameters: camelBack
+  # - Private members: camelBack with trailing underscore
+  # - Macros/constants: UPPER_CASE (legacy macros remain valid)
   - key: readability-identifier-naming.TypeAliasCase
     value: lower_case
-  # Allow camelCase for public methods (matches existing API)
+  - key: readability-identifier-naming.NamespaceCase
+    value: lower_case
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.FunctionCase
+    value: camelBack
+  - key: readability-identifier-naming.MethodCase
+    value: camelBack
   - key: readability-identifier-naming.PublicMethodCase
-    value: CamelCase
-  # Allow camelCase for member variables with _ prefix (matches existing _btController etc)
+    value: camelBack
+  - key: readability-identifier-naming.PrivateMethodCase
+    value: camelBack
+  - key: readability-identifier-naming.VariableCase
+    value: camelBack
+  - key: readability-identifier-naming.ParameterCase
+    value: camelBack
+  - key: readability-identifier-naming.GlobalVariableCase
+    value: camelBack
   - key: readability-identifier-naming.MemberCase
-    value: CamelCase
-  - key: readability-identifier-naming.MemberPrefix
+    value: camelBack
+  - key: readability-identifier-naming.PrivateMemberCase
+    value: camelBack
+  - key: readability-identifier-naming.PrivateMemberSuffix
     value: '_'
+  - key: readability-identifier-naming.MacroDefinitionCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.ConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.ConstantPrefix
+    value: 'k'
+  - key: readability-identifier-naming.GlobalConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.GlobalConstantPrefix
+    value: 'k'
   # Loop convert: only suggest range-for when the loop variable is used as iterator
   - key: modernize-loop-convert.MinConfidence
     value: reasonable
 
-# Do not run on test mocks (they stub platform types that clang-tidy can't resolve)
-HeaderFilterRegex: '^(?!.*test/mocks).*\.(h|hpp)$'
+# Report diagnostics only for workspace headers that belong to user code.
+HeaderFilterRegex: '^.*/(src|examples|test/(?!mocks/)).*\.(h|hpp)$'

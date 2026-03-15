@@ -14,13 +14,13 @@
 
 #include <string.h>
 
-static uint8_t g_hciTxBuffer[256];
+static uint8_t gHciTxBuffer[256];
 
-static void clear_scanned_devices(struct HciEventContext *ctx) {
+static void clearScannedDevices(struct HciEventContext *ctx) {
     ctx->scannedDeviceCount = 0;
 }
 
-static int find_scanned_device(struct HciEventContext *ctx, struct bd_addr_t bdAddr) {
+static int findScannedDevice(struct HciEventContext *ctx, struct BdAddrT bdAddr) {
     for (int i = 0; i < ctx->scannedDeviceCount; i++) {
         if (memcmp(ctx->scannedDevices[i].bdAddr.addr, bdAddr.addr, BD_ADDR_LEN) == 0) {
             return i;
@@ -29,7 +29,7 @@ static int find_scanned_device(struct HciEventContext *ctx, struct bd_addr_t bdA
     return -1;
 }
 
-static int add_scanned_device(struct HciEventContext *ctx, struct HciScannedDevice scanned) {
+static int addScannedDevice(struct HciEventContext *ctx, struct HciScannedDevice scanned) {
     if (ctx->scannedDeviceCount >= HCI_SCANNED_DEVICE_LIST_SIZE) {
         return -1;
     }
@@ -37,13 +37,13 @@ static int add_scanned_device(struct HciEventContext *ctx, struct HciScannedDevi
     return ctx->scannedDeviceCount;
 }
 
-static void hci_send(struct HciEventContext *ctx, uint16_t len) {
+static void hciSend(struct HciEventContext *ctx, uint16_t len) {
     if (ctx->sendPacket != nullptr) {
-        ctx->sendPacket(g_hciTxBuffer, len, ctx->userData);
+        ctx->sendPacket(gHciTxBuffer, len, ctx->userData);
     }
 }
 
-void hci_events_init(struct HciEventContext *ctx, HciSendPacketFunc sendPacket, void *userData) {
+void hciEventsInit(struct HciEventContext *ctx, HciSendPacketFunc sendPacket, void *userData) {
     if (ctx == nullptr) {
         return;
     }
@@ -53,9 +53,9 @@ void hci_events_init(struct HciEventContext *ctx, HciSendPacketFunc sendPacket, 
     ctx->userData = userData;
 }
 
-void hci_events_set_callbacks(struct HciEventContext *ctx,
-                              HciAclConnectedFunc onAclConnected,
-                              HciDisconnectedFunc onDisconnected) {
+void hciEventsSetCallbacks(struct HciEventContext *ctx,
+                           HciAclConnectedFunc onAclConnected,
+                           HciDisconnectedFunc onDisconnected) {
     if (ctx == nullptr) {
         return;
     }
@@ -64,86 +64,84 @@ void hci_events_set_callbacks(struct HciEventContext *ctx,
     ctx->onDisconnected = onDisconnected;
 }
 
-void hci_events_reset_device(struct HciEventContext *ctx) {
+void hciEventsResetDevice(struct HciEventContext *ctx) {
     if (ctx == nullptr) {
         return;
     }
 
-    clear_scanned_devices(ctx);
-    const uint16_t txLen = make_cmd_reset(g_hciTxBuffer);
-    hci_send(ctx, txLen);
+    clearScannedDevices(ctx);
+    const uint16_t kTxLen = makeCmdReset(gHciTxBuffer);
+    hciSend(ctx, kTxLen);
 }
 
-static void handle_command_complete(struct HciEventContext *ctx, uint8_t *data) {
-    const uint16_t cmdOpcode = READ_UINT16_LE(data + 1);
-    const uint8_t status = data[3];
+static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *data) {
+    const uint16_t kCmdOpcode = readUinT16Le(data + 1);
+    const uint8_t kStatus = data[3];
 
-    switch (cmdOpcode) {
+    switch (kCmdOpcode) {
         case HCI_OPCODE_RESET: {
-            if (status == 0x00) {
+            if (kStatus == 0x00) {
                 LOG_DEBUG("HCI: Reset successful\n");
-                const uint16_t txLen = make_cmd_read_bd_addr(g_hciTxBuffer);
-                hci_send(ctx, txLen);
+                const uint16_t kTxLen = makeCmdReadBdAddr(gHciTxBuffer);
+                hciSend(ctx, kTxLen);
             } else {
                 LOG_ERROR("HCI: %s (0x%04x) failed, status=0x%02x (%s)\n",
-                          hciOpcodeToString(cmdOpcode), cmdOpcode, status,
-                          hciStatusCodeToString(status));
+                          hciOpcodeToString(kCmdOpcode), kCmdOpcode, kStatus,
+                          hciStatusCodeToString(kStatus));
             }
             break;
         }
 
         case HCI_OPCODE_READ_BD_ADDR: {
-            if (status == 0x00) {
+            if (kStatus == 0x00) {
                 static const uint8_t kName[] = "ESP32-BT-L2CAP";
-                const uint16_t txLen =
-                    make_cmd_write_local_name(g_hciTxBuffer, kName, sizeof(kName));
-                hci_send(ctx, txLen);
+                const uint16_t kTxLen = makeCmdWriteLocalName(gHciTxBuffer, kName, sizeof(kName));
+                hciSend(ctx, kTxLen);
             } else {
                 LOG_ERROR("HCI: %s (0x%04x) failed, status=0x%02x (%s)\n",
-                          hciOpcodeToString(cmdOpcode), cmdOpcode, status,
-                          hciStatusCodeToString(status));
+                          hciOpcodeToString(kCmdOpcode), kCmdOpcode, kStatus,
+                          hciStatusCodeToString(kStatus));
             }
             break;
         }
 
         case HCI_OPCODE_WRITE_LOCAL_NAME: {
-            if (status == 0x00) {
+            if (kStatus == 0x00) {
                 static const uint8_t kClassOfDevice[3] = {0x04, 0x05, 0x00};
-                const uint16_t txLen =
-                    make_cmd_write_class_of_device(g_hciTxBuffer, kClassOfDevice);
-                hci_send(ctx, txLen);
+                const uint16_t kTxLen = makeCmdWriteClassOfDevice(gHciTxBuffer, kClassOfDevice);
+                hciSend(ctx, kTxLen);
             } else {
                 LOG_ERROR("HCI: %s (0x%04x) failed, status=0x%02x (%s)\n",
-                          hciOpcodeToString(cmdOpcode), cmdOpcode, status,
-                          hciStatusCodeToString(status));
+                          hciOpcodeToString(kCmdOpcode), kCmdOpcode, kStatus,
+                          hciStatusCodeToString(kStatus));
             }
             break;
         }
 
         case HCI_OPCODE_WRITE_CLASS_OF_DEVICE: {
-            if (status == 0x00) {
-                const uint16_t txLen = make_cmd_write_scan_enable(g_hciTxBuffer, 3);
-                hci_send(ctx, txLen);
+            if (kStatus == 0x00) {
+                const uint16_t kTxLen = makeCmdWriteScanEnable(gHciTxBuffer, 3);
+                hciSend(ctx, kTxLen);
             } else {
                 LOG_ERROR("HCI: %s (0x%04x) failed, status=0x%02x (%s)\n",
-                          hciOpcodeToString(cmdOpcode), cmdOpcode, status,
-                          hciStatusCodeToString(status));
+                          hciOpcodeToString(kCmdOpcode), kCmdOpcode, kStatus,
+                          hciStatusCodeToString(kStatus));
             }
             break;
         }
 
         case HCI_OPCODE_WRITE_SCAN_ENABLE: {
-            if (status == 0x00) {
+            if (kStatus == 0x00) {
                 LOG_INFO("HCI: Device initialized, starting inquiry\n");
-                clear_scanned_devices(ctx);
+                clearScannedDevices(ctx);
                 HciInquiryParams inquiryParams = {0x9E8B33, 0x05, 0x00};
-                const uint16_t txLen = make_cmd_inquiry(g_hciTxBuffer, inquiryParams);
-                hci_send(ctx, txLen);
+                const uint16_t kTxLen = makeCmdInquiry(gHciTxBuffer, inquiryParams);
+                hciSend(ctx, kTxLen);
                 ctx->deviceInited = true;
             } else {
                 LOG_ERROR("HCI: %s (0x%04x) failed, status=0x%02x (%s)\n",
-                          hciOpcodeToString(cmdOpcode), cmdOpcode, status,
-                          hciStatusCodeToString(status));
+                          hciOpcodeToString(kCmdOpcode), kCmdOpcode, kStatus,
+                          hciStatusCodeToString(kStatus));
             }
             break;
         }
@@ -152,124 +150,124 @@ static void handle_command_complete(struct HciEventContext *ctx, uint8_t *data) 
             break;
 
         default:
-            if (status != 0x00) {
+            if (kStatus != 0x00) {
                 LOG_WARN("HCI: %s (0x%04x) completed with error status=0x%02x (%s)\n",
-                         hciOpcodeToString(cmdOpcode), cmdOpcode, status,
-                         hciStatusCodeToString(status));
+                         hciOpcodeToString(kCmdOpcode), kCmdOpcode, kStatus,
+                         hciStatusCodeToString(kStatus));
             }
             break;
     }
 }
 
-static void handle_command_status(struct HciEventContext *ctx, const uint8_t *data) {
+static void handleCommandStatus(struct HciEventContext *ctx, const uint8_t *data) {
     (void)ctx;
 
-    const uint8_t status = data[0];
-    const uint8_t numHciCommandPackets = data[1];
-    const uint16_t cmdOpcode = READ_UINT16_LE(data + 2);
+    const uint8_t kStatus = data[0];
+    const uint8_t kNumHciCommandPackets = data[1];
+    const uint16_t kCmdOpcode = readUinT16Le(data + 2);
 
-    if (status != 0x00) {
+    if (kStatus != 0x00) {
         LOG_WARN("HCI: Command status for %s (0x%04x): status=0x%02x (%s), numPackets=%u\n",
-                 hciOpcodeToString(cmdOpcode), cmdOpcode, status, hciStatusCodeToString(status),
-                 numHciCommandPackets);
+                 hciOpcodeToString(kCmdOpcode), kCmdOpcode, kStatus, hciStatusCodeToString(kStatus),
+                 kNumHciCommandPackets);
     }
 }
 
-static void handle_inquiry_complete(struct HciEventContext *ctx, const uint8_t *data) {
+static void handleInquiryComplete(struct HciEventContext *ctx, const uint8_t *data) {
     (void)data;
-    hci_events_reset_device(ctx);
+    hciEventsResetDevice(ctx);
 }
 
-static void handle_inquiry_result(struct HciEventContext *ctx, const uint8_t *data) {
-    const uint8_t num = data[0];
-    LOG_DEBUG("HCI: Inquiry result: found %d device(s)\n", num);
+static void handleInquiryResult(struct HciEventContext *ctx, const uint8_t *data) {
+    const uint8_t kNum = data[0];
+    LOG_DEBUG("HCI: Inquiry result: found %d device(s)\n", kNum);
 
-    for (int i = 0; i < num; i++) {
-        const int pos = 1 + ((6 + 1 + 2 + 3 + 2) * i);
+    for (int i = 0; i < kNum; i++) {
+        const int kPos = 1 + ((6 + 1 + 2 + 3 + 2) * i);
 
-        struct bd_addr_t bdAddr;
-        STREAM_TO_BDADDR(bdAddr.addr, data + pos);
+        struct BdAddrT bdAddr;
+        STREAM_TO_BDADDR(bdAddr.addr, data + kPos);
 
-        int idx = find_scanned_device(ctx, bdAddr);
+        int idx = findScannedDevice(ctx, bdAddr);
         if (idx != -1) {
             continue;
         }
 
         struct HciScannedDevice scanned;
         scanned.bdAddr = bdAddr;
-        scanned.psrm = data[pos + 6];
-        scanned.clkofs = ((0x80 | data[pos + 12]) << 8) | (data[pos + 13]);
+        scanned.psrm = data[kPos + 6];
+        scanned.clkofs = ((0x80 | data[kPos + 12]) << 8) | (data[kPos + 13]);
 
-        idx = add_scanned_device(ctx, scanned);
+        idx = addScannedDevice(ctx, scanned);
         if (idx < 0) {
             continue;
         }
 
         // Filter for Wiimote class-of-device: [04 25 00]
-        if (data[pos + 9] == 0x04 && data[pos + 10] == 0x25 && data[pos + 11] == 0x00) {
+        if (data[kPos + 9] == 0x04 && data[kPos + 10] == 0x25 && data[kPos + 11] == 0x00) {
             LOG_INFO("HCI: Wiimote detected! Requesting remote name...\n");
             HciRemoteNameRequestParams remoteNameParams = {
                 scanned.bdAddr,
                 scanned.psrm,
                 scanned.clkofs,
             };
-            const uint16_t txLen = make_cmd_remote_name_request(g_hciTxBuffer, remoteNameParams);
-            hci_send(ctx, txLen);
+            const uint16_t kTxLen = makeCmdRemoteNameRequest(gHciTxBuffer, remoteNameParams);
+            hciSend(ctx, kTxLen);
         }
     }
 }
 
-static void handle_remote_name_request_complete(struct HciEventContext *ctx, uint8_t *data) {
-    struct bd_addr_t bdAddr;
+static void handleRemoteNameRequestComplete(struct HciEventContext *ctx, uint8_t *data) {
+    struct BdAddrT bdAddr;
     STREAM_TO_BDADDR(bdAddr.addr, data + 1);
 
     char *name = (char *)(data + 7);
 
     LOG_DEBUG("HCI: Remote name: %s\n", name);
 
-    const int idx = find_scanned_device(ctx, bdAddr);
-    if (idx < 0) {
+    const int kIdx = findScannedDevice(ctx, bdAddr);
+    if (kIdx < 0) {
         return;
     }
 
     if (strcmp("Nintendo RVL-CNT-01", name) == 0) {
         LOG_INFO("HCI: Nintendo Wiimote confirmed! Initiating connection...\n");
-        const uint16_t cancelLen = make_cmd_inquiry_cancel(g_hciTxBuffer);
-        hci_send(ctx, cancelLen);
+        const uint16_t kCancelLen = makeCmdInquiryCancel(gHciTxBuffer);
+        hciSend(ctx, kCancelLen);
 
-        const struct HciScannedDevice scanned = ctx->scannedDevices[idx];
-        const uint16_t packetType = 0x0008;
-        const uint8_t allowRoleSwitch = 0x00;
+        const struct HciScannedDevice kScanned = ctx->scannedDevices[kIdx];
+        const uint16_t kPacketType = 0x0008;
+        const uint8_t kAllowRoleSwitch = 0x00;
 
         HciCreateConnectionParams createConnectionParams = {
-            scanned.bdAddr, packetType, scanned.psrm, scanned.clkofs, allowRoleSwitch,
+            kScanned.bdAddr, kPacketType, kScanned.psrm, kScanned.clkofs, kAllowRoleSwitch,
         };
-        const uint16_t txLen = make_cmd_create_connection(g_hciTxBuffer, createConnectionParams);
-        hci_send(ctx, txLen);
+        const uint16_t kTxLen = makeCmdCreateConnection(gHciTxBuffer, createConnectionParams);
+        hciSend(ctx, kTxLen);
     }
 }
 
-static void handle_connection_complete(struct HciEventContext *ctx, uint8_t *data) {
-    const uint16_t connectionHandle = READ_UINT16_LE(data + 1);
-    LOG_INFO("HCI: Connection complete! Handle: 0x%04x\n", connectionHandle);
+static void handleConnectionComplete(struct HciEventContext *ctx, uint8_t *data) {
+    const uint16_t kConnectionHandle = readUinT16Le(data + 1);
+    LOG_INFO("HCI: Connection complete! Handle: 0x%04x\n", kConnectionHandle);
     if (ctx->onAclConnected != nullptr) {
-        ctx->onAclConnected(connectionHandle, ctx->userData);
+        ctx->onAclConnected(kConnectionHandle, ctx->userData);
     }
 }
 
-static void handle_disconnection_complete(struct HciEventContext *ctx, uint8_t *data) {
-    const uint16_t connectionHandle = READ_UINT16_LE(data + 1);
-    const uint8_t reason = data[3];
+static void handleDisconnectionComplete(struct HciEventContext *ctx, const uint8_t *data) {
+    const uint16_t kConnectionHandle = readUinT16Le(data + 1);
+    const uint8_t kReason = data[3];
 
-    LOG_INFO("HCI: Disconnection complete! Handle: 0x%04x, Reason: 0x%02x (%s)\n", connectionHandle,
-             reason, hciDisconnectionReasonToString(reason));
+    LOG_INFO("HCI: Disconnection complete! Handle: 0x%04x, Reason: 0x%02x (%s)\n",
+             kConnectionHandle, kReason, hciDisconnectionReasonToString(kReason));
 
     if (ctx->onDisconnected != nullptr) {
-        ctx->onDisconnected(connectionHandle, reason, ctx->userData);
+        ctx->onDisconnected(kConnectionHandle, kReason, ctx->userData);
     }
 }
 
-void hci_events_handle_event(struct HciEventContext *ctx, const HciEventPacket &packet) {
+void hciEventsHandleEvent(struct HciEventContext *ctx, const HciEventPacket &packet) {
     (void)packet.len;
 
     if (ctx == nullptr || packet.data == nullptr) {
@@ -278,31 +276,31 @@ void hci_events_handle_event(struct HciEventContext *ctx, const HciEventPacket &
 
     switch (packet.eventCode) {
         case HCI_INQUIRY_COMP_EVT:
-            handle_inquiry_complete(ctx, packet.data);
+            handleInquiryComplete(ctx, packet.data);
             break;
 
         case HCI_INQUIRY_RESULT_EVT:
-            handle_inquiry_result(ctx, packet.data);
+            handleInquiryResult(ctx, packet.data);
             break;
 
         case HCI_CONNECTION_COMP_EVT:
-            handle_connection_complete(ctx, packet.data);
+            handleConnectionComplete(ctx, packet.data);
             break;
 
         case HCI_DISCONNECTION_COMP_EVT:
-            handle_disconnection_complete(ctx, packet.data);
+            handleDisconnectionComplete(ctx, packet.data);
             break;
 
         case HCI_RMT_NAME_REQUEST_COMP_EVT:
-            handle_remote_name_request_complete(ctx, packet.data);
+            handleRemoteNameRequestComplete(ctx, packet.data);
             break;
 
         case HCI_COMMAND_COMPLETE_EVT:
-            handle_command_complete(ctx, packet.data);
+            handleCommandComplete(ctx, packet.data);
             break;
 
         case HCI_COMMAND_STATUS_EVT:
-            handle_command_status(ctx, packet.data);
+            handleCommandStatus(ctx, packet.data);
             break;
 
         default:

@@ -5,8 +5,8 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef ESP32WIIMOTE_HCI_QUEUE_H_
-#define ESP32WIIMOTE_HCI_QUEUE_H_
+#ifndef ESP32_WIIMOTE_HCI_QUEUE_H
+#define ESP32_WIIMOTE_HCI_QUEUE_H
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
@@ -28,7 +28,6 @@ struct HciQueueData {
 class HciQueueManager {
    public:
     HciQueueManager(size_t rxQueueSize = 32, size_t txQueueSize = 32);
-    ~HciQueueManager();
 
     /**
      * Create and initialize the TX and RX queues
@@ -85,10 +84,10 @@ class HciQueueManager {
      */
     static bool sendToQueue(xQueueHandle queue, uint8_t *data, size_t len, const char *debugLabel);
 
-    xQueueHandle _txQueue;
-    xQueueHandle _rxQueue;
-    size_t _rxQueueSize;
-    size_t _txQueueSize;
+    xQueueHandle txQueue_;
+    xQueueHandle rxQueue_;
+    size_t rxQueueSize_;
+    size_t txQueueSize_;
 };
 
-#endif  // ESP32WIIMOTE_HCI_QUEUE_H_
+#endif  // ESP32_WIIMOTE_HCI_QUEUE_H

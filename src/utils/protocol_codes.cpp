@@ -9,13 +9,13 @@
 
 const char *l2capSignalCodeToString(uint8_t code) {
     switch (static_cast<L2capSignalingCode>(code)) {
-        case L2capSignalingCode::CONNECTION_REQUEST:
+        case L2capSignalingCode::ConnectionRequest:
             return "CONNECTION_REQUEST";
-        case L2capSignalingCode::CONNECTION_RESPONSE:
+        case L2capSignalingCode::ConnectionResponse:
             return "CONNECTION_RESPONSE";
-        case L2capSignalingCode::CONFIGURATION_REQUEST:
+        case L2capSignalingCode::ConfigurationRequest:
             return "CONFIGURATION_REQUEST";
-        case L2capSignalingCode::CONFIGURATION_RESPONSE:
+        case L2capSignalingCode::ConfigurationResponse:
             return "CONFIGURATION_RESPONSE";
         default:
             return "UNKNOWN_SIGNAL";
@@ -28,11 +28,11 @@ const char *l2capSignalingResultToString(uint16_t result) {
             return "SUCCESS";
         case L2capSignalingResult::PENDING:
             return "PENDING";
-        case L2capSignalingResult::PSM_NOT_SUPPORTED:
+        case L2capSignalingResult::PsmNotSupported:
             return "PSM_NOT_SUPPORTED";
-        case L2capSignalingResult::SECURITY_BLOCK:
+        case L2capSignalingResult::SecurityBlock:
             return "SECURITY_BLOCK";
-        case L2capSignalingResult::NO_RESOURCES:
+        case L2capSignalingResult::NoResources:
             return "NO_RESOURCES";
         default:
             return "UNKNOWN_RESULT";
@@ -41,9 +41,9 @@ const char *l2capSignalingResultToString(uint16_t result) {
 
 const char *wiimoteHidPrefixToString(uint8_t prefix) {
     switch (static_cast<WiimoteHidPrefix>(prefix)) {
-        case WiimoteHidPrefix::INPUT_REPORT:
+        case WiimoteHidPrefix::InputReport:
             return "INPUT_REPORT";
-        case WiimoteHidPrefix::OUTPUT_REPORT:
+        case WiimoteHidPrefix::OutputReport:
             return "OUTPUT_REPORT";
         default:
             return "UNKNOWN_HID_PREFIX";
@@ -52,17 +52,17 @@ const char *wiimoteHidPrefixToString(uint8_t prefix) {
 
 const char *wiimoteInputReportToString(uint8_t report) {
     switch (static_cast<WiimoteInputReport>(report)) {
-        case WiimoteInputReport::STATUS_INFORMATION:
+        case WiimoteInputReport::StatusInformation:
             return "STATUS_INFORMATION";
-        case WiimoteInputReport::READ_MEMORY_DATA:
+        case WiimoteInputReport::ReadMemoryData:
             return "READ_MEMORY_DATA";
-        case WiimoteInputReport::CORE_BUTTONS:
+        case WiimoteInputReport::CoreButtons:
             return "CORE_BUTTONS";
-        case WiimoteInputReport::CORE_BUTTONS_ACCEL:
+        case WiimoteInputReport::CoreButtonsAccel:
             return "CORE_BUTTONS_ACCEL";
-        case WiimoteInputReport::CORE_BUTTONS_EXT8:
+        case WiimoteInputReport::CoreButtonsExT8:
             return "CORE_BUTTONS_EXT8";
-        case WiimoteInputReport::CORE_BUTTONS_ACCEL_EXT16:
+        case WiimoteInputReport::CoreButtonsAccelExT16:
             return "CORE_BUTTONS_ACCEL_EXT16";
         default:
             return "UNKNOWN_INPUT_REPORT";
@@ -71,15 +71,15 @@ const char *wiimoteInputReportToString(uint8_t report) {
 
 const char *wiimoteOutputReportToString(uint8_t report) {
     switch (static_cast<WiimoteOutputReport>(report)) {
-        case WiimoteOutputReport::SET_LEDS:
+        case WiimoteOutputReport::SetLeds:
             return "SET_LEDS";
-        case WiimoteOutputReport::SET_REPORTING_MODE:
+        case WiimoteOutputReport::SetReportingMode:
             return "SET_REPORTING_MODE";
-        case WiimoteOutputReport::REQUEST_STATUS:
+        case WiimoteOutputReport::RequestStatus:
             return "REQUEST_STATUS";
-        case WiimoteOutputReport::WRITE_MEMORY:
+        case WiimoteOutputReport::WriteMemory:
             return "WRITE_MEMORY";
-        case WiimoteOutputReport::READ_MEMORY:
+        case WiimoteOutputReport::ReadMemory:
             return "READ_MEMORY";
         default:
             return "UNKNOWN_OUTPUT_REPORT";
@@ -90,8 +90,8 @@ const char *wiimoteAddressSpaceToString(uint8_t addressSpace) {
     switch (static_cast<WiimoteAddressSpace>(addressSpace)) {
         case WiimoteAddressSpace::EEPROM:
             return "EEPROM";
-        case WiimoteAddressSpace::CONTROL_REGISTER:
-            return "CONTROL_REGISTER";
+        case WiimoteAddressSpace::ControlRegister:
+            return "ControlRegister";
         default:
             return "UNKNOWN_ADDRESS_SPACE";
     }

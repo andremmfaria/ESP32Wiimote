@@ -37,14 +37,14 @@ void setMockData(uint8_t reportType, const uint8_t *payload, uint8_t payloadLen)
 // ===== Basic Functionality Tests =====
 
 // Test: No data available returns 0
-void test_no_data_available() {
+void testNoDataAvailable() {
     mockHasData = false;
     int result = parser->parseData();
     TEST_ASSERT_EQUAL(0, result);
 }
 
 // Test: Data too short is rejected
-void test_data_too_short() {
+void testDataTooShort() {
     mockData.data[0] = 0xA1;
     mockData.len = 3;  // Less than 4 bytes
     mockHasData = true;
@@ -54,7 +54,7 @@ void test_data_too_short() {
 }
 
 // Test: Invalid report type is rejected
-void test_invalid_report_type() {
+void testInvalidReportType() {
     mockData.data[0] = 0xFF;  // Not 0xA1
     mockData.data[1] = 0x30;
     mockData.len = 10;
@@ -67,21 +67,21 @@ void test_invalid_report_type() {
 // ===== Button Parsing Tests =====
 
 // Test: Parse Core Buttons (Report 0x30)
-void test_parse_core_buttons_report_0x30() {
+void testParseCoreButtonsReport0x30() {
     uint8_t payload[] = {
-        0x00, 0x08  // Button data: BUTTON_A (0x0008)
+        0x00, 0x08  // Button data: ButtonA (0x0008)
     };
     setMockData(0x30, payload, sizeof(payload));
 
     int result = parser->parseData();
     TEST_ASSERT_EQUAL(1, result);  // Changed
-    TEST_ASSERT_EQUAL(BUTTON_A, buttonState->getCurrent());
+    TEST_ASSERT_EQUAL(ButtonA, buttonState->getCurrent());
 }
 
 // Test: Parse multiple buttons
-void test_parse_multiple_buttons() {
+void testParseMultipleButtons() {
     uint8_t payload[] = {
-        0x00, 0x09  // BUTTON_A (0x0008) | BUTTON_TWO (0x0001)
+        0x00, 0x09  // ButtonA (0x0008) | ButtonTwo (0x0001)
     };
     setMockData(0x30, payload, sizeof(payload));
 
@@ -89,36 +89,36 @@ void test_parse_multiple_buttons() {
     TEST_ASSERT_EQUAL(1, result);
 
     ButtonState current = buttonState->getCurrent();
-    TEST_ASSERT_TRUE(current & BUTTON_A);
-    TEST_ASSERT_TRUE(current & BUTTON_TWO);
+    TEST_ASSERT_TRUE(current & ButtonA);
+    TEST_ASSERT_TRUE(current & ButtonTwo);
 }
 
 // Test: Parse D-pad buttons
-void test_parse_dpad_buttons() {
+void testParseDpadButtons() {
     uint8_t payload[] = {
-        0x01, 0x00  // BUTTON_LEFT (0x0100)
+        0x01, 0x00  // ButtonLeft (0x0100)
     };
     setMockData(0x31, payload, sizeof(payload));
 
     parser->parseData();
-    TEST_ASSERT_EQUAL(BUTTON_LEFT, buttonState->getCurrent());
+    TEST_ASSERT_EQUAL(ButtonLeft, buttonState->getCurrent());
 }
 
 // Test: Parse HOME button
-void test_parse_home_button() {
+void testParseHomeButton() {
     uint8_t payload[] = {
-        0x00, 0x80  // BUTTON_HOME (0x0080)
+        0x00, 0x80  // ButtonHome (0x0080)
     };
     setMockData(0x30, payload, sizeof(payload));
 
     parser->parseData();
-    TEST_ASSERT_EQUAL(BUTTON_HOME, buttonState->getCurrent());
+    TEST_ASSERT_EQUAL(ButtonHome, buttonState->getCurrent());
 }
 
 // ===== Accelerometer Parsing Tests =====
 
 // Test: Parse accelerometer in Report 0x31
-void test_parse_accelerometer_report_0x31() {
+void testParseAccelerometerReport0x31() {
     uint8_t payload[] = {
         0x00, 0x00,    // Buttons (none)
         100, 120, 140  // Accel X, Y, Z
@@ -135,7 +135,7 @@ void test_parse_accelerometer_report_0x31() {
 }
 
 // Test: Parse accelerometer max values
-void test_parse_accelerometer_max_values() {
+void testParseAccelerometerMaxValues() {
     uint8_t payload[] = {
         0x00, 0x00,    // Buttons
         255, 255, 255  // Accel max values
@@ -151,7 +151,7 @@ void test_parse_accelerometer_max_values() {
 }
 
 // Test: Parse accelerometer with Report 0x35
-void test_parse_accelerometer_report_0x35() {
+void testParseAccelerometerReport0x35() {
     uint8_t payload[] = {
         0x00, 0x00,                                            // Buttons
         50,   60,   70,                                        // Accel X, Y, Z
@@ -168,7 +168,7 @@ void test_parse_accelerometer_report_0x35() {
 }
 
 // Test: Accelerometer reset on unsupported report
-void test_accelerometer_reset_on_unsupported_report() {
+void testAccelerometerResetOnUnsupportedReport() {
     // First set some accelerometer data
     uint8_t accelPayload[] = {0x00, 0x00, 100, 120, 140};
     setMockData(0x31, accelPayload, sizeof(accelPayload));
@@ -191,7 +191,7 @@ void test_accelerometer_reset_on_unsupported_report() {
 // ===== Nunchuk Parsing Tests =====
 
 // Test: Parse nunchuk with Report 0x32 (8 extension bytes)
-void test_parse_nunchuk_report_0x32() {
+void testParseNunchukReport0x32() {
     uint8_t payload[] = {
         0x00, 0x00,       // Buttons
         128,  130,        // Nunchuk stick X, Y
@@ -211,7 +211,7 @@ void test_parse_nunchuk_report_0x32() {
 }
 
 // Test: Parse nunchuk buttons C and Z
-void test_parse_nunchuk_buttons() {
+void testParseNunchukButtons() {
     // Nunchuk C button pressed (bit 1 = 0 when pressed, inverted)
     uint8_t payloadC[] = {
         0x00, 0x00,       // Buttons
@@ -223,8 +223,8 @@ void test_parse_nunchuk_buttons() {
     parser->parseData();
 
     ButtonState buttons = buttonState->getCurrent();
-    TEST_ASSERT_TRUE(buttons & BUTTON_C);
-    TEST_ASSERT_FALSE(buttons & BUTTON_Z);
+    TEST_ASSERT_TRUE(buttons & ButtonC);
+    TEST_ASSERT_FALSE(buttons & ButtonZ);
 
     // Reset for next test
     setUp();
@@ -237,12 +237,12 @@ void test_parse_nunchuk_buttons() {
     parser->parseData();
 
     buttons = buttonState->getCurrent();
-    TEST_ASSERT_FALSE(buttons & BUTTON_C);
-    TEST_ASSERT_TRUE(buttons & BUTTON_Z);
+    TEST_ASSERT_FALSE(buttons & ButtonC);
+    TEST_ASSERT_TRUE(buttons & ButtonZ);
 }
 
 // Test: Parse nunchuk with Report 0x35 (16 extension bytes)
-void test_parse_nunchuk_report_0x35() {
+void testParseNunchukReport0x35() {
     uint8_t payload[] = {
         0x00, 0x00,                  // Buttons
         100,  110,  120,             // Wiimote accel
@@ -261,9 +261,9 @@ void test_parse_nunchuk_report_0x35() {
 }
 
 // Test: Combined Wiimote + Nunchuk buttons
-void test_combined_wiimote_nunchuk_buttons() {
+void testCombinedWiimoteNunchukButtons() {
     uint8_t payload[] = {
-        0x00, 0x08,       // BUTTON_A pressed on Wiimote
+        0x00, 0x08,       // ButtonA pressed on Wiimote
         128,  128,        // Stick
         0,    0,    0,    // Accel
         0xFD, 0x00, 0x00  // C button pressed on Nunchuk
@@ -273,18 +273,18 @@ void test_combined_wiimote_nunchuk_buttons() {
     parser->parseData();
 
     ButtonState buttons = buttonState->getCurrent();
-    TEST_ASSERT_TRUE(buttons & BUTTON_A);
-    TEST_ASSERT_TRUE(buttons & BUTTON_C);
+    TEST_ASSERT_TRUE(buttons & ButtonA);
+    TEST_ASSERT_TRUE(buttons & ButtonC);
 }
 
 // ===== Filter Tests =====
 
 // Test: Button filter
-void test_button_filter() {
-    parser->setFilter(FILTER_BUTTON);
+void testButtonFilter() {
+    parser->setFilter(FilterButton);
 
     uint8_t payload[] = {
-        0x00, 0x08  // BUTTON_A
+        0x00, 0x08  // ButtonA
     };
     setMockData(0x30, payload, sizeof(payload));
 
@@ -292,12 +292,12 @@ void test_button_filter() {
     TEST_ASSERT_EQUAL(0, result);  // Filtered, no change reported
 
     // Button state should still be updated
-    TEST_ASSERT_EQUAL(BUTTON_A, buttonState->getCurrent());
+    TEST_ASSERT_EQUAL(ButtonA, buttonState->getCurrent());
 }
 
 // Test: Accelerometer filter
-void test_accelerometer_filter() {
-    parser->setFilter(FILTER_ACCEL);
+void testAccelerometerFilter() {
+    parser->setFilter(FilterAccel);
 
     uint8_t payload[] = {
         0x00, 0x00,    // No buttons
@@ -314,8 +314,8 @@ void test_accelerometer_filter() {
 }
 
 // Test: Nunchuk stick filter
-void test_nunchuk_stick_filter() {
-    parser->setFilter(FILTER_NUNCHUK_STICK);
+void testNunchukStickFilter() {
+    parser->setFilter(FilterNunchukStick);
 
     uint8_t payload[] = {0x00, 0x00, 128, 130,  // Stick values
                          0,    0,    0,   0xFC, 0x00, 0x00};
@@ -330,11 +330,11 @@ void test_nunchuk_stick_filter() {
 }
 
 // Test: Multiple filters combined
-void test_multiple_filters() {
-    parser->setFilter(FILTER_BUTTON | FILTER_ACCEL);
+void testMultipleFilters() {
+    parser->setFilter(FilterButton | FilterAccel);
 
     uint8_t payload[] = {
-        0x00, 0x08,    // BUTTON_A
+        0x00, 0x08,    // ButtonA
         100, 120, 140  // Accel
     };
     setMockData(0x31, payload, sizeof(payload));
@@ -344,20 +344,20 @@ void test_multiple_filters() {
 }
 
 // Test: Get and set filter
-void test_get_set_filter() {
-    TEST_ASSERT_EQUAL(FILTER_NONE, parser->getFilter());
+void testGetSetFilter() {
+    TEST_ASSERT_EQUAL(FilterNone, parser->getFilter());
 
-    parser->setFilter(FILTER_BUTTON | FILTER_ACCEL);
-    TEST_ASSERT_EQUAL(FILTER_BUTTON | FILTER_ACCEL, parser->getFilter());
+    parser->setFilter(FilterButton | FilterAccel);
+    TEST_ASSERT_EQUAL(FilterButton | FilterAccel, parser->getFilter());
 
-    parser->setFilter(FILTER_NONE);
-    TEST_ASSERT_EQUAL(FILTER_NONE, parser->getFilter());
+    parser->setFilter(FilterNone);
+    TEST_ASSERT_EQUAL(FilterNone, parser->getFilter());
 }
 
 // ===== Edge Cases =====
 
 // Test: All buttons pressed
-void test_all_buttons_pressed() {
+void testAllButtonsPressed() {
     uint8_t payload[] = {
         0xFF, 0xFF  // All button bits set
     };
@@ -369,7 +369,7 @@ void test_all_buttons_pressed() {
 }
 
 // Test: Zero values everywhere
-void test_all_zeros() {
+void testAllZeros() {
     uint8_t payload[] = {
         0x00, 0x00,  // No buttons
         0, 0, 0      // Zero accel
@@ -378,23 +378,23 @@ void test_all_zeros() {
 
     int result = parser->parseData();
     TEST_ASSERT_EQUAL(1, result);
-    TEST_ASSERT_EQUAL(NO_BUTTON, buttonState->getCurrent());
+    TEST_ASSERT_EQUAL(NoButton, buttonState->getCurrent());
 }
 
 // Test: Sequential updates
-void test_sequential_updates() {
-    // First update: BUTTON_A
+void testSequentialUpdates() {
+    // First update: ButtonA
     uint8_t payload1[] = {0x00, 0x08};
     setMockData(0x30, payload1, sizeof(payload1));
     parser->parseData();
-    TEST_ASSERT_EQUAL(BUTTON_A, buttonState->getCurrent());
+    TEST_ASSERT_EQUAL(ButtonA, buttonState->getCurrent());
 
-    // Second update: BUTTON_B
+    // Second update: ButtonB
     uint8_t payload2[] = {0x00, 0x04};
     setMockData(0x30, payload2, sizeof(payload2));
     parser->parseData();
-    TEST_ASSERT_EQUAL(BUTTON_B, buttonState->getCurrent());
-    TEST_ASSERT_EQUAL(BUTTON_B, buttonState->getPrevious());
+    TEST_ASSERT_EQUAL(ButtonB, buttonState->getCurrent());
+    TEST_ASSERT_EQUAL(ButtonB, buttonState->getPrevious());
 }
 
 // ===== Main Test Runner =====
@@ -404,39 +404,39 @@ int main(int argc, char **argv) {
     UNITY_BEGIN();
 
     // Basic functionality
-    RUN_TEST(test_no_data_available);
-    RUN_TEST(test_data_too_short);
-    RUN_TEST(test_invalid_report_type);
+    RUN_TEST(testNoDataAvailable);
+    RUN_TEST(testDataTooShort);
+    RUN_TEST(testInvalidReportType);
 
     // Button parsing
-    RUN_TEST(test_parse_core_buttons_report_0x30);
-    RUN_TEST(test_parse_multiple_buttons);
-    RUN_TEST(test_parse_dpad_buttons);
-    RUN_TEST(test_parse_home_button);
+    RUN_TEST(testParseCoreButtonsReport0x30);
+    RUN_TEST(testParseMultipleButtons);
+    RUN_TEST(testParseDpadButtons);
+    RUN_TEST(testParseHomeButton);
 
     // Accelerometer parsing
-    RUN_TEST(test_parse_accelerometer_report_0x31);
-    RUN_TEST(test_parse_accelerometer_max_values);
-    RUN_TEST(test_parse_accelerometer_report_0x35);
-    RUN_TEST(test_accelerometer_reset_on_unsupported_report);
+    RUN_TEST(testParseAccelerometerReport0x31);
+    RUN_TEST(testParseAccelerometerMaxValues);
+    RUN_TEST(testParseAccelerometerReport0x35);
+    RUN_TEST(testAccelerometerResetOnUnsupportedReport);
 
     // Nunchuk parsing
-    RUN_TEST(test_parse_nunchuk_report_0x32);
-    RUN_TEST(test_parse_nunchuk_buttons);
-    RUN_TEST(test_parse_nunchuk_report_0x35);
-    RUN_TEST(test_combined_wiimote_nunchuk_buttons);
+    RUN_TEST(testParseNunchukReport0x32);
+    RUN_TEST(testParseNunchukButtons);
+    RUN_TEST(testParseNunchukReport0x35);
+    RUN_TEST(testCombinedWiimoteNunchukButtons);
 
     // Filters
-    RUN_TEST(test_button_filter);
-    RUN_TEST(test_accelerometer_filter);
-    RUN_TEST(test_nunchuk_stick_filter);
-    RUN_TEST(test_multiple_filters);
-    RUN_TEST(test_get_set_filter);
+    RUN_TEST(testButtonFilter);
+    RUN_TEST(testAccelerometerFilter);
+    RUN_TEST(testNunchukStickFilter);
+    RUN_TEST(testMultipleFilters);
+    RUN_TEST(testGetSetFilter);
 
     // Edge cases
-    RUN_TEST(test_all_buttons_pressed);
-    RUN_TEST(test_all_zeros);
-    RUN_TEST(test_sequential_updates);
+    RUN_TEST(testAllButtonsPressed);
+    RUN_TEST(testAllZeros);
+    RUN_TEST(testSequentialUpdates);
 
     return UNITY_END();
 }
@@ -445,39 +445,39 @@ void setup() {
     UNITY_BEGIN();
 
     // Basic functionality
-    RUN_TEST(test_no_data_available);
-    RUN_TEST(test_data_too_short);
-    RUN_TEST(test_invalid_report_type);
+    RUN_TEST(testNoDataAvailable);
+    RUN_TEST(testDataTooShort);
+    RUN_TEST(testInvalidReportType);
 
     // Button parsing
-    RUN_TEST(test_parse_core_buttons_report_0x30);
-    RUN_TEST(test_parse_multiple_buttons);
-    RUN_TEST(test_parse_dpad_buttons);
-    RUN_TEST(test_parse_home_button);
+    RUN_TEST(testParseCoreButtonsReport0x30);
+    RUN_TEST(testParseMultipleButtons);
+    RUN_TEST(testParseDpadButtons);
+    RUN_TEST(testParseHomeButton);
 
     // Accelerometer parsing
-    RUN_TEST(test_parse_accelerometer_report_0x31);
-    RUN_TEST(test_parse_accelerometer_max_values);
-    RUN_TEST(test_parse_accelerometer_report_0x35);
-    RUN_TEST(test_accelerometer_reset_on_unsupported_report);
+    RUN_TEST(testParseAccelerometerReport0x31);
+    RUN_TEST(testParseAccelerometerMaxValues);
+    RUN_TEST(testParseAccelerometerReport0x35);
+    RUN_TEST(testAccelerometerResetOnUnsupportedReport);
 
     // Nunchuk parsing
-    RUN_TEST(test_parse_nunchuk_report_0x32);
-    RUN_TEST(test_parse_nunchuk_buttons);
-    RUN_TEST(test_parse_nunchuk_report_0x35);
-    RUN_TEST(test_combined_wiimote_nunchuk_buttons);
+    RUN_TEST(testParseNunchukReport0x32);
+    RUN_TEST(testParseNunchukButtons);
+    RUN_TEST(testParseNunchukReport0x35);
+    RUN_TEST(testCombinedWiimoteNunchukButtons);
 
     // Filters
-    RUN_TEST(test_button_filter);
-    RUN_TEST(test_accelerometer_filter);
-    RUN_TEST(test_nunchuk_stick_filter);
-    RUN_TEST(test_multiple_filters);
-    RUN_TEST(test_get_set_filter);
+    RUN_TEST(testButtonFilter);
+    RUN_TEST(testAccelerometerFilter);
+    RUN_TEST(testNunchukStickFilter);
+    RUN_TEST(testMultipleFilters);
+    RUN_TEST(testGetSetFilter);
 
     // Edge cases
-    RUN_TEST(test_all_buttons_pressed);
-    RUN_TEST(test_all_zeros);
-    RUN_TEST(test_sequential_updates);
+    RUN_TEST(testAllButtonsPressed);
+    RUN_TEST(testAllZeros);
+    RUN_TEST(testSequentialUpdates);
 
     UNITY_END();
 }

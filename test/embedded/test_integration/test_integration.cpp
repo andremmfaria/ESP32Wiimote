@@ -36,7 +36,7 @@ void tearDown(void) {
 }
 
 // Test: Bluetooth initialization
-void test_bluetooth_init() {
+void testBluetoothInit() {
     TEST_PRINT("Testing Bluetooth initialization...");
     wiimote.init();
     // If we get here without crash, BT init succeeded
@@ -44,12 +44,12 @@ void test_bluetooth_init() {
 }
 
 // Test: Initial connection state
-void test_initial_connection_state() {
+void testInitialConnectionState() {
     TEST_ASSERT_FALSE_MESSAGE(wiimote.isConnected(), "Should not be connected initially");
 }
 
 // Test: Connection attempt (requires user action)
-void test_wiimote_connection() {
+void testWiimoteConnection() {
     if (connectionTested) {
         TEST_ASSERT_TRUE(true);  // Already tested
         return;
@@ -79,7 +79,7 @@ void test_wiimote_connection() {
 }
 
 // Test: Battery level reading (requires connection)
-void test_battery_level() {
+void testBatteryLevel() {
     if (!ESP32Wiimote::isConnected()) {
         TEST_IGNORE_MESSAGE("Wiimote not connected, skipping battery test");
         return;
@@ -101,7 +101,7 @@ void test_battery_level() {
 }
 
 // Test: Button press detection (requires user action)
-void test_button_press() {
+void testButtonPress() {
     if (!ESP32Wiimote::isConnected()) {
         TEST_IGNORE_MESSAGE("Wiimote not connected, skipping button test");
         return;
@@ -119,7 +119,7 @@ void test_button_press() {
         if (wiimote.available() > 0) {
             ButtonState button = wiimote.getButtonState();
 
-            if ((button & BUTTON_A) != 0) {
+            if ((button & ButtonA) != 0) {
                 buttonPressed = true;
                 TEST_PRINT(">>> Button A detected! <<<");
                 break;
@@ -133,7 +133,7 @@ void test_button_press() {
 }
 
 // Test: Accelerometer data (requires connection)
-void test_accelerometer_data() {
+void testAccelerometerData() {
     if (!ESP32Wiimote::isConnected()) {
         TEST_IGNORE_MESSAGE("Wiimote not connected, skipping accelerometer test");
         return;
@@ -161,7 +161,7 @@ void test_accelerometer_data() {
 }
 
 // Test: Connection stability
-void test_connection_stability() {
+void testConnectionStability() {
     if (!ESP32Wiimote::isConnected()) {
         TEST_IGNORE_MESSAGE("Wiimote not connected, skipping stability test");
         return;
@@ -198,13 +198,13 @@ void setup() {
 
     UNITY_BEGIN();
 
-    RUN_TEST(test_bluetooth_init);
-    RUN_TEST(test_initial_connection_state);
-    RUN_TEST(test_wiimote_connection);
-    RUN_TEST(test_battery_level);
-    RUN_TEST(test_button_press);
-    RUN_TEST(test_accelerometer_data);
-    RUN_TEST(test_connection_stability);
+    RUN_TEST(testBluetoothInit);
+    RUN_TEST(testInitialConnectionState);
+    RUN_TEST(testWiimoteConnection);
+    RUN_TEST(testBatteryLevel);
+    RUN_TEST(testButtonPress);
+    RUN_TEST(testAccelerometerData);
+    RUN_TEST(testConnectionStability);
 
     UNITY_END();
 

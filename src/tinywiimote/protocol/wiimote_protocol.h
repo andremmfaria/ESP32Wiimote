@@ -5,8 +5,8 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef ESP32WIIMOTE_WIIMOTE_PROTOCOL_H_
-#define ESP32WIIMOTE_WIIMOTE_PROTOCOL_H_
+#ifndef ESP32_WIIMOTE_WIIMOTE_PROTOCOL_H
+#define ESP32_WIIMOTE_WIIMOTE_PROTOCOL_H
 
 #include "../l2cap/l2cap_connection.h"
 #include "../l2cap/l2cap_packets.h"
@@ -26,7 +26,7 @@
 /**
  * Memory address space types
  */
-typedef enum { EEPROM_MEMORY = 0x00, CONTROL_REGISTER = 0x04 } address_space_t;
+typedef enum { EepromMemory = 0x00, ControlRegister = 0x04 } address_space_t;
 
 struct WiimoteLedCommand {
     uint8_t leds;
@@ -47,11 +47,11 @@ class WiimoteProtocol {
     void setReportingMode(uint16_t ch, const WiimoteReportingModeCommand &command);
     void requestStatus(uint16_t ch);
     void writeMemory(uint16_t ch,
-                     address_space_t address_space,
+                     address_space_t addressSpace,
                      uint32_t offset,
                      const uint8_t *data,
                      uint8_t length);
-    void readMemory(uint16_t ch, address_space_t address_space, uint32_t offset, uint16_t size);
+    void readMemory(uint16_t ch, address_space_t addressSpace, uint32_t offset, uint16_t size);
 
    private:
     /**
@@ -62,9 +62,9 @@ class WiimoteProtocol {
      */
     static bool isValidMemorySize(uint16_t size, const char *operation);
 
-    const L2capConnectionTable *connections;
-    L2capPacketSender *sender;
-    uint8_t payload[64];
+    const L2capConnectionTable *connections_;
+    L2capPacketSender *sender_;
+    uint8_t payload_[64];
 };
 
-#endif  // ESP32WIIMOTE_WIIMOTE_PROTOCOL_H_
+#endif  // ESP32_WIIMOTE_WIIMOTE_PROTOCOL_H

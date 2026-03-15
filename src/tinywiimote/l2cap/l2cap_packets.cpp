@@ -10,29 +10,29 @@
 #include "../../utils/serial_logging.h"
 #include "../utils/hci_utils.h"
 
-L2capPacketSender::L2capPacketSender() : sendCallback(nullptr) {}
+L2capPacketSender::L2capPacketSender() = default;
 
 void L2capPacketSender::setSendCallback(L2capRawSendFunc callback) {
-    sendCallback = callback;
+    sendCallback_ = callback;
 }
 
-uint16_t make_l2cap_packet(uint8_t *buf, uint16_t channelID, const uint8_t *data, uint16_t len) {
+uint16_t makeL2capPacket(uint8_t *buf, uint16_t channelID, const uint8_t *data, uint16_t len) {
     UINT16_TO_STREAM(buf, len);
     UINT16_TO_STREAM(buf, channelID);
     ARRAY_TO_STREAM(buf, data, len);
     return L2CAP_HEADER_LEN + len;
 }
 
-uint16_t make_acl_l2cap_packet(uint8_t *buf,
-                               uint16_t ch,
-                               const AclPacketControl &control,
-                               uint16_t channelID,
-                               uint8_t *data,
-                               uint8_t len) {
+uint16_t makeAclL2capPacket(uint8_t *buf,
+                            uint16_t ch,
+                            const AclPacketControl &control,
+                            uint16_t channelID,
+                            uint8_t *data,
+                            uint8_t len) {
     uint8_t *l2capBuf = buf + HCI_H4_ACL_PREAMBLE_SIZE;
-    uint16_t l2capLen = make_l2cap_packet(l2capBuf, channelID, data, len);
+    uint16_t l2capLen = makeL2capPacket(l2capBuf, channelID, data, len);
 
-    UINT8_TO_STREAM(buf, H4_TYPE_ACL);
+    UINT8_TO_STREAM(buf, H4TypeAcl);
     UINT8_TO_STREAM(buf, ch & 0xFF);
     UINT8_TO_STREAM(
         buf, ((ch >> 8) & 0x0F) | (control.packetBoundaryFlag << 4) | (control.broadcastFlag << 6));
@@ -45,7 +45,7 @@ void L2capPacketSender::sendAclL2capPacket(uint16_t ch,
                                            uint16_t remoteCID,
                                            uint8_t *payload,
                                            uint16_t payloadLen) {
-    if (sendCallback == nullptr) {
+    if (sendCallback_ == nullptr) {
         LOG_ERROR("L2CAP: sendCallback is null\n");
         return;
     }
@@ -58,9 +58,9 @@ void L2capPacketSender::sendAclL2capPacket(uint16_t ch,
     LOG_DEBUG("L2CAP: Sending ACL packet: ch=0x%04x remoteCID=0x%04x len=%d\n", ch, remoteCID,
               payloadLen);
 
-    const AclPacketControl control = {0b10, 0b00};
+    const AclPacketControl kControl = {0b10, 0b00};
 
-    const uint16_t packetLen =
-        make_acl_l2cap_packet(tmpQueueData, ch, control, remoteCID, payload, (uint8_t)payloadLen);
-    sendCallback(tmpQueueData, packetLen);
+    const uint16_t kPacketLen =
+        makeAclL2capPacket(tmpQueueData_, ch, kControl, remoteCID, payload, (uint8_t)payloadLen);
+    sendCallback_(tmpQueueData_, kPacketLen);
 }

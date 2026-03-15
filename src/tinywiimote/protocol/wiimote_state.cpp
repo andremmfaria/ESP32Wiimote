@@ -4,29 +4,29 @@
 
 WiimoteState::WiimoteState() {
     reset();
-    useAccelerometer = true;
+    useAccelerometer_ = true;
 }
 
 void WiimoteState::reset() {
-    wiimoteConnected = false;
-    nunchukConnected = false;
-    batteryLevel = 0;
+    wiimoteConnected_ = false;
+    nunchukConnected_ = false;
+    batteryLevel_ = 0;
 }
 
 void WiimoteState::setConnected(bool connected) {
-    wiimoteConnected = connected;
+    wiimoteConnected_ = connected;
 }
 
 bool WiimoteState::isConnected() const {
-    return wiimoteConnected;
+    return wiimoteConnected_;
 }
 
 void WiimoteState::setNunchukConnected(bool connected) {
-    nunchukConnected = connected;
+    nunchukConnected_ = connected;
 }
 
 bool WiimoteState::isNunchukConnected() const {
-    return nunchukConnected;
+    return nunchukConnected_;
 }
 
 void WiimoteState::setBatteryLevel(uint8_t level) {
@@ -34,18 +34,18 @@ void WiimoteState::setBatteryLevel(uint8_t level) {
     // Convert to percentage 0-100
     // Full battery is typically 0xC8 (200) but max is 0xD0 (208)
     uint8_t percentage = (level > 208) ? 100 : (level * 100) / 208;
-    batteryLevel = percentage;
+    batteryLevel_ = percentage;
     LOG_DEBUG("WiimoteState: Battery: raw=0x%02x (%d) -> %d%%\n", level, level, percentage);
 }
 
 uint8_t WiimoteState::getBatteryLevel() const {
-    return batteryLevel;
+    return batteryLevel_;
 }
 
 void WiimoteState::setUseAccelerometer(bool use) {
-    useAccelerometer = use;
+    useAccelerometer_ = use;
 }
 
 bool WiimoteState::getUseAccelerometer() const {
-    return useAccelerometer;
+    return useAccelerometer_;
 }

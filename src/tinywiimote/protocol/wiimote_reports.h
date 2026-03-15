@@ -18,15 +18,15 @@ class WiimoteReports {
     WiimoteReports();
 
     void clear();
-    void put(uint8_t number, const uint8_t* data, uint8_t len);
+    void put(uint8_t number, const uint8_t *data, uint8_t len);
     int available() const;
     TinyWiimoteData read();
 
    private:
-    uint8_t wp;
-    uint8_t rp;
-    uint8_t cnt;
-    TinyWiimoteData reports[RECEIVED_DATA_MAX_NUM];
+    uint8_t writeIndex_{0};
+    uint8_t readIndex_{0};
+    uint8_t itemCount_{0};
+    TinyWiimoteData reportBuffer_[RECEIVED_DATA_MAX_NUM];
 };
 
 #endif

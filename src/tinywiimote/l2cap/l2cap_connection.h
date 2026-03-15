@@ -5,8 +5,8 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef ESP32WIIMOTE_L2CAP_CONNECTION_H_
-#define ESP32WIIMOTE_L2CAP_CONNECTION_H_
+#ifndef ESP32_WIIMOTE_L2_CAP_CONNECTION_H
+#define ESP32_WIIMOTE_L2_CAP_CONNECTION_H
 
 #include <stdint.h>
 
@@ -37,8 +37,8 @@ class L2capConnectionTable {
     int getFirstConnectionHandle(uint16_t *ch) const;
 
    private:
-    L2capConnection list[L2CAP_CONNECTION_LIST_SIZE];
-    int size;
+    L2capConnection list_[L2CAP_CONNECTION_LIST_SIZE];
+    int size_;
 };
 
-#endif  // ESP32WIIMOTE_L2CAP_CONNECTION_H_
+#endif  // ESP32_WIIMOTE_L2_CAP_CONNECTION_H

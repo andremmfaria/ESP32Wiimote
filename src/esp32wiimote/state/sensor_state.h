@@ -5,8 +5,8 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef ESP32WIIMOTE_SENSOR_STATE_H_
-#define ESP32WIIMOTE_SENSOR_STATE_H_
+#ifndef ESP32_WIIMOTE_SENSOR_STATE_H
+#define ESP32_WIIMOTE_SENSOR_STATE_H
 
 #include <stdint.h>
 
@@ -93,13 +93,13 @@ class SensorStateManager {
     void resetChangeFlags();
 
    private:
-    struct AccelState _currentAccel;
-    struct AccelState _previousAccel;
+    struct AccelState currentAccel_;
+    struct AccelState previousAccel_;
 
-    struct NunchukState _currentNunchuk;
-    struct NunchukState _previousNunchuk;
+    struct NunchukState currentNunchuk_;
+    struct NunchukState previousNunchuk_;
 
-    int _nunchukStickThreshold;
+    int nunchukStickThreshold_;
 };
 
-#endif  // ESP32WIIMOTE_SENSOR_STATE_H_
+#endif  // ESP32_WIIMOTE_SENSOR_STATE_H

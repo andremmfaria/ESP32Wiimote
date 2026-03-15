@@ -5,8 +5,8 @@
 // - https://creativecommons.org/licenses/by-nc/3.0/
 // - Or see LICENSE.md
 
-#ifndef ESP32WIIMOTE_TINYWIIMOTE_HCI_EVENTS_H_
-#define ESP32WIIMOTE_TINYWIIMOTE_HCI_EVENTS_H_
+#ifndef ESP32_WIIMOTE_TINYWIIMOTE_HCI_EVENTS_H
+#define ESP32_WIIMOTE_TINYWIIMOTE_HCI_EVENTS_H
 
 #include "../utils/hci_utils.h"
 
@@ -21,7 +21,7 @@ typedef void (*HciDisconnectedFunc)(uint16_t connectionHandle, uint8_t reason, v
 #define HCI_SCANNED_DEVICE_LIST_SIZE 16
 
 struct HciScannedDevice {
-    struct bd_addr_t bdAddr;
+    struct BdAddrT bdAddr;
     uint8_t psrm;
     uint16_t clkofs;
 };
@@ -44,12 +44,12 @@ struct HciEventPacket {
     uint8_t *data;
 };
 
-void hci_events_init(struct HciEventContext *ctx, HciSendPacketFunc sendPacket, void *userData);
-void hci_events_set_callbacks(struct HciEventContext *ctx,
-                              HciAclConnectedFunc onAclConnected,
-                              HciDisconnectedFunc onDisconnected);
+void hciEventsInit(struct HciEventContext *ctx, HciSendPacketFunc sendPacket, void *userData);
+void hciEventsSetCallbacks(struct HciEventContext *ctx,
+                           HciAclConnectedFunc onAclConnected,
+                           HciDisconnectedFunc onDisconnected);
 
-void hci_events_reset_device(struct HciEventContext *ctx);
-void hci_events_handle_event(struct HciEventContext *ctx, const HciEventPacket &packet);
+void hciEventsResetDevice(struct HciEventContext *ctx);
+void hciEventsHandleEvent(struct HciEventContext *ctx, const HciEventPacket &packet);
 
-#endif  // ESP32WIIMOTE_TINYWIIMOTE_HCI_EVENTS_H_
+#endif  // ESP32_WIIMOTE_TINYWIIMOTE_HCI_EVENTS_H

@@ -22,7 +22,7 @@ void tearDown(void) {
 // ===== Accelerometer Tests =====
 
 // Test: Initial accelerometer state should be zero
-void test_initial_accel_state() {
+void testInitialAccelState() {
     AccelState accel = sensorState->getAccel();
     TEST_ASSERT_EQUAL_UINT8(0, accel.xAxis);
     TEST_ASSERT_EQUAL_UINT8(0, accel.yAxis);
@@ -31,7 +31,7 @@ void test_initial_accel_state() {
 }
 
 // Test: Update accelerometer changes state
-void test_update_accel_changes_state() {
+void testUpdateAccelChangesState() {
     AccelState newAccel = {100, 120, 140};
     sensorState->updateAccel(newAccel);
 
@@ -43,7 +43,7 @@ void test_update_accel_changes_state() {
 }
 
 // Test: Reset accelerometer clears state
-void test_reset_accel_clears_state() {
+void testResetAccelClearsState() {
     AccelState newAccel = {100, 120, 140};
     sensorState->updateAccel(newAccel);
     sensorState->resetAccel();
@@ -55,7 +55,7 @@ void test_reset_accel_clears_state() {
 }
 
 // Test: Accelerometer preserves previous state
-void test_accel_preserves_previous_state() {
+void testAccelPreservesPreviousState() {
     AccelState accel1 = {50, 60, 70};
     sensorState->updateAccel(accel1);
     sensorState->resetChangeFlags();
@@ -70,7 +70,7 @@ void test_accel_preserves_previous_state() {
 }
 
 // Test: Accelerometer max values (255)
-void test_accel_max_values() {
+void testAccelMaxValues() {
     AccelState maxAccel = {255, 255, 255};
     sensorState->updateAccel(maxAccel);
 
@@ -83,7 +83,7 @@ void test_accel_max_values() {
 // ===== Nunchuk Tests =====
 
 // Test: Initial nunchuk state should be zero
-void test_initial_nunchuk_state() {
+void testInitialNunchukState() {
     NunchukState nunchuk = sensorState->getNunchuk();
     TEST_ASSERT_EQUAL_UINT8(0, nunchuk.xStick);
     TEST_ASSERT_EQUAL_UINT8(0, nunchuk.yStick);
@@ -94,7 +94,7 @@ void test_initial_nunchuk_state() {
 }
 
 // Test: Update nunchuk changes state
-void test_update_nunchuk_changes_state() {
+void testUpdateNunchukChangesState() {
     NunchukState newNunchuk = {128, 130, 100, 110, 120};
     sensorState->updateNunchuk(newNunchuk);
 
@@ -107,7 +107,7 @@ void test_update_nunchuk_changes_state() {
 }
 
 // Test: Reset nunchuk clears state
-void test_reset_nunchuk_clears_state() {
+void testResetNunchukClearsState() {
     NunchukState newNunchuk = {128, 130, 100, 110, 120};
     sensorState->updateNunchuk(newNunchuk);
     sensorState->resetNunchuk();
@@ -121,7 +121,7 @@ void test_reset_nunchuk_clears_state() {
 }
 
 // Test: Nunchuk preserves previous state
-void test_nunchuk_preserves_previous_state() {
+void testNunchukPreservesPreviousState() {
     NunchukState nunchuk1 = {100, 110, 50, 60, 70};
     sensorState->updateNunchuk(nunchuk1);
     sensorState->resetChangeFlags();
@@ -135,7 +135,7 @@ void test_nunchuk_preserves_previous_state() {
 }
 
 // Test: Nunchuk stick threshold detection
-void test_nunchuk_threshold_detection() {
+void testNunchukThresholdDetection() {
     delete sensorState;
     sensorState = new SensorStateManager(9);  // threshold = 9 (3*3)
 
@@ -149,8 +149,8 @@ void test_nunchuk_threshold_detection() {
     TEST_ASSERT_FALSE(sensorState->nunchukStickHasChanged());
 
     // Reset and test again from baseline
-    NunchukState nunchuk_baseline = {128, 128, 0, 0, 0};
-    sensorState->updateNunchuk(nunchuk_baseline);
+    NunchukState nunchukBaseline = {128, 128, 0, 0, 0};
+    sensorState->updateNunchuk(nunchukBaseline);
     sensorState->resetChangeFlags();
 
     // Change by 3 (3*3=9, equals threshold, should trigger)
@@ -160,7 +160,7 @@ void test_nunchuk_threshold_detection() {
 }
 
 // Test: Nunchuk stick threshold on Y axis
-void test_nunchuk_threshold_y_axis() {
+void testNunchukThresholdYAxis() {
     delete sensorState;
     sensorState = new SensorStateManager(100);  // threshold = 100 (10*10)
 
@@ -177,7 +177,7 @@ void test_nunchuk_threshold_y_axis() {
 // ===== Reset and Change Flags Tests =====
 
 // Test: Reset change flags
-void test_reset_change_flags() {
+void testResetChangeFlags() {
     AccelState newAccel = {100, 120, 140};
     sensorState->updateAccel(newAccel);
 
@@ -194,7 +194,7 @@ void test_reset_change_flags() {
 }
 
 // Test: Multiple rapid updates
-void test_rapid_sensor_updates() {
+void testRapidSensorUpdates() {
     for (int i = 0; i < 10; i++) {
         AccelState accel = {(uint8_t)(i * 10), (uint8_t)(i * 11), (uint8_t)(i * 12)};
         sensorState->updateAccel(accel);
@@ -208,7 +208,7 @@ void test_rapid_sensor_updates() {
 }
 
 // Test: Nunchuk center position (stick at 128, 128)
-void test_nunchuk_center_position() {
+void testNunchukCenterPosition() {
     NunchukState center = {128, 128, 0, 0, 0};
     sensorState->updateNunchuk(center);
 
@@ -218,7 +218,7 @@ void test_nunchuk_center_position() {
 }
 
 // Test: Nunchuk extreme positions
-void test_nunchuk_extreme_positions() {
+void testNunchukExtremePositions() {
     // Max right/up
     NunchukState maxPos = {255, 255, 0, 0, 0};
     sensorState->updateNunchuk(maxPos);
@@ -240,25 +240,25 @@ int main(int argc, char **argv) {
     UNITY_BEGIN();
 
     // Accelerometer tests
-    RUN_TEST(test_initial_accel_state);
-    RUN_TEST(test_update_accel_changes_state);
-    RUN_TEST(test_reset_accel_clears_state);
-    RUN_TEST(test_accel_preserves_previous_state);
-    RUN_TEST(test_accel_max_values);
+    RUN_TEST(testInitialAccelState);
+    RUN_TEST(testUpdateAccelChangesState);
+    RUN_TEST(testResetAccelClearsState);
+    RUN_TEST(testAccelPreservesPreviousState);
+    RUN_TEST(testAccelMaxValues);
 
     // Nunchuk tests
-    RUN_TEST(test_initial_nunchuk_state);
-    RUN_TEST(test_update_nunchuk_changes_state);
-    RUN_TEST(test_reset_nunchuk_clears_state);
-    RUN_TEST(test_nunchuk_preserves_previous_state);
-    RUN_TEST(test_nunchuk_threshold_detection);
-    RUN_TEST(test_nunchuk_threshold_y_axis);
+    RUN_TEST(testInitialNunchukState);
+    RUN_TEST(testUpdateNunchukChangesState);
+    RUN_TEST(testResetNunchukClearsState);
+    RUN_TEST(testNunchukPreservesPreviousState);
+    RUN_TEST(testNunchukThresholdDetection);
+    RUN_TEST(testNunchukThresholdYAxis);
 
     // Combined tests
-    RUN_TEST(test_reset_change_flags);
-    RUN_TEST(test_rapid_sensor_updates);
-    RUN_TEST(test_nunchuk_center_position);
-    RUN_TEST(test_nunchuk_extreme_positions);
+    RUN_TEST(testResetChangeFlags);
+    RUN_TEST(testRapidSensorUpdates);
+    RUN_TEST(testNunchukCenterPosition);
+    RUN_TEST(testNunchukExtremePositions);
 
     return UNITY_END();
 }
@@ -269,25 +269,25 @@ void setup() {
     UNITY_BEGIN();
 
     // Accelerometer tests
-    RUN_TEST(test_initial_accel_state);
-    RUN_TEST(test_update_accel_changes_state);
-    RUN_TEST(test_reset_accel_clears_state);
-    RUN_TEST(test_accel_preserves_previous_state);
-    RUN_TEST(test_accel_max_values);
+    RUN_TEST(testInitialAccelState);
+    RUN_TEST(testUpdateAccelChangesState);
+    RUN_TEST(testResetAccelClearsState);
+    RUN_TEST(testAccelPreservesPreviousState);
+    RUN_TEST(testAccelMaxValues);
 
     // Nunchuk tests
-    RUN_TEST(test_initial_nunchuk_state);
-    RUN_TEST(test_update_nunchuk_changes_state);
-    RUN_TEST(test_reset_nunchuk_clears_state);
-    RUN_TEST(test_nunchuk_preserves_previous_state);
-    RUN_TEST(test_nunchuk_threshold_detection);
-    RUN_TEST(test_nunchuk_threshold_y_axis);
+    RUN_TEST(testInitialNunchukState);
+    RUN_TEST(testUpdateNunchukChangesState);
+    RUN_TEST(testResetNunchukClearsState);
+    RUN_TEST(testNunchukPreservesPreviousState);
+    RUN_TEST(testNunchukThresholdDetection);
+    RUN_TEST(testNunchukThresholdYAxis);
 
     // Combined tests
-    RUN_TEST(test_reset_change_flags);
-    RUN_TEST(test_rapid_sensor_updates);
-    RUN_TEST(test_nunchuk_center_position);
-    RUN_TEST(test_nunchuk_extreme_positions);
+    RUN_TEST(testResetChangeFlags);
+    RUN_TEST(testRapidSensorUpdates);
+    RUN_TEST(testNunchukCenterPosition);
+    RUN_TEST(testNunchukExtremePositions);
 
     UNITY_END();
 }

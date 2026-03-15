@@ -37,18 +37,18 @@ static inline void mockL2capRawSendCallback(uint8_t *data, size_t len) {
     }
 
     // Packet framing constants from hci_utils.h
-    const size_t HCI_H4_ACL_PREAMBLE_SIZE = 5;
-    const size_t L2CAP_HEADER_LEN = 4;
-    const uint8_t H4_TYPE_ACL = 2;
+    const size_t kHciH4AclPreambleSize = 5;
+    const size_t kL2CapHeaderLen = 4;
+    const uint8_t kH4TypeAcl = 2;
 
     // Validate minimum packet size (H4 + ACL header + L2CAP header)
-    const size_t minPacketSize = HCI_H4_ACL_PREAMBLE_SIZE + L2CAP_HEADER_LEN;
-    TEST_ASSERT_GREATER_OR_EQUAL_MESSAGE(minPacketSize, len,
+    const size_t kMinPacketSize = kHciH4AclPreambleSize + kL2CapHeaderLen;
+    TEST_ASSERT_GREATER_OR_EQUAL_MESSAGE(kMinPacketSize, len,
                                          "Packet too small - missing ACL/L2CAP headers");
 
     // Validate H4 packet type (byte 0)
     uint8_t h4Type = data[0];
-    TEST_ASSERT_EQUAL_UINT8_MESSAGE(H4_TYPE_ACL, h4Type,
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(kH4TypeAcl, h4Type,
                                     "Invalid H4 packet type - expected ACL (0x02)");
 
     // Extract and validate ACL header (bytes 1-4)
@@ -59,24 +59,24 @@ static inline void mockL2capRawSendCallback(uint8_t *data, size_t len) {
     TEST_ASSERT_EQUAL_UINT16_MESSAGE(expectedAclHandle, aclHandle,
                                      "ACL connection handle mismatch");
 
-    TEST_ASSERT_EQUAL_UINT16_MESSAGE(len - HCI_H4_ACL_PREAMBLE_SIZE, aclLength,
+    TEST_ASSERT_EQUAL_UINT16_MESSAGE(len - kHciH4AclPreambleSize, aclLength,
                                      "ACL length field doesn't match actual payload size");
 
     // Extract and validate L2CAP header (bytes 5-8)
     uint16_t l2capLength = data[5] | (data[6] << 8);
     uint16_t l2capCID = data[7] | (data[8] << 8);
 
-    TEST_ASSERT_EQUAL_UINT16_MESSAGE(len - minPacketSize, l2capLength,
+    TEST_ASSERT_EQUAL_UINT16_MESSAGE(len - kMinPacketSize, l2capLength,
                                      "L2CAP length field doesn't match actual payload size");
 
     TEST_ASSERT_EQUAL_UINT16_MESSAGE(mockLastRemoteCID, l2capCID, "L2CAP channel ID mismatch");
 
     // Store validated payload (strip both headers for test assertions)
-    size_t payloadLen = len - minPacketSize;
+    size_t payloadLen = len - kMinPacketSize;
     payloadLen = std::min<unsigned long>(payloadLen, sizeof(mockLastPacket));
 
     if (payloadLen > 0) {
-        memcpy(mockLastPacket, data + minPacketSize, payloadLen);
+        memcpy(mockLastPacket, data + kMinPacketSize, payloadLen);
     }
     mockLastPacketLen = (int)payloadLen;
 }
