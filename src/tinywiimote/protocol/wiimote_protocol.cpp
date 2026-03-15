@@ -36,23 +36,6 @@
  */
 #define EEPROM_DATA_SIZE (16)
 
-/**
- * Convert address space enum to Wiimote address space byte
- *
- * @param address_space address_space_t enum value
- * @return Address space byte (0x00 for EEPROM, 0x04 for Control Register)
- */
-static uint8_t getAddressSpaceByte(address_space_t addressSpace) {
-    switch (addressSpace) {
-        case EepromMemory:
-            return 0x00;
-        case ControlRegister:
-            return 0x04;
-        default:
-            return 0xFF;
-    }
-}
-
 WiimoteProtocol::WiimoteProtocol() : connections_(nullptr), sender_(nullptr), payload_{0} {}
 
 void WiimoteProtocol::init(const L2capConnectionTable *connectionTable,
@@ -169,12 +152,13 @@ void WiimoteProtocol::requestStatus(uint16_t ch) {
  * where MM is address space, O is offset, S is size, DD is data
  */
 void WiimoteProtocol::writeMemory(uint16_t ch,
-                                  address_space_t addressSpace,
+                                  WiimoteAddressSpace addressSpace,
                                   uint32_t offset,
                                   const uint8_t *data,
                                   uint8_t length) {
-    LOG_DEBUG("wiimote_write_memory addr_space=%d (%s) offset=0x%06lX len=%d\n", addressSpace,
-              wiimoteAddressSpaceToString(getAddressSpaceByte(addressSpace)), offset, length);
+    const uint8_t addressSpaceByte = static_cast<uint8_t>(addressSpace);
+    LOG_DEBUG("wiimote_write_memory addr_space=%d (%s) offset=0x%06lX len=%d\n", addressSpaceByte,
+              wiimoteAddressSpaceToString(addressSpaceByte), offset, length);
 
     if (connections_ == nullptr || sender_ == nullptr) {
         return;
@@ -192,11 +176,11 @@ void WiimoteProtocol::writeMemory(uint16_t ch,
 
     // Build output report header
     PayloadBuilder pb(payload_, sizeof(payload_));
-    pb.append(HID_OUTPUT_REPORT);                  // 0xA2
-    pb.append(WIIMOTE_RPT_WRITE_MEMORY);           // 0x16
-    pb.append(getAddressSpaceByte(addressSpace));  // MM
-    pb.appendU24BE(offset);                        // 24-bit offset (big-endian)
-    pb.append(length);                             // Length of data to write
+    pb.append(HID_OUTPUT_REPORT);         // 0xA2
+    pb.append(WIIMOTE_RPT_WRITE_MEMORY);  // 0x16
+    pb.append(addressSpaceByte);          // MM
+    pb.appendU24BE(offset);               // 24-bit offset (big-endian)
+    pb.append(length);                    // Length of data to write
 
     // Clear data area and copy user data
     pb.reserveZeroed(EEPROM_DATA_SIZE);
@@ -213,11 +197,12 @@ void WiimoteProtocol::writeMemory(uint16_t ch,
  * Response comes as input report (0x21)
  */
 void WiimoteProtocol::readMemory(uint16_t ch,
-                                 address_space_t addressSpace,
+                                 WiimoteAddressSpace addressSpace,
                                  uint32_t offset,
                                  uint16_t size) {
-    LOG_DEBUG("wiimote_read_memory addr_space=%d (%s) offset=0x%06lX size=%d\n", addressSpace,
-              wiimoteAddressSpaceToString(getAddressSpaceByte(addressSpace)), offset, size);
+    const uint8_t addressSpaceByte = static_cast<uint8_t>(addressSpace);
+    LOG_DEBUG("wiimote_read_memory addr_space=%d (%s) offset=0x%06lX size=%d\n", addressSpaceByte,
+              wiimoteAddressSpaceToString(addressSpaceByte), offset, size);
 
     if (connections_ == nullptr || sender_ == nullptr) {
         return;
@@ -235,11 +220,11 @@ void WiimoteProtocol::readMemory(uint16_t ch,
 
     // Build output report
     PayloadBuilder pb(payload_, sizeof(payload_));
-    pb.append(HID_OUTPUT_REPORT);                  // 0xA2
-    pb.append(WIIMOTE_RPT_READ_MEMORY);            // 0x17
-    pb.append(getAddressSpaceByte(addressSpace));  // MM
-    pb.appendU24BE(offset);                        // 24-bit offset (big-endian)
-    pb.appendU16BE(size);                          // 16-bit size (big-endian)
+    pb.append(HID_OUTPUT_REPORT);        // 0xA2
+    pb.append(WIIMOTE_RPT_READ_MEMORY);  // 0x17
+    pb.append(addressSpaceByte);         // MM
+    pb.appendU24BE(offset);              // 24-bit offset (big-endian)
+    pb.appendU16BE(size);                // 16-bit size (big-endian)
 
     sender_->sendAclL2capPacket(ch, remoteCID, payload_, pb.length());
     LOG_DEBUG("queued acl_l2cap_packet(Read Memory)\n");
