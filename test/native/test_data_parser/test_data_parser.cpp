@@ -89,8 +89,8 @@ void testParseMultipleButtons() {
     TEST_ASSERT_EQUAL(1, result);
 
     ButtonState current = buttonState->getCurrent();
-    TEST_ASSERT_TRUE(current & ButtonA);
-    TEST_ASSERT_TRUE(current & ButtonTwo);
+    TEST_ASSERT_TRUE(buttonStateHas(current, ButtonA));
+    TEST_ASSERT_TRUE(buttonStateHas(current, ButtonTwo));
 }
 
 // Test: Parse D-pad buttons
@@ -223,8 +223,8 @@ void testParseNunchukButtons() {
     parser->parseData();
 
     ButtonState buttons = buttonState->getCurrent();
-    TEST_ASSERT_TRUE(buttons & ButtonC);
-    TEST_ASSERT_FALSE(buttons & ButtonZ);
+    TEST_ASSERT_TRUE(buttonStateHas(buttons, ButtonC));
+    TEST_ASSERT_FALSE(buttonStateHas(buttons, ButtonZ));
 
     // Reset for next test
     setUp();
@@ -237,8 +237,8 @@ void testParseNunchukButtons() {
     parser->parseData();
 
     buttons = buttonState->getCurrent();
-    TEST_ASSERT_FALSE(buttons & ButtonC);
-    TEST_ASSERT_TRUE(buttons & ButtonZ);
+    TEST_ASSERT_FALSE(buttonStateHas(buttons, ButtonC));
+    TEST_ASSERT_TRUE(buttonStateHas(buttons, ButtonZ));
 }
 
 // Test: Parse nunchuk with Report 0x35 (16 extension bytes)
@@ -273,8 +273,8 @@ void testCombinedWiimoteNunchukButtons() {
     parser->parseData();
 
     ButtonState buttons = buttonState->getCurrent();
-    TEST_ASSERT_TRUE(buttons & ButtonA);
-    TEST_ASSERT_TRUE(buttons & ButtonC);
+    TEST_ASSERT_TRUE(buttonStateHas(buttons, ButtonA));
+    TEST_ASSERT_TRUE(buttonStateHas(buttons, ButtonC));
 }
 
 // ===== Filter Tests =====

@@ -60,7 +60,9 @@ void WiimoteDataParser::parseButtonData(const TinyWiimoteData &data, int &button
     // Check for button data in report
     if ((data.data[1] >= 0x30) && (data.data[1] <= 0x37)) {
         offs = 2;
-        ButtonState buttonState = (ButtonState)((data.data[offs] << 8) | data.data[offs + 1]);
+        const uint16_t rawButtons =
+            (static_cast<uint16_t>(data.data[offs]) << 8) | data.data[offs + 1];
+        ButtonState buttonState = buttonStateFromRaw(rawButtons);
         buttonState_->update(buttonState);
     }
 
@@ -132,10 +134,10 @@ void WiimoteDataParser::parseNunchukData(const TinyWiimoteData &data, ChangeFlag
         // Add nunchuk buttons to button state
         ButtonState buttonState = buttonState_->getCurrent();
         if (cBtn != 0U) {
-            buttonState = (ButtonState)((int)buttonState | ButtonC);
+            buttonState = buttonStateOr(buttonState, ButtonC);
         }
         if (zBtn != 0U) {
-            buttonState = (ButtonState)((int)buttonState | ButtonZ);
+            buttonState = buttonStateOr(buttonState, ButtonZ);
         }
         buttonState_->update(buttonState);
 
