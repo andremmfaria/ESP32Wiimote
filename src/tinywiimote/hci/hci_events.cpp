@@ -9,12 +9,14 @@
 
 #include "../../utils/hci_codes.h"
 #include "../../utils/serial_logging.h"
+#include "Arduino.h"
 #include "hci_commands.h"
 #include "hci_types.h"
 
 #include <string.h>
 
 static uint8_t gHciTxBuffer[256];
+static const uint32_t kFastReconnectTtlMs = 3UL * 60UL * 1000UL;
 
 static void clearScannedDevices(struct HciEventContext *ctx) {
     ctx->scannedDeviceCount = 0;
@@ -37,10 +39,66 @@ static int addScannedDevice(struct HciEventContext *ctx, struct HciScannedDevice
     return ctx->scannedDeviceCount;
 }
 
+static bool isSameBdAddr(const struct BdAddrT &a, const struct BdAddrT &b) {
+    return memcmp(a.addr, b.addr, BD_ADDR_LEN) == 0;
+}
+
 static void hciSend(struct HciEventContext *ctx, uint16_t len) {
     if (ctx->sendPacket != nullptr) {
         ctx->sendPacket(gHciTxBuffer, len, ctx->userData);
     }
+}
+
+static uint32_t nowMs(struct HciEventContext *ctx) {
+    if (ctx->getTimeMs != nullptr) {
+        return ctx->getTimeMs(ctx->userData);
+    }
+    return millis();
+}
+
+static bool isFastReconnectCacheValid(struct HciEventContext *ctx) {
+    if (!ctx->hasLastWiimote) {
+        return false;
+    }
+
+    if (ctx->fastReconnectTtlMs == 0) {
+        return false;
+    }
+
+    const uint32_t kElapsedMs = nowMs(ctx) - ctx->lastWiimoteSeenMs;
+    return kElapsedMs <= ctx->fastReconnectTtlMs;
+}
+
+static void startInquiry(struct HciEventContext *ctx) {
+    LOG_INFO("HCI: Device initialized, starting inquiry\n");
+    clearScannedDevices(ctx);
+    HciInquiryParams inquiryParams = {0x9E8B33, 0x05, 0x00};
+    const uint16_t kTxLen = makeCmdInquiry(gHciTxBuffer, inquiryParams);
+    hciSend(ctx, kTxLen);
+}
+
+static void startCreateConnection(struct HciEventContext *ctx,
+                                  const struct HciScannedDevice &target,
+                                  bool isFastReconnect) {
+    HciCreateConnectionParams createConnectionParams = {
+        target.bdAddr, 0x0008, target.psrm, target.clkofs, 0x00,
+    };
+    const uint16_t kTxLen = makeCmdCreateConnection(gHciTxBuffer, createConnectionParams);
+    hciSend(ctx, kTxLen);
+
+    ctx->currentConnectTarget = target;
+    ctx->hasCurrentConnectTarget = true;
+    ctx->pendingFastReconnect = isFastReconnect;
+}
+
+static void fallbackFromFastReconnectToInquiry(struct HciEventContext *ctx) {
+    if (!ctx->pendingFastReconnect) {
+        return;
+    }
+
+    LOG_WARN("HCI: Fast reconnect failed, falling back to inquiry\n");
+    ctx->pendingFastReconnect = false;
+    startInquiry(ctx);
 }
 
 void hciEventsInit(struct HciEventContext *ctx, HciSendPacketFunc sendPacket, void *userData) {
@@ -51,6 +109,7 @@ void hciEventsInit(struct HciEventContext *ctx, HciSendPacketFunc sendPacket, vo
     memset(ctx, 0, sizeof(*ctx));
     ctx->sendPacket = sendPacket;
     ctx->userData = userData;
+    ctx->fastReconnectTtlMs = kFastReconnectTtlMs;
 }
 
 void hciEventsSetCallbacks(struct HciEventContext *ctx,
@@ -62,6 +121,22 @@ void hciEventsSetCallbacks(struct HciEventContext *ctx,
 
     ctx->onAclConnected = onAclConnected;
     ctx->onDisconnected = onDisconnected;
+}
+
+void hciEventsSetTimeProvider(struct HciEventContext *ctx, HciGetTimeMsFunc getTimeMs) {
+    if (ctx == nullptr) {
+        return;
+    }
+
+    ctx->getTimeMs = getTimeMs;
+}
+
+void hciEventsSetFastReconnectTtlMs(struct HciEventContext *ctx, uint32_t ttlMs) {
+    if (ctx == nullptr) {
+        return;
+    }
+
+    ctx->fastReconnectTtlMs = ttlMs;
 }
 
 void hciEventsResetDevice(struct HciEventContext *ctx) {
@@ -132,11 +207,12 @@ static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *da
 
         case HCI_OPCODE_WRITE_SCAN_ENABLE: {
             if (kStatus == 0x00) {
-                LOG_INFO("HCI: Device initialized, starting inquiry\n");
-                clearScannedDevices(ctx);
-                HciInquiryParams inquiryParams = {0x9E8B33, 0x05, 0x00};
-                const uint16_t kTxLen = makeCmdInquiry(gHciTxBuffer, inquiryParams);
-                hciSend(ctx, kTxLen);
+                if (isFastReconnectCacheValid(ctx)) {
+                    LOG_INFO("HCI: Fast reconnect: trying cached Wiimote address\n");
+                    startCreateConnection(ctx, ctx->lastWiimote, true);
+                } else {
+                    startInquiry(ctx);
+                }
                 ctx->deviceInited = true;
             } else {
                 LOG_ERROR("HCI: %s (0x%04x) failed, status=0x%02x (%s)\n",
@@ -160,8 +236,6 @@ static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *da
 }
 
 static void handleCommandStatus(struct HciEventContext *ctx, const uint8_t *data) {
-    (void)ctx;
-
     const uint8_t kStatus = data[0];
     const uint8_t kNumHciCommandPackets = data[1];
     const uint16_t kCmdOpcode = readUinT16Le(data + 2);
@@ -170,6 +244,10 @@ static void handleCommandStatus(struct HciEventContext *ctx, const uint8_t *data
         LOG_WARN("HCI: Command status for %s (0x%04x): status=0x%02x (%s), numPackets=%u\n",
                  hciOpcodeToString(kCmdOpcode), kCmdOpcode, kStatus, hciStatusCodeToString(kStatus),
                  kNumHciCommandPackets);
+
+        if (kCmdOpcode == HCI_OPCODE_CREATE_CONNECTION) {
+            fallbackFromFastReconnectToInquiry(ctx);
+        }
     }
 }
 
@@ -236,20 +314,37 @@ static void handleRemoteNameRequestComplete(struct HciEventContext *ctx, uint8_t
         hciSend(ctx, kCancelLen);
 
         const struct HciScannedDevice kScanned = ctx->scannedDevices[kIdx];
-        const uint16_t kPacketType = 0x0008;
-        const uint8_t kAllowRoleSwitch = 0x00;
-
-        HciCreateConnectionParams createConnectionParams = {
-            kScanned.bdAddr, kPacketType, kScanned.psrm, kScanned.clkofs, kAllowRoleSwitch,
-        };
-        const uint16_t kTxLen = makeCmdCreateConnection(gHciTxBuffer, createConnectionParams);
-        hciSend(ctx, kTxLen);
+        startCreateConnection(ctx, kScanned, false);
     }
 }
 
 static void handleConnectionComplete(struct HciEventContext *ctx, uint8_t *data) {
+    const uint8_t kStatus = data[0];
+    if (kStatus != 0x00) {
+        LOG_WARN("HCI: Connection complete with status=0x%02x (%s)\n", kStatus,
+                 hciStatusCodeToString(kStatus));
+        fallbackFromFastReconnectToInquiry(ctx);
+        return;
+    }
+
     const uint16_t kConnectionHandle = readUinT16Le(data + 1);
     LOG_INFO("HCI: Connection complete! Handle: 0x%04x\n", kConnectionHandle);
+
+    if (ctx->hasCurrentConnectTarget) {
+        if (ctx->hasLastWiimote &&
+            !isSameBdAddr(ctx->lastWiimote.bdAddr, ctx->currentConnectTarget.bdAddr)) {
+            LOG_INFO("HCI: Connected to a different Wiimote, replacing fast reconnect cache\n");
+            ctx->hasLastWiimote = false;
+            ctx->lastWiimoteSeenMs = 0;
+        }
+
+        ctx->lastWiimote = ctx->currentConnectTarget;
+        ctx->lastWiimoteSeenMs = nowMs(ctx);
+        ctx->hasLastWiimote = true;
+    }
+
+    ctx->pendingFastReconnect = false;
+
     if (ctx->onAclConnected != nullptr) {
         ctx->onAclConnected(kConnectionHandle, ctx->userData);
     }

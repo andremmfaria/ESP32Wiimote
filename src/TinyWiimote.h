@@ -36,6 +36,7 @@ uint8_t tinyWiimoteGetBatteryLevel();
 void tinyWiimoteRequestBatteryUpdate();
 
 void tinyWiimoteReqAccelerometer(bool use);
+void tinyWiimoteSetFastReconnectTtlMs(uint32_t ttlMs);
 
 void handleHciData(uint8_t *data, size_t len);
 

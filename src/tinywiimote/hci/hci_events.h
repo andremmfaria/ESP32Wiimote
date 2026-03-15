@@ -17,6 +17,7 @@
 typedef void (*HciSendPacketFunc)(uint8_t *data, size_t len, void *userData);
 typedef void (*HciAclConnectedFunc)(uint16_t connectionHandle, void *userData);
 typedef void (*HciDisconnectedFunc)(uint16_t connectionHandle, uint8_t reason, void *userData);
+typedef uint32_t (*HciGetTimeMsFunc)(void *userData);
 
 #define HCI_SCANNED_DEVICE_LIST_SIZE 16
 
@@ -30,10 +31,19 @@ struct HciEventContext {
     HciSendPacketFunc sendPacket;
     HciAclConnectedFunc onAclConnected;
     HciDisconnectedFunc onDisconnected;
+    HciGetTimeMsFunc getTimeMs;
     void *userData;
 
     struct HciScannedDevice scannedDevices[HCI_SCANNED_DEVICE_LIST_SIZE];
     int scannedDeviceCount;
+
+    struct HciScannedDevice lastWiimote;
+    struct HciScannedDevice currentConnectTarget;
+    uint32_t lastWiimoteSeenMs;
+    uint32_t fastReconnectTtlMs;
+    bool hasLastWiimote;
+    bool hasCurrentConnectTarget;
+    bool pendingFastReconnect;
 
     bool deviceInited;
 };
@@ -48,6 +58,8 @@ void hciEventsInit(struct HciEventContext *ctx, HciSendPacketFunc sendPacket, vo
 void hciEventsSetCallbacks(struct HciEventContext *ctx,
                            HciAclConnectedFunc onAclConnected,
                            HciDisconnectedFunc onDisconnected);
+void hciEventsSetTimeProvider(struct HciEventContext *ctx, HciGetTimeMsFunc getTimeMs);
+void hciEventsSetFastReconnectTtlMs(struct HciEventContext *ctx, uint32_t ttlMs);
 
 void hciEventsResetDevice(struct HciEventContext *ctx);
 void hciEventsHandleEvent(struct HciEventContext *ctx, const HciEventPacket &packet);

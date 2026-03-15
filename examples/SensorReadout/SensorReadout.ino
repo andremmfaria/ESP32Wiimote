@@ -2,7 +2,13 @@
 
 #include <Arduino.h>
 
-ESP32Wiimote wiimote;
+ESP32WiimoteConfig config = {
+    5,
+    32,
+    32,
+    180000,
+};
+ESP32Wiimote wiimote(config);
 
 void setup() {
     Serial.begin(115200);

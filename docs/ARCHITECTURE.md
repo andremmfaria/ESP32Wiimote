@@ -507,10 +507,12 @@ _queueManager = new HciQueueManager(32, 32); // TX, RX size
 
 ### Nunchuk Threshold
 
-`ESP32Wiimote` constructor:
+`ESP32WiimoteConfig`:
 
 ```cpp
-ESP32Wiimote wiimote(5);  // Stick sensitivity
+ESP32WiimoteConfig config;
+config.nunchukStickThreshold = 5;  // Stick sensitivity
+ESP32Wiimote wiimote(config);
 ```
 
 ---
