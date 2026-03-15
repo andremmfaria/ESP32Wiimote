@@ -12,10 +12,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#ifndef WIIMOTE_VERBOSE
-#define WIIMOTE_VERBOSE WIIMOTE_LOG_WARNING
-#endif
-
 static uint8_t sanitizeLogLevel(uint8_t level) {
     if (level > (uint8_t)WiimoteLogDebug) {
         return (uint8_t)WiimoteLogDebug;
@@ -34,7 +30,7 @@ void wiimoteSetLogLevel(uint8_t level) {
     gWiimoteLogLevel = sanitizeLogLevel(level);
 }
 
-void wiimoteLogPrint(uint8_t level, const char *prefix, const char *format, ...) {
+void wiimoteLogVPrint(uint8_t level, const char *prefix, const char *format, va_list args) {
     if (format == nullptr || prefix == nullptr || level > gWiimoteLogLevel) {
         return;
     }
@@ -42,14 +38,18 @@ void wiimoteLogPrint(uint8_t level, const char *prefix, const char *format, ...)
     Serial.print(prefix);
 
     char buffer[256];
-    va_list args;
-    va_start(args, format);
     const int kWritten = vsnprintf(buffer, sizeof(buffer), format, args);
-    va_end(args);
 
     if (kWritten <= 0) {
         return;
     }
 
     Serial.printf("%s", buffer);
+}
+
+void wiimoteLogPrint(uint8_t level, const char *prefix, const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    wiimoteLogVPrint(level, prefix, format, args);
+    va_end(args);
 }
