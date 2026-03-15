@@ -10,26 +10,52 @@ pip install platformio
 
 ## Running Tests
 
+### 0. Unified Build Script (Recommended)
+
+Use the root build script so local, CI, and team workflows use the same commands:
+
+```bash
+./build.sh help
+```
+
+Common targets:
+
+```bash
+./build.sh test:native
+./build.sh test:coverage
+./build.sh test:dev
+./build.sh test:dev:build
+./build.sh build:dev
+./build.sh release
+```
+
+Hardware targets accept `ESP32_PORT`:
+
+```bash
+ESP32_PORT=/dev/ttyUSB0 ./build.sh test:dev
+ESP32_PORT=/dev/ttyUSB0 ./build.sh upload:dev
+ESP32_PORT=/dev/ttyUSB0 ./build.sh monitor:dev
+```
+
 ### 1. Native Tests (Recommended for Development)
 
 Run all native tests on your PC (no hardware needed):
 
 ```bash
-cd /path/to/ESP32Wiimote
-pio test -e native
+./build.sh test:native
 ```
 
 Run specific test:
 
 ```bash
-pio test -e native -f test_button_state
-pio test -e native -f test_sensor_state
+./build.sh test:native -- -f test_button_state
+./build.sh test:native -- -f test_sensor_state
 ```
 
 Verbose output:
 
 ```bash
-pio test -e native -v
+./build.sh test:native -- -v
 ```
 
 **Advantages:**
@@ -44,7 +70,7 @@ pio test -e native -v
 Upload and run tests on ESP32:
 
 ```bash
-pio test -e esp32dev --upload-port /dev/ttyUSB0 -v
+ESP32_PORT=/dev/ttyUSB0 ./build.sh test:dev
 ```
 
 **Requirements:**
@@ -58,7 +84,30 @@ pio test -e esp32dev --upload-port /dev/ttyUSB0 -v
 Compile for ESP32 without running tests:
 
 ```bash
-pio run -e esp32dev
+./build.sh build:dev
+```
+
+Compile embedded tests without upload/execution:
+
+```bash
+./build.sh test:dev:build
+```
+
+### 4. Coverage
+
+Generate native line/branch coverage reports:
+
+```bash
+./build.sh test:coverage
+```
+
+Outputs:
+
+- `coverage/gcovr-summary.txt`
+- `coverage/gcovr.xml`
+- `coverage/html-gcovr/index.html`
+- `coverage/lcov.info`
+- `coverage/html-lcov/index.html`
 ```
 
 ## Test Structure
