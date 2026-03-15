@@ -11,56 +11,56 @@
 
 uint16_t makeCmdReset(uint8_t *buf) {
     streamU8ToLe(buf, static_cast<uint8_t>(H4PacketType::Command));
-    streamU16ToLe(buf, HCI_OPCODE_RESET);
+    streamU16ToLe(buf, kHciOpcodeReset);
     streamU8ToLe(buf, 0);
-    return HCI_H4_CMD_PREAMBLE_SIZE;
+    return kHciH4CmdPreambleSize;
 }
 
 uint16_t makeCmdReadBdAddr(uint8_t *buf) {
     streamU8ToLe(buf, static_cast<uint8_t>(H4PacketType::Command));
-    streamU16ToLe(buf, HCI_OPCODE_READ_BD_ADDR);
+    streamU16ToLe(buf, kHciOpcodeReadBdAddr);
     streamU8ToLe(buf, 0);
-    return HCI_H4_CMD_PREAMBLE_SIZE;
+    return kHciH4CmdPreambleSize;
 }
 
 uint16_t makeCmdWriteLocalName(uint8_t *buf, const uint8_t *name, uint8_t len) {
     streamU8ToLe(buf, static_cast<uint8_t>(H4PacketType::Command));
-    streamU16ToLe(buf, HCI_OPCODE_WRITE_LOCAL_NAME);
-    streamU8ToLe(buf, HCIC_PARAM_SIZE_WRITE_LOCAL_NAME);
+    streamU16ToLe(buf, kHciOpcodeWriteLocalName);
+    streamU8ToLe(buf, kHcicParamSizeWriteLocalName);
 
     streamArray(buf, name, len);
-    for (uint8_t i = len; i < HCIC_PARAM_SIZE_WRITE_LOCAL_NAME; i++) {
+    for (uint8_t i = len; i < kHcicParamSizeWriteLocalName; i++) {
         streamU8ToLe(buf, 0);
     }
 
-    return HCI_H4_CMD_PREAMBLE_SIZE + HCIC_PARAM_SIZE_WRITE_LOCAL_NAME;
+    return kHciH4CmdPreambleSize + kHcicParamSizeWriteLocalName;
 }
 
 uint16_t makeCmdWriteClassOfDevice(uint8_t *buf, const uint8_t *cod) {
     streamU8ToLe(buf, static_cast<uint8_t>(H4PacketType::Command));
-    streamU16ToLe(buf, HCI_OPCODE_WRITE_CLASS_OF_DEVICE);
-    streamU8ToLe(buf, HCIC_PARAM_SIZE_WRITE_CLASS_OF_DEVICE);
+    streamU16ToLe(buf, kHciOpcodeWriteClassOfDevice);
+    streamU8ToLe(buf, kHcicParamSizeWriteClassOfDevice);
 
-    for (uint8_t i = 0; i < HCIC_PARAM_SIZE_WRITE_CLASS_OF_DEVICE; i++) {
+    for (uint8_t i = 0; i < kHcicParamSizeWriteClassOfDevice; i++) {
         streamU8ToLe(buf, cod[i]);
     }
 
-    return HCI_H4_CMD_PREAMBLE_SIZE + HCIC_PARAM_SIZE_WRITE_CLASS_OF_DEVICE;
+    return kHciH4CmdPreambleSize + kHcicParamSizeWriteClassOfDevice;
 }
 
 uint16_t makeCmdWriteScanEnable(uint8_t *buf, uint8_t mode) {
     streamU8ToLe(buf, static_cast<uint8_t>(H4PacketType::Command));
-    streamU16ToLe(buf, HCI_OPCODE_WRITE_SCAN_ENABLE);
-    streamU8ToLe(buf, HCIC_PARAM_SIZE_WRITE_SCAN_ENABLE);
+    streamU16ToLe(buf, kHciOpcodeWriteScanEnable);
+    streamU8ToLe(buf, kHcicParamSizeWriteScanEnable);
 
     streamU8ToLe(buf, mode);
-    return HCI_H4_CMD_PREAMBLE_SIZE + HCIC_PARAM_SIZE_WRITE_SCAN_ENABLE;
+    return kHciH4CmdPreambleSize + kHcicParamSizeWriteScanEnable;
 }
 
 uint16_t makeCmdInquiry(uint8_t *buf, const HciInquiryParams &params) {
     streamU8ToLe(buf, static_cast<uint8_t>(H4PacketType::Command));
-    streamU16ToLe(buf, HCI_OPCODE_INQUIRY);
-    streamU8ToLe(buf, HCIC_PARAM_SIZE_WRITE_INQUIRY);
+    streamU16ToLe(buf, kHciOpcodeInquiry);
+    streamU8ToLe(buf, kHcicParamSizeWriteInquiry);
 
     streamU8ToLe(buf, (uint8_t)(params.lap & 0xFF));
     streamU8ToLe(buf, (uint8_t)((params.lap >> 8) & 0xFF));
@@ -68,34 +68,34 @@ uint16_t makeCmdInquiry(uint8_t *buf, const HciInquiryParams &params) {
     streamU8ToLe(buf, params.length);
     streamU8ToLe(buf, params.maxResponses);
 
-    return HCI_H4_CMD_PREAMBLE_SIZE + HCIC_PARAM_SIZE_WRITE_INQUIRY;
+    return kHciH4CmdPreambleSize + kHcicParamSizeWriteInquiry;
 }
 
 uint16_t makeCmdInquiryCancel(uint8_t *buf) {
     streamU8ToLe(buf, static_cast<uint8_t>(H4PacketType::Command));
-    streamU16ToLe(buf, HCI_OPCODE_INQUIRY_CANCEL);
-    streamU8ToLe(buf, HCIC_PARAM_SIZE_WRITE_INQUIRY_CANCEL);
+    streamU16ToLe(buf, kHciOpcodeInquiryCancel);
+    streamU8ToLe(buf, kHcicParamSizeWriteInquiryCancel);
 
-    return HCI_H4_CMD_PREAMBLE_SIZE + HCIC_PARAM_SIZE_WRITE_INQUIRY_CANCEL;
+    return kHciH4CmdPreambleSize + kHcicParamSizeWriteInquiryCancel;
 }
 
 uint16_t makeCmdRemoteNameRequest(uint8_t *buf, const HciRemoteNameRequestParams &params) {
     streamU8ToLe(buf, static_cast<uint8_t>(H4PacketType::Command));
-    streamU16ToLe(buf, HCI_OPCODE_REMOTE_NAME_REQUEST);
-    streamU8ToLe(buf, HCIC_PARAM_SIZE_REMOTE_NAME_REQUEST);
+    streamU16ToLe(buf, kHciOpcodeRemoteNameRequest);
+    streamU8ToLe(buf, kHcicParamSizeRemoteNameRequest);
 
     streamBdAddr(buf, params.bdAddr.addr);
     streamU8ToLe(buf, params.pageScanRepetitionMode);
     streamU8ToLe(buf, 0);
     streamU16ToLe(buf, params.clockOffset);
 
-    return HCI_H4_CMD_PREAMBLE_SIZE + HCIC_PARAM_SIZE_REMOTE_NAME_REQUEST;
+    return kHciH4CmdPreambleSize + kHcicParamSizeRemoteNameRequest;
 }
 
 uint16_t makeCmdCreateConnection(uint8_t *buf, const HciCreateConnectionParams &params) {
     streamU8ToLe(buf, static_cast<uint8_t>(H4PacketType::Command));
-    streamU16ToLe(buf, HCI_OPCODE_CREATE_CONNECTION);
-    streamU8ToLe(buf, HCIC_PARAM_SIZE_CREATE_CONNECTION);
+    streamU16ToLe(buf, kHciOpcodeCreateConnection);
+    streamU8ToLe(buf, kHcicParamSizeCreateConnection);
 
     streamBdAddr(buf, params.bdAddr.addr);
     streamU16ToLe(buf, params.packetType);
@@ -104,5 +104,5 @@ uint16_t makeCmdCreateConnection(uint8_t *buf, const HciCreateConnectionParams &
     streamU16ToLe(buf, params.clockOffset);
     streamU8ToLe(buf, params.allowRoleSwitch);
 
-    return HCI_H4_CMD_PREAMBLE_SIZE + HCIC_PARAM_SIZE_CREATE_CONNECTION;
+    return kHciH4CmdPreambleSize + kHcicParamSizeCreateConnection;
 }

@@ -21,46 +21,46 @@ void tearDown(void) {
 
 // Test: Initial state should be NoButton
 void testInitialStateIsNoButton() {
-    TEST_ASSERT_EQUAL(NoButton, buttonState->getCurrent());
-    TEST_ASSERT_EQUAL(NoButton, buttonState->getPrevious());
+    TEST_ASSERT_EQUAL(kNoButton, buttonState->getCurrent());
+    TEST_ASSERT_EQUAL(kNoButton, buttonState->getPrevious());
     TEST_ASSERT_FALSE(buttonState->hasChanged());
 }
 
 // Test: Update changes current state
 void testUpdateChangesCurrentState() {
-    buttonState->update(ButtonA);
-    TEST_ASSERT_EQUAL(ButtonA, buttonState->getCurrent());
+    buttonState->update(kButtonA);
+    TEST_ASSERT_EQUAL(kButtonA, buttonState->getCurrent());
 }
 
 // Test: Update sets changed flag
 void testUpdateSetsChangedFlag() {
-    buttonState->update(ButtonA);
+    buttonState->update(kButtonA);
     TEST_ASSERT_TRUE(buttonState->hasChanged());
 }
 
 // Test: Update preserves previous state
 void testUpdatePreservesPreviousState() {
-    buttonState->update(ButtonA);
+    buttonState->update(kButtonA);
     buttonState->resetChangeFlag();
-    buttonState->update(ButtonB);
+    buttonState->update(kButtonB);
 
-    TEST_ASSERT_EQUAL(ButtonB, buttonState->getCurrent());
-    TEST_ASSERT_EQUAL(ButtonA, buttonState->getPrevious());
+    TEST_ASSERT_EQUAL(kButtonB, buttonState->getCurrent());
+    TEST_ASSERT_EQUAL(kButtonA, buttonState->getPrevious());
 }
 
 // Test: Update with same state
 void testUpdateWithSameState() {
-    buttonState->update(ButtonA);
+    buttonState->update(kButtonA);
     buttonState->resetChangeFlag();
-    buttonState->update(ButtonA);
+    buttonState->update(kButtonA);
 
     // Should not set changed flag if state is identical
-    TEST_ASSERT_EQUAL(ButtonA, buttonState->getCurrent());
+    TEST_ASSERT_EQUAL(kButtonA, buttonState->getCurrent());
 }
 
 // Test: Reset change flag
 void testResetChangeFlag() {
-    buttonState->update(ButtonHome);
+    buttonState->update(kButtonHome);
     TEST_ASSERT_TRUE(buttonState->hasChanged());
 
     buttonState->resetChangeFlag();
@@ -69,77 +69,77 @@ void testResetChangeFlag() {
 
 // Test: Multiple button combination
 void testMultipleButtonsCombination() {
-    ButtonState combo = buttonStateOr(buttonStateOr(ButtonA, ButtonB), ButtonOne);
+    ButtonState combo = buttonStateOr(buttonStateOr(kButtonA, kButtonB), kButtonOne);
     buttonState->update(combo);
 
     ButtonState current = buttonState->getCurrent();
     TEST_ASSERT_EQUAL(combo, current);
-    TEST_ASSERT_TRUE(buttonStateHas(current, ButtonA));
-    TEST_ASSERT_TRUE(buttonStateHas(current, ButtonB));
-    TEST_ASSERT_TRUE(buttonStateHas(current, ButtonOne));
+    TEST_ASSERT_TRUE(buttonStateHas(current, kButtonA));
+    TEST_ASSERT_TRUE(buttonStateHas(current, kButtonB));
+    TEST_ASSERT_TRUE(buttonStateHas(current, kButtonOne));
 }
 
 // Test: Nunchuk buttons
 void testNunchukButtons() {
-    buttonState->update(ButtonZ);
-    TEST_ASSERT_EQUAL(ButtonZ, buttonState->getCurrent());
+    buttonState->update(kButtonZ);
+    TEST_ASSERT_EQUAL(kButtonZ, buttonState->getCurrent());
 
     buttonState->resetChangeFlag();
-    buttonState->update(ButtonC);
-    TEST_ASSERT_EQUAL(ButtonC, buttonState->getCurrent());
+    buttonState->update(kButtonC);
+    TEST_ASSERT_EQUAL(kButtonC, buttonState->getCurrent());
 }
 
 // Test: D-pad buttons
 void testDpadButtons() {
-    buttonState->update(ButtonUp);
-    TEST_ASSERT_EQUAL(ButtonUp, buttonState->getCurrent());
+    buttonState->update(kButtonUp);
+    TEST_ASSERT_EQUAL(kButtonUp, buttonState->getCurrent());
 
     buttonState->resetChangeFlag();
-    buttonState->update(ButtonRight);
-    TEST_ASSERT_EQUAL(ButtonRight, buttonState->getCurrent());
+    buttonState->update(kButtonRight);
+    TEST_ASSERT_EQUAL(kButtonRight, buttonState->getCurrent());
 }
 
 // Test: Transition from no button to button
 void testTransitionNoneToButton() {
-    TEST_ASSERT_EQUAL(NoButton, buttonState->getCurrent());
+    TEST_ASSERT_EQUAL(kNoButton, buttonState->getCurrent());
 
-    buttonState->update(ButtonPlus);
-    TEST_ASSERT_EQUAL(ButtonPlus, buttonState->getCurrent());
+    buttonState->update(kButtonPlus);
+    TEST_ASSERT_EQUAL(kButtonPlus, buttonState->getCurrent());
     TEST_ASSERT_TRUE(buttonState->hasChanged());
 }
 
 // Test: Transition from button to no button
 void testTransitionButtonToNone() {
-    buttonState->update(ButtonMinus);
+    buttonState->update(kButtonMinus);
     buttonState->resetChangeFlag();
 
-    buttonState->update(NoButton);
-    TEST_ASSERT_EQUAL(NoButton, buttonState->getCurrent());
+    buttonState->update(kNoButton);
+    TEST_ASSERT_EQUAL(kNoButton, buttonState->getCurrent());
     TEST_ASSERT_TRUE(buttonState->hasChanged());
 }
 
 // Test: Rapid state changes
 void testRapidStateChanges() {
-    buttonState->update(ButtonA);
+    buttonState->update(kButtonA);
     buttonState->resetChangeFlag();
 
-    buttonState->update(ButtonB);
+    buttonState->update(kButtonB);
     buttonState->resetChangeFlag();
 
-    buttonState->update(ButtonOne);
+    buttonState->update(kButtonOne);
     buttonState->resetChangeFlag();
 
-    buttonState->update(ButtonTwo);
+    buttonState->update(kButtonTwo);
 
-    TEST_ASSERT_EQUAL(ButtonTwo, buttonState->getCurrent());
-    TEST_ASSERT_EQUAL(ButtonOne, buttonState->getPrevious());
+    TEST_ASSERT_EQUAL(kButtonTwo, buttonState->getCurrent());
+    TEST_ASSERT_EQUAL(kButtonOne, buttonState->getPrevious());
 }
 
 // Test: All individual buttons
 void testAllIndividualButtons() {
-    ButtonState buttons[] = {ButtonTwo,  ButtonOne,  ButtonB,     ButtonA,    ButtonMinus,
-                             ButtonHome, ButtonLeft, ButtonRight, ButtonDown, ButtonUp,
-                             ButtonPlus, ButtonC,    ButtonZ};
+    ButtonState buttons[] = {kButtonTwo,  kButtonOne,  kButtonB,     kButtonA,    kButtonMinus,
+                             kButtonHome, kButtonLeft, kButtonRight, kButtonDown, kButtonUp,
+                             kButtonPlus, kButtonC,    kButtonZ};
 
     for (ButtonState button : buttons) {
         buttonState->update(button);

@@ -25,7 +25,7 @@ static void captureRawPacket(uint8_t *data, size_t len) {
 }
 
 static const uint8_t *l2capPayloadPtr() {
-    return gRawPacket + HCI_H4_ACL_PREAMBLE_SIZE + L2CAP_HEADER_LEN;
+    return gRawPacket + kHciH4AclPreambleSize + kL2CapHeaderLen;
 }
 
 static void addConnection(L2capConnectionTable *connections, uint16_t ch, uint16_t cid) {

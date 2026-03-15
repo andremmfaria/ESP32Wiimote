@@ -75,7 +75,7 @@ void testParseCoreButtonsReport0x30() {
 
     int result = parser->parseData();
     TEST_ASSERT_EQUAL(1, result);  // Changed
-    TEST_ASSERT_EQUAL(ButtonA, buttonState->getCurrent());
+    TEST_ASSERT_EQUAL(kButtonA, buttonState->getCurrent());
 }
 
 // Test: Parse multiple buttons
@@ -89,8 +89,8 @@ void testParseMultipleButtons() {
     TEST_ASSERT_EQUAL(1, result);
 
     ButtonState current = buttonState->getCurrent();
-    TEST_ASSERT_TRUE(buttonStateHas(current, ButtonA));
-    TEST_ASSERT_TRUE(buttonStateHas(current, ButtonTwo));
+    TEST_ASSERT_TRUE(buttonStateHas(current, kButtonA));
+    TEST_ASSERT_TRUE(buttonStateHas(current, kButtonTwo));
 }
 
 // Test: Parse D-pad buttons
@@ -101,7 +101,7 @@ void testParseDpadButtons() {
     setMockData(0x31, payload, sizeof(payload));
 
     parser->parseData();
-    TEST_ASSERT_EQUAL(ButtonLeft, buttonState->getCurrent());
+    TEST_ASSERT_EQUAL(kButtonLeft, buttonState->getCurrent());
 }
 
 // Test: Parse HOME button
@@ -112,7 +112,7 @@ void testParseHomeButton() {
     setMockData(0x30, payload, sizeof(payload));
 
     parser->parseData();
-    TEST_ASSERT_EQUAL(ButtonHome, buttonState->getCurrent());
+    TEST_ASSERT_EQUAL(kButtonHome, buttonState->getCurrent());
 }
 
 // ===== Accelerometer Parsing Tests =====
@@ -223,8 +223,8 @@ void testParseNunchukButtons() {
     parser->parseData();
 
     ButtonState buttons = buttonState->getCurrent();
-    TEST_ASSERT_TRUE(buttonStateHas(buttons, ButtonC));
-    TEST_ASSERT_FALSE(buttonStateHas(buttons, ButtonZ));
+    TEST_ASSERT_TRUE(buttonStateHas(buttons, kButtonC));
+    TEST_ASSERT_FALSE(buttonStateHas(buttons, kButtonZ));
 
     // Reset for next test
     setUp();
@@ -237,8 +237,8 @@ void testParseNunchukButtons() {
     parser->parseData();
 
     buttons = buttonState->getCurrent();
-    TEST_ASSERT_FALSE(buttonStateHas(buttons, ButtonC));
-    TEST_ASSERT_TRUE(buttonStateHas(buttons, ButtonZ));
+    TEST_ASSERT_FALSE(buttonStateHas(buttons, kButtonC));
+    TEST_ASSERT_TRUE(buttonStateHas(buttons, kButtonZ));
 }
 
 // Test: Parse nunchuk with Report 0x35 (16 extension bytes)
@@ -273,15 +273,15 @@ void testCombinedWiimoteNunchukButtons() {
     parser->parseData();
 
     ButtonState buttons = buttonState->getCurrent();
-    TEST_ASSERT_TRUE(buttonStateHas(buttons, ButtonA));
-    TEST_ASSERT_TRUE(buttonStateHas(buttons, ButtonC));
+    TEST_ASSERT_TRUE(buttonStateHas(buttons, kButtonA));
+    TEST_ASSERT_TRUE(buttonStateHas(buttons, kButtonC));
 }
 
 // ===== Filter Tests =====
 
 // Test: Button filter
 void testButtonFilter() {
-    parser->setFilter(FilterButton);
+    parser->setFilter(kFilterButton);
 
     uint8_t payload[] = {
         0x00, 0x08  // ButtonA
@@ -292,12 +292,12 @@ void testButtonFilter() {
     TEST_ASSERT_EQUAL(0, result);  // Filtered, no change reported
 
     // Button state should still be updated
-    TEST_ASSERT_EQUAL(ButtonA, buttonState->getCurrent());
+    TEST_ASSERT_EQUAL(kButtonA, buttonState->getCurrent());
 }
 
 // Test: Accelerometer filter
 void testAccelerometerFilter() {
-    parser->setFilter(FilterAccel);
+    parser->setFilter(kFilterAccel);
 
     uint8_t payload[] = {
         0x00, 0x00,    // No buttons
@@ -315,7 +315,7 @@ void testAccelerometerFilter() {
 
 // Test: Nunchuk stick filter
 void testNunchukStickFilter() {
-    parser->setFilter(FilterNunchukStick);
+    parser->setFilter(kFilterNunchukStick);
 
     uint8_t payload[] = {0x00, 0x00, 128, 130,  // Stick values
                          0,    0,    0,   0xFC, 0x00, 0x00};
@@ -331,7 +331,7 @@ void testNunchukStickFilter() {
 
 // Test: Multiple filters combined
 void testMultipleFilters() {
-    parser->setFilter(FilterButton | FilterAccel);
+    parser->setFilter(kFilterButton | kFilterAccel);
 
     uint8_t payload[] = {
         0x00, 0x08,    // ButtonA
@@ -345,13 +345,13 @@ void testMultipleFilters() {
 
 // Test: Get and set filter
 void testGetSetFilter() {
-    TEST_ASSERT_EQUAL(FilterNone, parser->getFilter());
+    TEST_ASSERT_EQUAL(kFilterNone, parser->getFilter());
 
-    parser->setFilter(FilterButton | FilterAccel);
-    TEST_ASSERT_EQUAL(FilterButton | FilterAccel, parser->getFilter());
+    parser->setFilter(kFilterButton | kFilterAccel);
+    TEST_ASSERT_EQUAL(kFilterButton | kFilterAccel, parser->getFilter());
 
-    parser->setFilter(FilterNone);
-    TEST_ASSERT_EQUAL(FilterNone, parser->getFilter());
+    parser->setFilter(kFilterNone);
+    TEST_ASSERT_EQUAL(kFilterNone, parser->getFilter());
 }
 
 // ===== Edge Cases =====
@@ -378,7 +378,7 @@ void testAllZeros() {
 
     int result = parser->parseData();
     TEST_ASSERT_EQUAL(1, result);
-    TEST_ASSERT_EQUAL(NoButton, buttonState->getCurrent());
+    TEST_ASSERT_EQUAL(kNoButton, buttonState->getCurrent());
 }
 
 // Test: Sequential updates
@@ -387,14 +387,14 @@ void testSequentialUpdates() {
     uint8_t payload1[] = {0x00, 0x08};
     setMockData(0x30, payload1, sizeof(payload1));
     parser->parseData();
-    TEST_ASSERT_EQUAL(ButtonA, buttonState->getCurrent());
+    TEST_ASSERT_EQUAL(kButtonA, buttonState->getCurrent());
 
     // Second update: ButtonB
     uint8_t payload2[] = {0x00, 0x04};
     setMockData(0x30, payload2, sizeof(payload2));
     parser->parseData();
-    TEST_ASSERT_EQUAL(ButtonB, buttonState->getCurrent());
-    TEST_ASSERT_EQUAL(ButtonB, buttonState->getPrevious());
+    TEST_ASSERT_EQUAL(kButtonB, buttonState->getCurrent());
+    TEST_ASSERT_EQUAL(kButtonB, buttonState->getPrevious());
 }
 
 // ===== Main Test Runner =====

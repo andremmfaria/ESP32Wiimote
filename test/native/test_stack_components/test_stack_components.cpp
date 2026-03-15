@@ -25,7 +25,7 @@ static void captureRawPacket(uint8_t *data, size_t len) {
 }
 
 static const uint8_t *l2capPayloadPtr() {
-    return gRawPacket + HCI_H4_ACL_PREAMBLE_SIZE + L2CAP_HEADER_LEN;
+    return gRawPacket + kHciH4AclPreambleSize + kL2CapHeaderLen;
 }
 
 void setUp(void) {
@@ -105,7 +105,7 @@ void testL2capPacketBuilderAndSender() {
     uint8_t packet[64] = {0};
 
     uint16_t l2capLen = makeL2capPacket(packet, 0x0041, payload, sizeof(payload));
-    TEST_ASSERT_EQUAL_UINT16(L2CAP_HEADER_LEN + sizeof(payload), l2capLen);
+    TEST_ASSERT_EQUAL_UINT16(kL2CapHeaderLen + sizeof(payload), l2capLen);
     TEST_ASSERT_EQUAL_UINT8(sizeof(payload), packet[0]);
     TEST_ASSERT_EQUAL_UINT8(0x00, packet[1]);
     TEST_ASSERT_EQUAL_UINT8(0x41, packet[2]);
@@ -114,7 +114,7 @@ void testL2capPacketBuilderAndSender() {
     AclPacketControl control = {0b10, 0b00};
     uint16_t aclLen =
         makeAclL2capPacket(packet, 0x0040, control, 0x0001, payload, (uint8_t)sizeof(payload));
-    TEST_ASSERT_EQUAL_UINT16(HCI_H4_ACL_PREAMBLE_SIZE + L2CAP_HEADER_LEN + sizeof(payload), aclLen);
+    TEST_ASSERT_EQUAL_UINT16(kHciH4AclPreambleSize + kL2CapHeaderLen + sizeof(payload), aclLen);
     TEST_ASSERT_EQUAL_UINT8(static_cast<uint8_t>(H4PacketType::Acl), packet[0]);
 
     L2capPacketSender sender;

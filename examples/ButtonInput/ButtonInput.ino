@@ -26,7 +26,7 @@ void loop() {
         ButtonState buttons = wiimote.getButtonState();
         Serial.printf("buttons mask: 0x%05x\n", (int)buttons);
 
-        if ((buttons & ButtonA) != 0) {
+        if (buttonStateHas(buttons, kButtonA)) {
             Serial.println("A pressed");
         }
     }

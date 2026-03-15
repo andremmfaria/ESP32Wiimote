@@ -12,7 +12,7 @@
 
 WiimoteDataParser::WiimoteDataParser(ButtonStateManager *buttonState,
                                      SensorStateManager *sensorState)
-    : buttonState_(buttonState), sensorState_(sensorState), filter_(FilterNone) {}
+    : buttonState_(buttonState), sensorState_(sensorState), filter_(kFilterNone) {}
 
 int WiimoteDataParser::parseData() {
     ChangeFlags flags = {0, 0, 0};
@@ -134,10 +134,10 @@ void WiimoteDataParser::parseNunchukData(const TinyWiimoteData &data, ChangeFlag
         // Add nunchuk buttons to button state
         ButtonState buttonState = buttonState_->getCurrent();
         if (cBtn != 0U) {
-            buttonState = buttonStateOr(buttonState, ButtonC);
+            buttonState = buttonStateOr(buttonState, kButtonC);
         }
         if (zBtn != 0U) {
-            buttonState = buttonStateOr(buttonState, ButtonZ);
+            buttonState = buttonStateOr(buttonState, kButtonZ);
         }
         buttonState_->update(buttonState);
 
