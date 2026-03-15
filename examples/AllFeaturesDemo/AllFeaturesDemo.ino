@@ -61,7 +61,7 @@ void setup() {
     Serial.begin(115200);
     delay(200);
 
-    Serial.println("\n\n===== ESP32Wiimote Demo =====");
+    Serial.println("\n\n===== ESP32Wiimote All Features Demo =====");
     Serial.println("Features: connection, battery, buttons, accel, nunchuk, filters");
     Serial.println("Initializing Bluetooth controller...");
 

@@ -58,7 +58,7 @@ void loop() {
     if (wiimote.available()) {
         ButtonState btn = wiimote.getButtonState();
         
-        if (btn == BUTTON_A) {
+        if ((btn & ButtonA) != 0) {
             Serial.println("A button pressed!");
         }
         
@@ -72,19 +72,19 @@ void loop() {
 
 For complete examples, see [API Reference](docs/API.md).
 
-## Example
+## Examples
 
-See: [ESP32WiimoteDemo.ino](./examples/ESP32WiimoteDemo/ESP32WiimoteDemo.ino)
+Focused examples:
 
-The demo now covers all available features:
+- [BasicConnection](./examples/BasicConnection/BasicConnection.ino) - connect and print connection state changes
+- [ButtonInput](./examples/ButtonInput/ButtonInput.ino) - button mask and basic button handling
+- [SensorReadout](./examples/SensorReadout/SensorReadout.ino) - Wiimote/Nunchuk accelerometer and stick output
+- [BatteryStatus](./examples/BatteryStatus/BatteryStatus.ino) - periodic battery status requests and reporting
+- [FiltersDemo](./examples/FiltersDemo/FiltersDemo.ino) - apply data filters to reduce update volume
 
-- connection state changes
-- periodic battery reporting
-- button decoding
-- Wiimote and Nunchuk accelerometer output
-- Nunchuk stick output
-- update-rate statistics
-- optional filter configuration
+Comprehensive example (all features):
+
+- [AllFeaturesDemo](./examples/AllFeaturesDemo/AllFeaturesDemo.ino)
 
 ## Usage
 
@@ -176,16 +176,16 @@ See [API Reference](docs/API.md#battery-management) for details.
 You can reduce update volume by ignoring selected categories:
 
 ```cpp
-wiimote.addFilter(ACTION_IGNORE, FILTER_ACCEL);
-wiimote.addFilter(ACTION_IGNORE, FILTER_NUNCHUK_STICK);
-wiimote.addFilter(ACTION_IGNORE, FILTER_BUTTON);
+wiimote.addFilter(FilterAction::Ignore, FilterAccel);
+wiimote.addFilter(FilterAction::Ignore, FilterNunchukStick);
+wiimote.addFilter(FilterAction::Ignore, FilterButton);
 ```
 
 Available filters:
 
-- `FILTER_ACCEL`
-- `FILTER_NUNCHUK_STICK`
-- `FILTER_BUTTON`
+- `FilterAccel`
+- `FilterNunchukStick`
+- `FilterButton`
 
 See [API Reference](docs/API.md#filtering) for details.
 
