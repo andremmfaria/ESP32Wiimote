@@ -80,16 +80,16 @@ jobs:
           arduino-cli core update-index
           arduino-cli core install esp32:esp32
 
-      - name: Build ESP32WiimoteDemo
+      - name: Build AllFeaturesDemo
         run: |
           arduino-cli compile \
             --fqbn esp32:esp32:esp32 \
             --library . \
             --output-dir dist \
-            examples/ESP32WiimoteDemo
+            examples/AllFeaturesDemo
 
       - name: Upload firmware to release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          files: dist/ESP32WiimoteDemo.ino.bin
+          files: dist/AllFeaturesDemo.ino.bin

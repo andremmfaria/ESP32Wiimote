@@ -16,21 +16,40 @@ Complete API documentation for the ESP32Wiimote library.
 ### Constructor
 
 ```cpp
-ESP32Wiimote(int NUNCHUK_STICK_THRESHOLD = 1)
+ESP32Wiimote()
+ESP32Wiimote(const ESP32WiimoteConfig &config)
 ```
 
 Creates a new ESP32Wiimote instance.
 
-**Parameters:**
-
-- `NUNCHUK_STICK_THRESHOLD` - Sensitivity threshold for nunchuk stick change detection (default: 1)
-
-**Example:**
+Use the default constructor when you do not need to override any settings.
 
 ```cpp
-ESP32Wiimote wiimote;           // Default threshold
-ESP32Wiimote wiimote(5);        // Custom threshold
+ESP32Wiimote wiimote;
 ```
+
+### Configuration Object
+
+```cpp
+struct ESP32WiimoteConfig {
+    int nunchukStickThreshold = 1;
+    int txQueueSize = 32;
+    int rxQueueSize = 32;
+    uint32_t fastReconnectTtlMs = 180000;
+};
+```
+
+Use the config object when you want to override defaults.
+
+```cpp
+ESP32WiimoteConfig cfg;
+cfg.nunchukStickThreshold = 5;
+cfg.fastReconnectTtlMs = 180000;  // 3 minutes
+
+ESP32Wiimote wiimote(cfg);
+```
+
+Set `fastReconnectTtlMs = 0` to disable fast reconnect and always use inquiry after disconnect.
 
 ---
 
@@ -91,6 +110,12 @@ Checks if Wiimote is currently connected.
 **Connection model:**
 
 - Single-controller design: one active Wiimote per ESP32 radio due to Bluetooth Classic HCI limitations
+
+**Reconnect behavior:**
+
+- After an unexpected disconnect, the stack attempts a fast reconnect to the last connected controller for up to 3 minutes
+- If fast reconnect fails, it falls back to normal inquiry and can connect to another compatible controller
+- When a different controller is found and connected, the previous fast-reconnect cache is cleared and replaced immediately
 
 **Example:**
 

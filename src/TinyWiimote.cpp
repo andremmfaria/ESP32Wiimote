@@ -11,9 +11,6 @@
 //     Adapt — remix, transform, and build upon the material
 //   Under the following terms:
 //     NonCommercial — You may not use the material for commercial purposes.
-
-#define CONFIG_CLASSIC_BT_ENABLED
-
 #include "TinyWiimote.h"
 
 #include "tinywiimote/hci/hci_events.h"
@@ -276,4 +273,8 @@ void tinyWiimoteInit(struct TwHciInterface hciInterface) {
 
 void tinyWiimoteReqAccelerometer(bool use) {
     gRuntime.wiimoteState.setUseAccelerometer(use);
+}
+
+void tinyWiimoteSetFastReconnectTtlMs(uint32_t ttlMs) {
+    hciEventsSetFastReconnectTtlMs(&gRuntime.hciEventContext, ttlMs);
 }

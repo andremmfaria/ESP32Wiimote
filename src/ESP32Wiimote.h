@@ -25,6 +25,13 @@ enum class FilterAction : uint8_t {
 
 static constexpr FilterAction kActionIgnore = FilterAction::Ignore;
 
+struct ESP32WiimoteConfig {
+    int nunchukStickThreshold = 1;
+    int txQueueSize = 32;
+    int rxQueueSize = 32;
+    uint32_t fastReconnectTtlMs = 3UL * 60UL * 1000UL;
+};
+
 /**
  * ESP32Wiimote - Main Wiimote controller interface for ESP32
  * Provides high-level API for Wiimote button, sensor, and nunchuk data
@@ -40,10 +47,14 @@ static constexpr FilterAction kActionIgnore = FilterAction::Ignore;
 class ESP32Wiimote {
    public:
     /**
-     * Create ESP32Wiimote instance
-     * @param NUNCHUK_STICK_THRESHOLD Sensitivity threshold for nunchuk stick changes (default: 1)
+     * Create ESP32Wiimote instance with default configuration
      */
-    ESP32Wiimote(int nunchukStickThreshold = 1);
+    ESP32Wiimote();
+
+    /**
+     * Create ESP32Wiimote instance with explicit config
+     */
+    explicit ESP32Wiimote(const ESP32WiimoteConfig &config);
 
     /**
      * Initialize Bluetooth and HCI queues
@@ -119,6 +130,8 @@ class ESP32Wiimote {
     void addFilter(FilterAction action, int filter);
 
    private:
+    ESP32WiimoteConfig config_;
+
     // Component managers
     BluetoothController *btController_;
     HciCallbacksHandler *hciCallbacks_;

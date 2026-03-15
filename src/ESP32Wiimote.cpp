@@ -23,12 +23,14 @@
 /**
  * Constructor - Initialize all component managers
  */
-ESP32Wiimote::ESP32Wiimote(int nunchukStickThreshold) {
+ESP32Wiimote::ESP32Wiimote() : ESP32Wiimote(ESP32WiimoteConfig()) {}
+
+ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config) : config_(config) {
     btController_ = new BluetoothController();
     hciCallbacks_ = new HciCallbacksHandler();
-    queueManager_ = new HciQueueManager(32, 32);
+    queueManager_ = new HciQueueManager(config_.txQueueSize, config_.rxQueueSize);
     buttonState_ = new ButtonStateManager();
-    sensorState_ = new SensorStateManager(nunchukStickThreshold);
+    sensorState_ = new SensorStateManager(config_.nunchukStickThreshold);
     dataParser_ = new WiimoteDataParser(buttonState_, sensorState_);
 }
 
@@ -46,6 +48,8 @@ bool ESP32Wiimote::init() {
         LOG_ERROR("ESP32Wiimote: Bluetooth controller initialization failed!\n");
         return false;
     }
+
+    tinyWiimoteSetFastReconnectTtlMs(config_.fastReconnectTtlMs);
 
     LOG_INFO("ESP32Wiimote: Initialization complete!\n");
     return true;

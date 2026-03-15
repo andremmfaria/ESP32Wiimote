@@ -2,7 +2,13 @@
 
 #include <Arduino.h>
 
-ESP32Wiimote wiimote;
+ESP32WiimoteConfig config = {
+    1,
+    32,
+    32,
+    180000,
+};
+ESP32Wiimote wiimote(config);
 
 // Demo options
 static const bool kEnableVerboseInputLog = true;
