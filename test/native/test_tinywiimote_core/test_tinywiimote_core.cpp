@@ -26,6 +26,8 @@
 // NOLINTNEXTLINE(readability-identifier-naming)
 #define tinyWiimoteReqAccelerometer twReal_tinyWiimoteReqAccelerometer
 // NOLINTNEXTLINE(readability-identifier-naming)
+#define tinyWiimoteSetFastReconnectTtlMs twReal_tinyWiimoteSetFastReconnectTtlMs
+// NOLINTNEXTLINE(readability-identifier-naming)
 #define handleHciData twReal_handleHciData
 #include "../../../src/TinyWiimote.cpp"
 #undef tinyWiimoteInit
@@ -37,6 +39,7 @@
 #undef tinyWiimoteGetBatteryLevel
 #undef tinyWiimoteRequestBatteryUpdate
 #undef tinyWiimoteReqAccelerometer
+#undef tinyWiimoteSetFastReconnectTtlMs
 #undef handleHciData
 
 static uint8_t gLastTx[512];
@@ -165,12 +168,171 @@ void testTinyWiimoteAclFlowConnectAndReadReport() {
     TEST_ASSERT_EQUAL_UINT8(0x00, payload[2]);
 }
 
+// ---------------------------------------------------------------------------
+// HCI ConnectionComplete → onAclConnected → sendConnectionRequest
+// HCI DisconnectionComplete → onDisconnected → reset state
+// ---------------------------------------------------------------------------
+void testTinyWiimoteHciConnectionAndDisconnect() {
+    TwHciInterface hci = {captureTx};
+    twReal_tinyWiimoteInit(hci);
+    twReal_tinyWiimoteResetDevice();
+
+    // Send a HCI ConnectionComplete event (H4 type 0x04, event code 0x03).
+    // handleHciData parses: data[1]=eventCode, data[2]=paramLen, data[3..]=params.
+    // handleConnectionComplete reads: params[0]=status, params[1..2]=handle.
+    uint8_t connPkt[] = {
+        static_cast<uint8_t>(H4PacketType::Event),
+        0x03,
+        4,     // param length
+        0x00,  // status = success
+        0x40,
+        0x00,  // connection handle = 0x0040
+        0x01   // link type (padding)
+    };
+    gSendCount = 0;
+    twReal_handleHciData(connPkt, sizeof(connPkt));
+    // onAclConnected fires → sendConnectionRequest → packet emitted.
+    TEST_ASSERT_GREATER_THAN(0, gSendCount);
+
+    // Send a HCI DisconnectionComplete event (event code 0x05).
+    // handleDisconnectionComplete reads: params[1..2]=handle, params[3]=reason.
+    uint8_t discPkt[] = {
+        static_cast<uint8_t>(H4PacketType::Event),
+        0x05,
+        4,     // param length
+        0x00,  // padding (not used by handler)
+        0x40,
+        0x00,  // connection handle
+        0x16   // reason: connection terminated by local host
+    };
+    gSendCount = 0;
+    twReal_handleHciData(discPkt, sizeof(discPkt));
+    // onDisconnected → resetDeviceInternal → hciEventsResetDevice → HCI Reset cmd.
+    TEST_ASSERT_GREATER_THAN(0, gSendCount);
+    TEST_ASSERT_FALSE(twReal_tinyWiimoteIsConnected());
+}
+
+// ---------------------------------------------------------------------------
+// L2CAP ConfigurationRequest and ConfigurationResponse paths in handleL2capData
+// ---------------------------------------------------------------------------
+void testTinyWiimoteL2capConfigRequestAndResponse() {
+    TwHciInterface hci = {captureTx};
+    twReal_tinyWiimoteInit(hci);
+    twReal_tinyWiimoteResetDevice();
+
+    // Establish a connection in the L2CAP table via ConnectionResponse SUCCESS.
+    uint8_t connResp[12] = {0};
+    connResp[0] = (uint8_t)L2capSignalingCode::ConnectionResponse;
+    connResp[1] = 0x01;
+    connResp[4] = 0x45;
+    connResp[5] = 0x00;  // dstCID = 0x0045
+    connResp[8] = 0x00;
+    connResp[9] = 0x00;  // result = SUCCESS
+    uint8_t frame[64] = {0};
+    size_t frameLen = 0;
+    buildAclFrame(frame, &frameLen, 0x0040, (uint16_t)L2capCid::SIGNALING, connResp,
+                  sizeof(connResp));
+    twReal_handleHciData(frame, frameLen);
+
+    // Send a ConfigurationRequest for the established channel.
+    uint8_t configReq[12] = {0};
+    configReq[0] = (uint8_t)L2capSignalingCode::ConfigurationRequest;
+    configReq[1] = 0x03;   // identifier
+    configReq[2] = 0x08;
+    configReq[3] = 0x00;   // dataLen = 8
+    configReq[6] = 0x00;
+    configReq[7] = 0x00;   // flags = 0
+    configReq[8] = 0x01;
+    configReq[9] = 0x02;   // MTU option type/length
+    configReq[10] = 0x40;
+    configReq[11] = 0x00;  // MTU value = 64
+    buildAclFrame(frame, &frameLen, 0x0040, (uint16_t)L2capCid::SIGNALING, configReq,
+                  sizeof(configReq));
+    gSendCount = 0;
+    twReal_handleHciData(frame, frameLen);
+    TEST_ASSERT_GREATER_THAN(0, gSendCount);  // ConfigurationResponse emitted
+
+    // Send a ConfigurationResponse (our side acknowledges peer config; no reply needed).
+    uint8_t configResp[12] = {0};
+    configResp[0] = (uint8_t)L2capSignalingCode::ConfigurationResponse;
+    buildAclFrame(frame, &frameLen, 0x0040, (uint16_t)L2capCid::SIGNALING, configResp,
+                  sizeof(configResp));
+    gSendCount = 0;
+    twReal_handleHciData(frame, frameLen);
+    // handleConfigurationResponse is a no-op; no follow-up packet expected.
+}
+
+// ---------------------------------------------------------------------------
+// handleAclData edge cases: too-short frame, bad PBF flag, truncated L2CAP len
+// ---------------------------------------------------------------------------
+void testTinyWiimoteAclDataEdgeCases() {
+    TwHciInterface hci = {captureTx};
+    twReal_tinyWiimoteInit(hci);
+
+    // 1. H4 Acl prefix but only 3 bytes → handleAclData sees len=2 < 8 → guard.
+    uint8_t shortAcl[] = {static_cast<uint8_t>(H4PacketType::Acl), 0x40, 0x20};
+    gSendCount = 0;
+    twReal_handleHciData(shortAcl, sizeof(shortAcl));
+    TEST_ASSERT_EQUAL(0, gSendCount);
+
+    // 2. ACL frame with PBF != 0b10 (bit 4-5 of byte[1] after H4 header).
+    // Build a valid-length ACL frame but set PBF=0b11.
+    uint8_t badPbf[13] = {static_cast<uint8_t>(H4PacketType::Acl),
+                          0x40,
+                          0x30,  // handle low, (PBF=0b11 | BC=0b00) shifted → byte = 0x30
+                          0x04,
+                          0x00,  // ACL length = 4
+                          0x00,
+                          0x00,  // L2CAP length = 0
+                          0x05,
+                          0x00,  // CID = SIGNALING
+                          0x00,
+                          0x00,
+                          0x00,
+                          0x00};
+    gSendCount = 0;
+    twReal_handleHciData(badPbf, sizeof(badPbf));
+    TEST_ASSERT_EQUAL(0, gSendCount);
+
+    // 3. Valid ACL header but L2CAP length field claims more data than available.
+    uint8_t truncated[10] = {static_cast<uint8_t>(H4PacketType::Acl),
+                             0x40,
+                             0x20,  // handle, PBF=0b10 (valid), BC=0b00
+                             0x05,
+                             0x00,  // ACL length = 5
+                             0xFF,
+                             0x00,  // L2CAP length = 255 (far exceeds remaining data)
+                             0x05,
+                             0x00,  // CID
+                             0x00};
+    gSendCount = 0;
+    twReal_handleHciData(truncated, sizeof(truncated));
+    TEST_ASSERT_EQUAL(0, gSendCount);
+}
+
+// ---------------------------------------------------------------------------
+// handleHciData: unknown H4 packet type → default branch
+// ---------------------------------------------------------------------------
+void testTinyWiimoteHandleHciDataUnknownType() {
+    TwHciInterface hci = {captureTx};
+    twReal_tinyWiimoteInit(hci);
+
+    uint8_t unknown[] = {0xAA, 0x01, 0x02};
+    gSendCount = 0;
+    twReal_handleHciData(unknown, sizeof(unknown));
+    TEST_ASSERT_EQUAL(0, gSendCount);
+}
+
 #ifdef NATIVE_TEST
 int main(int argc, char **argv) {
     UNITY_BEGIN();
 
     RUN_TEST(testTinyWiimoteInitResetAndGuards);
     RUN_TEST(testTinyWiimoteAclFlowConnectAndReadReport);
+    RUN_TEST(testTinyWiimoteHciConnectionAndDisconnect);
+    RUN_TEST(testTinyWiimoteL2capConfigRequestAndResponse);
+    RUN_TEST(testTinyWiimoteAclDataEdgeCases);
+    RUN_TEST(testTinyWiimoteHandleHciDataUnknownType);
 
     return UNITY_END();
 }
@@ -180,6 +342,10 @@ void setup() {
 
     RUN_TEST(testTinyWiimoteInitResetAndGuards);
     RUN_TEST(testTinyWiimoteAclFlowConnectAndReadReport);
+    RUN_TEST(testTinyWiimoteHciConnectionAndDisconnect);
+    RUN_TEST(testTinyWiimoteL2capConfigRequestAndResponse);
+    RUN_TEST(testTinyWiimoteAclDataEdgeCases);
+    RUN_TEST(testTinyWiimoteHandleHciDataUnknownType);
 
     UNITY_END();
 }

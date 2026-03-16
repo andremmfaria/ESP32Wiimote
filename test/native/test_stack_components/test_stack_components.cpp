@@ -199,6 +199,137 @@ void testL2capSignalingFlows() {
     TEST_ASSERT_EQUAL(0, gSendCount);
 }
 
+// ---------------------------------------------------------------------------
+// L2CAP signaling null-guard and edge-case paths
+// ---------------------------------------------------------------------------
+void testL2capSignalingNullGuardsAndEdgeCases() {
+    // 1. sendConnectionRequest without a sender initialised → no crash, no send.
+    {
+        L2capSignaling sig;
+        sig.sendConnectionRequest(0x0040, 0x0011, 0x0042);
+        TEST_ASSERT_EQUAL(0, gSendCount);
+    }
+
+    // 2. handleConnectionResponse: packet too short (len < 12).
+    {
+        L2capConnectionTable conns;
+        L2capPacketSender sender;
+        sender.setSendCallback(captureRawPacket);
+        L2capSignaling sig;
+        sig.init(&conns, &sender);
+
+        uint8_t shortResp[5] = {0};
+        gSendCount = 0;
+        sig.handleConnectionResponse(0x0040, shortResp, sizeof(shortResp));
+        TEST_ASSERT_EQUAL(0, gSendCount);
+    }
+
+    // 3. handleConnectionResponse with null objects (not init'd).
+    {
+        L2capSignaling sig;
+        uint8_t resp[12] = {0};
+        resp[8] = 0x00;
+        resp[9] = 0x00;  // SUCCESS result
+        gSendCount = 0;
+        sig.handleConnectionResponse(0x0040, resp, sizeof(resp));
+        TEST_ASSERT_EQUAL(0, gSendCount);
+    }
+
+    // 4. handleConnectionResponse when connection table is already full.
+    {
+        L2capConnectionTable fullConns;
+        for (int i = 0; i < L2CAP_CONNECTION_LIST_SIZE; i++) {
+            L2capConnection::Endpoint ep = {(uint16_t)(0x0030 + i), (uint16_t)(0x0040 + i)};
+            fullConns.addConnection(L2capConnection(ep));
+        }
+        L2capPacketSender sender;
+        sender.setSendCallback(captureRawPacket);
+        L2capSignaling sig;
+        sig.init(&fullConns, &sender);
+
+        uint8_t connResp[12] = {0};
+        connResp[4] = 0x42;
+        connResp[5] = 0x00;  // dstCID
+        connResp[8] = 0x00;
+        connResp[9] = 0x00;  // SUCCESS
+        gSendCount = 0;
+        sig.handleConnectionResponse(0x0040, connResp, sizeof(connResp));
+        TEST_ASSERT_EQUAL(0, gSendCount);  // addConnection fails → no config request
+    }
+
+    // 5. handleConfigurationRequest: too short (len < 12).
+    {
+        L2capConnectionTable conns;
+        L2capPacketSender sender;
+        sender.setSendCallback(captureRawPacket);
+        L2capSignaling sig;
+        sig.init(&conns, &sender);
+
+        uint8_t shortReq[5] = {0};
+        gSendCount = 0;
+        sig.handleConfigurationRequest(0x0040, shortReq, sizeof(shortReq));
+        TEST_ASSERT_EQUAL(0, gSendCount);
+    }
+
+    // 6. handleConfigurationRequest with null objects (not init'd).
+    {
+        L2capSignaling sig;
+        uint8_t req[12] = {0};
+        req[2] = 0x08;
+        req[3] = 0x00;  // dataLen = 8
+        req[8] = 0x01;
+        req[9] = 0x02;  // MTU option
+        gSendCount = 0;
+        sig.handleConfigurationRequest(0x0040, req, sizeof(req));
+        TEST_ASSERT_EQUAL(0, gSendCount);
+    }
+
+    // 7. handleConfigurationRequest when getRemoteCid fails (empty connection table).
+    {
+        L2capConnectionTable emptyConns;
+        L2capPacketSender sender;
+        sender.setSendCallback(captureRawPacket);
+        L2capSignaling sig;
+        sig.init(&emptyConns, &sender);
+
+        uint8_t req[12] = {0};
+        req[1] = 0x01;   // identifier
+        req[2] = 0x08;
+        req[3] = 0x00;   // dataLen = 8
+        req[6] = 0x00;
+        req[7] = 0x00;   // flags = 0
+        req[8] = 0x01;
+        req[9] = 0x02;   // MTU option
+        req[10] = 0x40;
+        req[11] = 0x00;  // MTU value
+        gSendCount = 0;
+        sig.handleConfigurationRequest(0x0040, req, sizeof(req));
+        TEST_ASSERT_EQUAL(0, gSendCount);  // no matching connection
+    }
+}
+
+// ---------------------------------------------------------------------------
+// L2CAP connection table: full table and null-pointer guard
+// ---------------------------------------------------------------------------
+void testL2capConnectionTableFullAndNullPointer() {
+    L2capConnectionTable connections;
+
+    for (int i = 0; i < L2CAP_CONNECTION_LIST_SIZE; i++) {
+        L2capConnection::Endpoint ep = {(uint16_t)(0x0040 + i), (uint16_t)(0x0050 + i)};
+        int r = connections.addConnection(L2capConnection(ep));
+        TEST_ASSERT_EQUAL(i + 1, r);
+    }
+
+    // One more connection when table is full must return -1.
+    L2capConnection::Endpoint overflowEp = {0x9999, 0xAAAA};
+    int r = connections.addConnection(L2capConnection(overflowEp));
+    TEST_ASSERT_EQUAL(-1, r);
+
+    // getRemoteCid with a null output pointer must return -1.
+    r = connections.getRemoteCid(0x0040, nullptr);
+    TEST_ASSERT_EQUAL(-1, r);
+}
+
 #ifdef NATIVE_TEST
 int main(int argc, char **argv) {
     UNITY_BEGIN();
@@ -207,6 +338,8 @@ int main(int argc, char **argv) {
     RUN_TEST(testWiimoteStateTransitionsAndBatteryMapping);
     RUN_TEST(testL2capPacketBuilderAndSender);
     RUN_TEST(testL2capSignalingFlows);
+    RUN_TEST(testL2capSignalingNullGuardsAndEdgeCases);
+    RUN_TEST(testL2capConnectionTableFullAndNullPointer);
 
     return UNITY_END();
 }
@@ -218,6 +351,8 @@ void setup() {
     RUN_TEST(testWiimoteStateTransitionsAndBatteryMapping);
     RUN_TEST(testL2capPacketBuilderAndSender);
     RUN_TEST(testL2capSignalingFlows);
+    RUN_TEST(testL2capSignalingNullGuardsAndEdgeCases);
+    RUN_TEST(testL2capConnectionTableFullAndNullPointer);
 
     UNITY_END();
 }

@@ -6,6 +6,9 @@
 #include "../../src/tinywiimote/l2cap/l2cap_connection.h"
 #include "../../src/tinywiimote/l2cap/l2cap_packets.h"
 #include "../../src/tinywiimote/protocol/wiimote_protocol.h"
+#include "Arduino.h"
+#include "esp_bt.h"
+#include "esp_bt_main.h"
 
 #include <algorithm>
 #include <stddef.h>
@@ -23,6 +26,37 @@ extern int mockLastPacketLen;
 extern int mockSendCallCount;
 extern uint16_t mockLastChannelHandle;
 extern uint16_t mockLastRemoteCID;
+
+// Additional TinyWiimote boundary mock state
+extern bool mockDeviceIsInited;
+extern int mockResetDeviceCallCount;
+extern int mockHandleHciDataCallCount;
+extern int mockTinyWiimoteInitCallCount;
+extern struct TwHciInterface mockLastHciInterface;
+extern bool mockTinyWiimoteConnected;
+extern uint8_t mockBatteryLevel;
+extern int mockRequestBatteryUpdateCallCount;
+extern int mockReqAccelerometerCallCount;
+extern bool mockLastReqAccelerometerUse;
+extern uint32_t mockLastFastReconnectTtlMs;
+
+// ESP32 BT VHCI mock state (used by hci_queue.cpp and test_esp32_components)
+extern bool gMockVhciSendAvailable;
+extern uint8_t gMockVhciSentData[512];
+extern size_t gMockVhciSentLen;
+extern int gMockVhciSendCount;
+extern esp_err_t mockVhciRegisterResult;
+extern int mockVhciRegisterCallCount;
+extern esp_vhci_host_callback_t *mockLastVhciCallback;
+
+// ESP32 controller / Arduino runtime mock state
+extern bool mockBtStartResult;
+extern bool mockBtStarted;
+extern uint8_t mockBtControllerStatus;
+
+// FreeRTOS queue creation control
+extern int mockQueueCreateCallCount;
+extern int mockQueueCreateFailOnCall;
 
 /**
  * Mock callback for L2CAP packet transmission

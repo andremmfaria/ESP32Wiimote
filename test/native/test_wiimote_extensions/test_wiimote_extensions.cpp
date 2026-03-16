@@ -258,6 +258,99 @@ void testExtensionsFailurePathsResetAndRecover() {
     TEST_ASSERT_EQUAL(sendsBeforeSecondError, gSendCount);
 }
 
+void testExtensionsWaitReadResponseShortPacketKeepsState() {
+    WiimoteExtensions extensions;
+    WiimoteState state;
+    L2capConnectionTable connections;
+    L2capPacketSender sender;
+    sender.setSendCallback(captureRawPacket);
+
+    addConnection(&connections, 0x0040, 0x0013);
+    extensions.init(&state, &connections, &sender);
+
+    uint8_t statusReport[8] = {0};
+    statusReport[1] = 0x20;
+    statusReport[4] = 0x02;
+    extensions.handleReport(0x0040, statusReport, sizeof(statusReport));
+
+    uint8_t ackWriteEnable[8] = {0};
+    ackWriteEnable[1] = 0x22;
+    ackWriteEnable[4] = 0x16;
+    ackWriteEnable[5] = 0x00;
+    extensions.handleReport(0x0040, ackWriteEnable, sizeof(ackWriteEnable));
+    extensions.handleReport(0x0040, ackWriteEnable, sizeof(ackWriteEnable));
+    TEST_ASSERT_EQUAL(3, gSendCount);
+
+    uint8_t shortReadResponse[12] = {0};
+    shortReadResponse[1] = 0x21;
+    shortReadResponse[5] = 0x00;
+    shortReadResponse[6] = 0xFA;
+    shortReadResponse[7] = 0x00;
+    extensions.handleReport(0x0040, shortReadResponse, sizeof(shortReadResponse));
+    TEST_ASSERT_FALSE(state.isNunchukConnected());
+    TEST_ASSERT_EQUAL(3, gSendCount);
+
+    uint8_t readResponse[13] = {0};
+    readResponse[1] = 0x21;
+    readResponse[5] = 0x00;
+    readResponse[6] = 0xFA;
+    readResponse[7] = 0x00;
+    readResponse[8] = 0x00;
+    readResponse[9] = 0xA4;
+    readResponse[10] = 0x20;
+    readResponse[11] = 0x00;
+    readResponse[12] = 0x00;
+    extensions.handleReport(0x0040, readResponse, sizeof(readResponse));
+    TEST_ASSERT_TRUE(state.isNunchukConnected());
+    TEST_ASSERT_EQUAL(4, gSendCount);
+}
+
+void testExtensionsNonNunchukControllerTypeResetsToInit() {
+    WiimoteExtensions extensions;
+    WiimoteState state;
+    L2capConnectionTable connections;
+    L2capPacketSender sender;
+    sender.setSendCallback(captureRawPacket);
+
+    addConnection(&connections, 0x0040, 0x0013);
+    state.setUseAccelerometer(false);
+    extensions.init(&state, &connections, &sender);
+
+    uint8_t statusReport[8] = {0};
+    statusReport[1] = 0x20;
+    statusReport[4] = 0x02;
+    extensions.handleReport(0x0040, statusReport, sizeof(statusReport));
+
+    uint8_t ackWriteEnable[8] = {0};
+    ackWriteEnable[1] = 0x22;
+    ackWriteEnable[4] = 0x16;
+    ackWriteEnable[5] = 0x00;
+    extensions.handleReport(0x0040, ackWriteEnable, sizeof(ackWriteEnable));
+    extensions.handleReport(0x0040, ackWriteEnable, sizeof(ackWriteEnable));
+    TEST_ASSERT_EQUAL(3, gSendCount);
+
+    uint8_t otherController[13] = {0};
+    otherController[1] = 0x21;
+    otherController[5] = 0x00;
+    otherController[6] = 0xFA;
+    otherController[7] = 0x00;
+    otherController[8] = 0x00;
+    otherController[9] = 0xA4;
+    otherController[10] = 0x21;
+    otherController[11] = 0x00;
+    otherController[12] = 0x00;
+    extensions.handleReport(0x0040, otherController, sizeof(otherController));
+    TEST_ASSERT_FALSE(state.isNunchukConnected());
+    TEST_ASSERT_EQUAL(3, gSendCount);
+
+    gSendCount = 0;
+    statusReport[4] = 0x00;
+    statusReport[7] = 104;
+    extensions.handleReport(0x0040, statusReport, sizeof(statusReport));
+    TEST_ASSERT_EQUAL(1, gSendCount);
+    assertSetReportingModePacket(0x30);
+}
+
 #ifdef NATIVE_TEST
 int main(int argc, char **argv) {
     UNITY_BEGIN();
@@ -266,6 +359,8 @@ int main(int argc, char **argv) {
     RUN_TEST(testExtensionsDetectNunchukAndSetModeWithoutAccelerometer);
     RUN_TEST(testExtensionsDetectNunchukAndSetModeWithAccelerometer);
     RUN_TEST(testExtensionsFailurePathsResetAndRecover);
+    RUN_TEST(testExtensionsWaitReadResponseShortPacketKeepsState);
+    RUN_TEST(testExtensionsNonNunchukControllerTypeResetsToInit);
 
     return UNITY_END();
 }
@@ -277,6 +372,8 @@ void setup() {
     RUN_TEST(testExtensionsDetectNunchukAndSetModeWithoutAccelerometer);
     RUN_TEST(testExtensionsDetectNunchukAndSetModeWithAccelerometer);
     RUN_TEST(testExtensionsFailurePathsResetAndRecover);
+    RUN_TEST(testExtensionsWaitReadResponseShortPacketKeepsState);
+    RUN_TEST(testExtensionsNonNunchukControllerTypeResetsToInit);
 
     UNITY_END();
 }

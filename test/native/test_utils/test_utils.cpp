@@ -144,6 +144,7 @@ void testWiimoteLogPrintGuardsAndPrintPath() {
     wiimoteLogPrint(kWiimoteLogInfo, "[INFO] ", nullptr);
     wiimoteLogPrint(kWiimoteLogInfo, nullptr, "hello");
     wiimoteLogPrint(kWiimoteLogDebug, "[DEBUG] ", "hidden");
+    wiimoteLogPrint(kWiimoteLogInfo, "[INFO] ", "");
 
     // Executed print path.
     wiimoteLogPrint(kWiimoteLogInfo, "[INFO] ", "value=%d", 42);

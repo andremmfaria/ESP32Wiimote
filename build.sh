@@ -69,7 +69,8 @@ run_coverage() {
         --output coverage/html-gcovr/index.html
 
     # Build a full source inventory report so missing instrumentation is explicit.
-    find src -type f | sort > coverage/src-all-files.txt
+    # Count only .cpp implementation files; headers have no independent executable content.
+    find src -name "*.cpp" -type f | sort > coverage/src-all-files.txt
     awk -F, 'NR > 1 {print $1}' coverage/gcovr.csv | sort > coverage/src-covered-files.txt || true
 
     # Compose a full summary including files without gcov data as 0% coverage.
