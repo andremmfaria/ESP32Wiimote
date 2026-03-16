@@ -10,6 +10,18 @@
 
 WiimoteExtensions::WiimoteExtensions() = default;
 
+static void setDefaultReportingMode(WiimoteProtocol *protocol, WiimoteState *state, uint16_t ch) {
+    const uint8_t kMode = state->getUseAccelerometer() ? 0x31 : 0x30;
+    WiimoteReportingModeCommand reportingModeCommand = {kMode, false};
+    protocol->setReportingMode(ch, reportingModeCommand);
+}
+
+static void setNunchukReportingMode(WiimoteProtocol *protocol, WiimoteState *state, uint16_t ch) {
+    const uint8_t kMode = state->getUseAccelerometer() ? 0x35 : 0x32;
+    WiimoteReportingModeCommand reportingModeCommand = {kMode, false};
+    protocol->setReportingMode(ch, reportingModeCommand);
+}
+
 void WiimoteExtensions::init(WiimoteState *state,
                              const L2capConnectionTable *connectionTable,
                              L2capPacketSender *sender) {
@@ -46,13 +58,7 @@ void WiimoteExtensions::handleReport(uint16_t ch, uint8_t *data, uint16_t len) {
                 } else {
                     LOG_INFO("Extension controller NOT connected\n");
                     state_->setNunchukConnected(false);
-                    if (state_->getUseAccelerometer()) {
-                        WiimoteReportingModeCommand reportingModeCommand = {0x31, false};
-                        protocol.setReportingMode(ch, reportingModeCommand);
-                    } else {
-                        WiimoteReportingModeCommand reportingModeCommand = {0x30, false};
-                        protocol.setReportingMode(ch, reportingModeCommand);
-                    }
+                    setDefaultReportingMode(&protocol, state_, ch);
                 }
             }
             break;
@@ -96,13 +102,7 @@ void WiimoteExtensions::handleReport(uint16_t ch, uint8_t *data, uint16_t len) {
                                6) == 0) {
                         LOG_INFO("Nunchuk detected\n");
                         state_->setNunchukConnected(true);
-                        if (state_->getUseAccelerometer()) {
-                            WiimoteReportingModeCommand reportingModeCommand = {0x35, false};
-                            protocol.setReportingMode(ch, reportingModeCommand);
-                        } else {
-                            WiimoteReportingModeCommand reportingModeCommand = {0x32, false};
-                            protocol.setReportingMode(ch, reportingModeCommand);
-                        }
+                        setNunchukReportingMode(&protocol, state_, ch);
                     }
                     controllerReportState_ = ControllerReportState::Init;
                 }

@@ -147,12 +147,13 @@ run_coverage() {
         --capture \
         --directory .pio/build/native-coverage \
         --output-file coverage/lcov.info \
-        --rc lcov_branch_coverage=1 >/dev/null
+        --rc branch_coverage=1 \
+        --rc geninfo_unexecuted_blocks=1 >/dev/null
 
     lcov \
         --remove coverage/lcov.info '/usr/*' '*/test/*' '*/.pio/*' \
         --output-file coverage/lcov.info \
-        --rc lcov_branch_coverage=1 >/dev/null
+        --rc branch_coverage=1 >/dev/null
 
     genhtml \
         coverage/lcov.info \
