@@ -49,6 +49,11 @@ static void hciSend(struct HciEventContext *ctx, uint16_t len) {
     }
 }
 
+static void logCommandCompleteError(uint16_t cmdOpcode, uint8_t status) {
+    LOG_ERROR("HCI: %s (0x%04x) failed, status=0x%02x (%s)\n", hciOpcodeToString(cmdOpcode),
+              cmdOpcode, status, hciStatusCodeToString(status));
+}
+
 static uint32_t nowMs(struct HciEventContext *ctx) {
     if (ctx->getTimeMs != nullptr) {
         return ctx->getTimeMs(ctx->userData);
@@ -160,9 +165,7 @@ static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *da
                 const uint16_t kTxLen = makeCmdReadBdAddr(gHciTxBuffer);
                 hciSend(ctx, kTxLen);
             } else {
-                LOG_ERROR("HCI: %s (0x%04x) failed, status=0x%02x (%s)\n",
-                          hciOpcodeToString(kCmdOpcode), kCmdOpcode, kStatus,
-                          hciStatusCodeToString(kStatus));
+                logCommandCompleteError(kCmdOpcode, kStatus);
             }
             break;
         }
@@ -173,9 +176,7 @@ static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *da
                 const uint16_t kTxLen = makeCmdWriteLocalName(gHciTxBuffer, kName, sizeof(kName));
                 hciSend(ctx, kTxLen);
             } else {
-                LOG_ERROR("HCI: %s (0x%04x) failed, status=0x%02x (%s)\n",
-                          hciOpcodeToString(kCmdOpcode), kCmdOpcode, kStatus,
-                          hciStatusCodeToString(kStatus));
+                logCommandCompleteError(kCmdOpcode, kStatus);
             }
             break;
         }
@@ -186,9 +187,7 @@ static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *da
                 const uint16_t kTxLen = makeCmdWriteClassOfDevice(gHciTxBuffer, kClassOfDevice);
                 hciSend(ctx, kTxLen);
             } else {
-                LOG_ERROR("HCI: %s (0x%04x) failed, status=0x%02x (%s)\n",
-                          hciOpcodeToString(kCmdOpcode), kCmdOpcode, kStatus,
-                          hciStatusCodeToString(kStatus));
+                logCommandCompleteError(kCmdOpcode, kStatus);
             }
             break;
         }
@@ -198,9 +197,7 @@ static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *da
                 const uint16_t kTxLen = makeCmdWriteScanEnable(gHciTxBuffer, 3);
                 hciSend(ctx, kTxLen);
             } else {
-                LOG_ERROR("HCI: %s (0x%04x) failed, status=0x%02x (%s)\n",
-                          hciOpcodeToString(kCmdOpcode), kCmdOpcode, kStatus,
-                          hciStatusCodeToString(kStatus));
+                logCommandCompleteError(kCmdOpcode, kStatus);
             }
             break;
         }
@@ -215,9 +212,7 @@ static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *da
                 }
                 ctx->deviceInited = true;
             } else {
-                LOG_ERROR("HCI: %s (0x%04x) failed, status=0x%02x (%s)\n",
-                          hciOpcodeToString(kCmdOpcode), kCmdOpcode, kStatus,
-                          hciStatusCodeToString(kStatus));
+                logCommandCompleteError(kCmdOpcode, kStatus);
             }
             break;
         }

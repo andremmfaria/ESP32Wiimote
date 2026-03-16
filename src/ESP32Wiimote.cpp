@@ -26,7 +26,6 @@
 ESP32Wiimote::ESP32Wiimote() : ESP32Wiimote(ESP32WiimoteConfig()) {}
 
 ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config) : config_(config) {
-    btController_ = new BluetoothController();
     hciCallbacks_ = new HciCallbacksHandler();
     queueManager_ = new HciQueueManager(config_.txQueueSize, config_.rxQueueSize);
     buttonState_ = new ButtonStateManager();

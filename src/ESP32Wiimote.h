@@ -23,8 +23,6 @@ enum class FilterAction : uint8_t {
     Ignore = 0,
 };
 
-static constexpr FilterAction kActionIgnore = FilterAction::Ignore;
-
 struct ESP32WiimoteConfig {
     int nunchukStickThreshold = 1;
     int txQueueSize = 32;
@@ -133,7 +131,6 @@ class ESP32Wiimote {
     ESP32WiimoteConfig config_;
 
     // Component managers
-    BluetoothController *btController_;
     HciCallbacksHandler *hciCallbacks_;
     HciQueueManager *queueManager_;
     ButtonStateManager *buttonState_;
