@@ -55,9 +55,11 @@ Set `fastReconnectTtlMs = 0` to disable fast reconnect and always use inquiry af
 
 ### Initialization & Task Management
 
-#### `void init()`
+#### `bool init()`
 
 Initializes Bluetooth controller and HCI interface. Must be called once in `setup()`.
+
+**Returns:** `true` on success, `false` if Bluetooth initialization fails
 
 **Example:**
 
@@ -280,6 +282,200 @@ if (millis() - lastUpdate > 60000) {
 - Asynchronous - battery value updates when response is received
 - Only works when connected
 - Battery is automatically requested on initial connection
+
+---
+
+### Output Control
+
+#### `bool setLeds(uint8_t ledMask)`
+
+Sets the Wiimote LED bitmask.
+
+**Parameters:**
+
+- `ledMask` - LED bitmask (bit 0..3 map to LEDs 1..4)
+
+**Returns:** `true` if command was queued, `false` if not connected
+
+**Preconditions / guards:**
+
+- Requires an active Wiimote connection
+- Returns `false` when no connection is available
+
+#### `bool setReportingMode(ReportingMode mode, bool continuous = false)`
+
+Sets Wiimote input reporting mode.
+
+**Parameters:**
+
+- `mode` - reporting mode enum value
+- `continuous` - `true` for continuous reports, `false` for change-based reports
+
+**Returns:** `true` if command was queued, `false` if not connected
+
+**Preconditions / guards:**
+
+- Requires an active Wiimote connection
+- Returns `false` when no connection is available
+
+#### `bool setAccelerometerEnabled(bool enabled)`
+
+Enables or disables accelerometer usage in runtime parsing.
+
+**Parameters:**
+
+- `enabled` - `true` to enable accelerometer handling, `false` to disable
+
+**Returns:** Always `true`
+
+**Preconditions / guards:**
+
+- No connection required
+- This controls local runtime behavior and affects subsequent report handling
+
+#### `bool requestStatus()`
+
+Requests a status report from the currently connected controller.
+
+**Returns:** `true` if command was queued, `false` if not connected
+
+**Preconditions / guards:**
+
+- Requires an active Wiimote connection
+- Returns `false` when no connection is available
+
+#### `bool writeMemory(uint8_t addressSpace, uint32_t offset, const uint8_t *data, uint8_t len)`
+
+Writes data to Wiimote EEPROM or control-register address space.
+
+**Parameters:**
+
+- `addressSpace` - `WiimoteAddressSpace` value cast to `uint8_t`
+- `offset` - address offset inside selected space
+- `data` - pointer to payload bytes
+- `len` - payload length
+
+**Returns:** `true` if command was queued, `false` if not connected
+
+**Preconditions / guards:**
+
+- Requires an active Wiimote connection
+- Returns `false` when no connection is available
+
+#### `bool readMemory(uint8_t addressSpace, uint32_t offset, uint16_t size)`
+
+Reads data from Wiimote EEPROM or control-register address space.
+
+**Parameters:**
+
+- `addressSpace` - `WiimoteAddressSpace` value cast to `uint8_t`
+- `offset` - address offset inside selected space
+- `size` - number of bytes to read
+
+**Returns:** `true` if command was queued, `false` if not connected
+
+**Preconditions / guards:**
+
+- Requires an active Wiimote connection
+- Returns `false` when no connection is available
+
+---
+
+### Bluetooth Controller Runtime Control
+
+#### `void setScanEnabled(bool enabled)`
+
+Enables or disables Bluetooth scan mode at runtime.
+
+**Parameters:**
+
+- `enabled` - `true` to enable scan mode, `false` to disable
+
+#### `bool startDiscovery()`
+
+Starts inquiry/discovery flow.
+
+**Returns:** `true` when start request is accepted, `false` when already scanning
+
+**Preconditions / guards:**
+
+- Discovery is rejected if scanning is already active
+
+#### `bool stopDiscovery()`
+
+Stops inquiry/discovery flow.
+
+**Returns:** `true` when stop request is accepted, `false` when not scanning
+
+**Preconditions / guards:**
+
+- Stop request is rejected if scanning is not active
+
+#### `bool disconnectActiveController(DisconnectReason reason)`
+
+Requests disconnect of the active controller.
+
+**Parameters:**
+
+- `reason` - HCI disconnect reason enum value
+
+**Returns:** `true` when disconnect command is sent, `false` if no active connection
+
+**Preconditions / guards:**
+
+- Requires an active Wiimote connection and valid connection handle
+
+#### `void setAutoReconnectEnabled(bool enabled)`
+
+Enables or disables auto-reconnect policy.
+
+**Parameters:**
+
+- `enabled` - `true` to enable policy, `false` to disable
+
+#### `void clearReconnectCache()`
+
+Clears cached controller identity used by fast reconnect.
+
+#### `BluetoothControllerState getBluetoothControllerState()`
+
+Returns a snapshot of Bluetooth controller runtime state.
+
+**Returns:** `BluetoothControllerState` with initialization, start, scan, connection, and reconnect flags
+
+---
+
+### Phase 1 Public Types
+
+#### `enum class ReportingMode : uint8_t`
+
+Supported reporting modes exposed by the public API:
+
+- `CoreButtons` (`0x30`)
+- `CoreButtonsAccel` (`0x31`)
+- `CoreButtonsAccelIr` (`0x33`)
+- `CoreButtonsAccelExt` (`0x35`)
+
+#### `enum class DisconnectReason : uint8_t`
+
+Supported disconnect reason codes:
+
+- `LocalHostTerminated` (`0x16`)
+- `RemoteUserTerminated` (`0x13`)
+- `AuthenticationFailure` (`0x05`)
+- `PowerOff` (`0x15`)
+
+#### `struct BluetoothControllerState`
+
+Runtime controller-state snapshot fields:
+
+- `initialized`
+- `started`
+- `scanning`
+- `connected`
+- `activeConnectionHandle`
+- `fastReconnectActive`
+- `autoReconnectEnabled`
 
 ---
 
