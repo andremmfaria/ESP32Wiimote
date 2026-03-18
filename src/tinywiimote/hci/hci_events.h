@@ -44,6 +44,8 @@ struct HciEventContext {
     bool hasLastWiimote;
     bool hasCurrentConnectTarget;
     bool pendingFastReconnect;
+    bool scanningEnabled;
+    bool autoReconnectEnabled;
 
     bool deviceInited;
 };

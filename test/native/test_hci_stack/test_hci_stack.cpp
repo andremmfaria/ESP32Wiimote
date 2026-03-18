@@ -205,10 +205,27 @@ void testHciEventsInitResetAndCommandFlow() {
 
     sendCommandComplete(&ctx, kHciOpcodeWriteClassOfDevice, 0x00);
     TEST_ASSERT_EQUAL_UINT16(kHciOpcodeWriteScanEnable, txOpcode());
+    TEST_ASSERT_TRUE(ctx.scanningEnabled);
 
     sendCommandComplete(&ctx, kHciOpcodeWriteScanEnable, 0x00);
     TEST_ASSERT_EQUAL_UINT16(kHciOpcodeInquiry, txOpcode());
     TEST_ASSERT_TRUE(ctx.deviceInited);
+}
+
+void testHciEventContextDefaultsAndResetPersistence() {
+    HciEventContext ctx;
+    hciEventsInit(&ctx, captureTx, nullptr);
+
+    TEST_ASSERT_FALSE(ctx.scanningEnabled);
+    TEST_ASSERT_TRUE(ctx.autoReconnectEnabled);
+
+    ctx.scanningEnabled = true;
+    ctx.autoReconnectEnabled = false;
+
+    hciEventsResetDevice(&ctx);
+
+    TEST_ASSERT_FALSE(ctx.scanningEnabled);
+    TEST_ASSERT_FALSE(ctx.autoReconnectEnabled);
 }
 
 void testHciEventsInquiryAndRemoteNameFlow() {
@@ -404,6 +421,25 @@ void testFastReconnectDisabledWhenTtlIsZero() {
     TEST_ASSERT_EQUAL_UINT16(kHciOpcodeInquiry, txOpcode());
 }
 
+void testFastReconnectDisabledByPolicyFallsBackToInquiry() {
+    HciEventContext ctx;
+    hciEventsInit(&ctx, captureTx, nullptr);
+    hciEventsSetTimeProvider(&ctx, fakeNowMs);
+
+    gFakeNowMs = 1000;
+    seedKnownWiimoteAndConnectedState(&ctx);
+    ctx.autoReconnectEnabled = false;
+
+    hciEventsResetDevice(&ctx);
+    sendCommandComplete(&ctx, kHciOpcodeReset, 0x00);
+    sendCommandComplete(&ctx, kHciOpcodeReadBdAddr, 0x00);
+    sendCommandComplete(&ctx, kHciOpcodeWriteLocalName, 0x00);
+    sendCommandComplete(&ctx, kHciOpcodeWriteClassOfDevice, 0x00);
+    sendCommandComplete(&ctx, kHciOpcodeWriteScanEnable, 0x00);
+
+    TEST_ASSERT_EQUAL_UINT16(kHciOpcodeInquiry, txOpcode());
+}
+
 // ---------------------------------------------------------------------------
 // Error branches in handleCommandComplete (status != 0x00 for each opcode)
 // ---------------------------------------------------------------------------
@@ -579,6 +615,7 @@ int main(int argc, char **argv) {
     RUN_TEST(testHciCommandBuilders);
     RUN_TEST(testHciDisconnectCommandBuilderBytes);
     RUN_TEST(testHciEventsInitResetAndCommandFlow);
+    RUN_TEST(testHciEventContextDefaultsAndResetPersistence);
     RUN_TEST(testHciEventsInquiryAndRemoteNameFlow);
     RUN_TEST(testHciEventsCallbacksAndNullGuards);
     RUN_TEST(testFastReconnectWithinTtlSkipsInquiry);
@@ -586,6 +623,7 @@ int main(int argc, char **argv) {
     RUN_TEST(testFastReconnectFailureFallsBackToInquiry);
     RUN_TEST(testDifferentControllerConnectionReplacesCache);
     RUN_TEST(testFastReconnectDisabledWhenTtlIsZero);
+    RUN_TEST(testFastReconnectDisabledByPolicyFallsBackToInquiry);
     RUN_TEST(testHciEventsCommandCompleteErrorBranches);
     RUN_TEST(testHciEventsNullSendPacket);
     RUN_TEST(testHciEventsInquiryCompleteResetsDevice);
@@ -603,6 +641,7 @@ void setup() {
     RUN_TEST(testHciCommandBuilders);
     RUN_TEST(testHciDisconnectCommandBuilderBytes);
     RUN_TEST(testHciEventsInitResetAndCommandFlow);
+    RUN_TEST(testHciEventContextDefaultsAndResetPersistence);
     RUN_TEST(testHciEventsInquiryAndRemoteNameFlow);
     RUN_TEST(testHciEventsCallbacksAndNullGuards);
     RUN_TEST(testFastReconnectWithinTtlSkipsInquiry);
@@ -610,6 +649,7 @@ void setup() {
     RUN_TEST(testFastReconnectFailureFallsBackToInquiry);
     RUN_TEST(testDifferentControllerConnectionReplacesCache);
     RUN_TEST(testFastReconnectDisabledWhenTtlIsZero);
+    RUN_TEST(testFastReconnectDisabledByPolicyFallsBackToInquiry);
     RUN_TEST(testHciEventsCommandCompleteErrorBranches);
     RUN_TEST(testHciEventsNullSendPacket);
     RUN_TEST(testHciEventsInquiryCompleteResetsDevice);
