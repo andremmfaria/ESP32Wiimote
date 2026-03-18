@@ -359,6 +359,71 @@ void testTinyWiimoteHandleHciDataUnknownType() {
     TEST_ASSERT_EQUAL(0, gSendCount);
 }
 
+void testTinyWiimoteL2capUnhandledAndOutputBridges() {
+    TwHciInterface hci = {captureTx};
+    twReal_tinyWiimoteInit(hci);
+
+    // Unhandled L2CAP code should hit default branch without emitting TX.
+    uint8_t unhandledPayload[3] = {0xAA, 0x00, 0x00};
+    uint8_t frame[32] = {0};
+    size_t frameLen = 0;
+    buildAclFrame(frame, &frameLen, 0x0040, (uint16_t)L2capCid::SIGNALING, unhandledPayload,
+                  sizeof(unhandledPayload));
+    gSendCount = 0;
+    twReal_handleHciData(frame, frameLen);
+    TEST_ASSERT_EQUAL(0, gSendCount);
+
+    // Output bridge methods should reject when disconnected.
+    TEST_ASSERT_FALSE(twReal_tinyWiimoteSetLeds(0x0F));
+    TEST_ASSERT_FALSE(
+        twReal_tinyWiimoteSetReportingMode((uint8_t)WiimoteInputReport::CoreButtons, false));
+    TEST_ASSERT_FALSE(twReal_tinyWiimoteRequestStatus());
+    uint8_t writeBuf[2] = {0x12, 0x34};
+    TEST_ASSERT_FALSE(twReal_tinyWiimoteWriteMemory((uint8_t)WiimoteAddressSpace::EEPROM, 0x0010,
+                                                    writeBuf, sizeof(writeBuf)));
+    TEST_ASSERT_FALSE(
+        twReal_tinyWiimoteReadMemory((uint8_t)WiimoteAddressSpace::EEPROM, 0x0010, 0x0020));
+
+    // Connected but without an L2CAP handle should also reject.
+    gRuntime.wiimoteState.setConnected(true);
+    TEST_ASSERT_FALSE(twReal_tinyWiimoteSetLeds(0x0F));
+    TEST_ASSERT_FALSE(
+        twReal_tinyWiimoteSetReportingMode((uint8_t)WiimoteInputReport::CoreButtons, false));
+    TEST_ASSERT_FALSE(twReal_tinyWiimoteRequestStatus());
+    TEST_ASSERT_FALSE(twReal_tinyWiimoteWriteMemory((uint8_t)WiimoteAddressSpace::EEPROM, 0x0010,
+                                                    writeBuf, sizeof(writeBuf)));
+    TEST_ASSERT_FALSE(
+        twReal_tinyWiimoteReadMemory((uint8_t)WiimoteAddressSpace::EEPROM, 0x0010, 0x0020));
+
+    // Add a connection so bridge calls can route through wiimote protocol.
+    L2capConnection::Endpoint endpoint = {0x0042, 0x0013};
+    TEST_ASSERT_GREATER_THAN_INT(
+        0, gRuntime.l2capConnections.addConnection(L2capConnection(endpoint)));
+
+    gSendCount = 0;
+    TEST_ASSERT_TRUE(twReal_tinyWiimoteSetLeds(0x0F));
+    TEST_ASSERT_EQUAL(1, gSendCount);
+
+    gSendCount = 0;
+    TEST_ASSERT_TRUE(
+        twReal_tinyWiimoteSetReportingMode((uint8_t)WiimoteInputReport::CoreButtonsAccel, true));
+    TEST_ASSERT_EQUAL(1, gSendCount);
+
+    gSendCount = 0;
+    TEST_ASSERT_TRUE(twReal_tinyWiimoteRequestStatus());
+    TEST_ASSERT_EQUAL(1, gSendCount);
+
+    gSendCount = 0;
+    TEST_ASSERT_TRUE(twReal_tinyWiimoteWriteMemory((uint8_t)WiimoteAddressSpace::EEPROM, 0x0010,
+                                                   writeBuf, sizeof(writeBuf)));
+    TEST_ASSERT_EQUAL(1, gSendCount);
+
+    gSendCount = 0;
+    TEST_ASSERT_TRUE(
+        twReal_tinyWiimoteReadMemory((uint8_t)WiimoteAddressSpace::EEPROM, 0x0010, 0x0010));
+    TEST_ASSERT_EQUAL(1, gSendCount);
+}
+
 void testTinyWiimoteSetScanEnabledSendsExpectedModes() {
     TwHciInterface hci = {captureTx};
     twReal_tinyWiimoteInit(hci);
@@ -458,6 +523,28 @@ void testTinyWiimoteDisconnectGuardAndCommand() {
     TEST_ASSERT_EQUAL_UINT8(0x16, gLastTx[6]);
 }
 
+void testTinyWiimoteDisconnectMissingHandleAndConfigSetters() {
+    TwHciInterface hci = {captureTx};
+    twReal_tinyWiimoteInit(hci);
+
+    // Connected with no L2CAP handle should hit disconnect guard.
+    gRuntime.wiimoteState.setConnected(true);
+    gSendCount = 0;
+    TEST_ASSERT_FALSE(twReal_tinyWiimoteDisconnect(0x16));
+    TEST_ASSERT_EQUAL(0, gSendCount);
+
+    // Direct setter APIs should update runtime configuration fields.
+    TEST_ASSERT_TRUE(gRuntime.wiimoteState.getUseAccelerometer());
+    twReal_tinyWiimoteReqAccelerometer(false);
+    TEST_ASSERT_FALSE(gRuntime.wiimoteState.getUseAccelerometer());
+    twReal_tinyWiimoteReqAccelerometer(true);
+    TEST_ASSERT_TRUE(gRuntime.wiimoteState.getUseAccelerometer());
+
+    const uint32_t kNewTtlMs = 4242;
+    twReal_tinyWiimoteSetFastReconnectTtlMs(kNewTtlMs);
+    TEST_ASSERT_EQUAL_UINT32(kNewTtlMs, gRuntime.hciEventContext.fastReconnectTtlMs);
+}
+
 void testTinyWiimoteReconnectPolicyAndStateSnapshot() {
     TwHciInterface hci = {captureTx};
     twReal_tinyWiimoteInit(hci);
@@ -491,9 +578,11 @@ int main(int argc, char **argv) {
     RUN_TEST(testTinyWiimoteL2capConfigRequestAndResponse);
     RUN_TEST(testTinyWiimoteAclDataEdgeCases);
     RUN_TEST(testTinyWiimoteHandleHciDataUnknownType);
+    RUN_TEST(testTinyWiimoteL2capUnhandledAndOutputBridges);
     RUN_TEST(testTinyWiimoteSetScanEnabledSendsExpectedModes);
     RUN_TEST(testTinyWiimoteDiscoveryStartStopGuards);
     RUN_TEST(testTinyWiimoteDisconnectGuardAndCommand);
+    RUN_TEST(testTinyWiimoteDisconnectMissingHandleAndConfigSetters);
     RUN_TEST(testTinyWiimoteReconnectPolicyAndStateSnapshot);
 
     return UNITY_END();
@@ -508,9 +597,11 @@ void setup() {
     RUN_TEST(testTinyWiimoteL2capConfigRequestAndResponse);
     RUN_TEST(testTinyWiimoteAclDataEdgeCases);
     RUN_TEST(testTinyWiimoteHandleHciDataUnknownType);
+    RUN_TEST(testTinyWiimoteL2capUnhandledAndOutputBridges);
     RUN_TEST(testTinyWiimoteSetScanEnabledSendsExpectedModes);
     RUN_TEST(testTinyWiimoteDiscoveryStartStopGuards);
     RUN_TEST(testTinyWiimoteDisconnectGuardAndCommand);
+    RUN_TEST(testTinyWiimoteDisconnectMissingHandleAndConfigSetters);
     RUN_TEST(testTinyWiimoteReconnectPolicyAndStateSnapshot);
 
     UNITY_END();
