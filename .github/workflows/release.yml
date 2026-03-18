@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+jobs:
+  validate-tag-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate tag format and version match
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TAG="${GITHUB_REF_NAME}"
+          if [[ ! "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag '$TAG' is invalid. Use plain semver only (example: 1.5.0)."
+            exit 1
+          fi
+
+          LIB_VERSION="$(grep -E '^version=' library.properties | head -n1 | cut -d'=' -f2 | tr -d '[:space:]')"
+          if [[ -z "$LIB_VERSION" ]]; then
+            echo "::error::Could not read 'version=' from library.properties."
+            exit 1
+          fi
+
+          if [[ "$TAG" != "$LIB_VERSION" ]]; then
+            echo "::error::Tag '$TAG' does not match library version '$LIB_VERSION'."
+            exit 1
+          fi
+
+          echo "Tag and library version match: $TAG"
+
+  release:
+    runs-on: ubuntu-latest
+    needs: validate-tag-version
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          generate_release_notes: true
