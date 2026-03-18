@@ -205,10 +205,27 @@ void testHciEventsInitResetAndCommandFlow() {
 
     sendCommandComplete(&ctx, kHciOpcodeWriteClassOfDevice, 0x00);
     TEST_ASSERT_EQUAL_UINT16(kHciOpcodeWriteScanEnable, txOpcode());
+    TEST_ASSERT_TRUE(ctx.scanningEnabled);
 
     sendCommandComplete(&ctx, kHciOpcodeWriteScanEnable, 0x00);
     TEST_ASSERT_EQUAL_UINT16(kHciOpcodeInquiry, txOpcode());
     TEST_ASSERT_TRUE(ctx.deviceInited);
+}
+
+void testHciEventContextDefaultsAndResetPersistence() {
+    HciEventContext ctx;
+    hciEventsInit(&ctx, captureTx, nullptr);
+
+    TEST_ASSERT_FALSE(ctx.scanningEnabled);
+    TEST_ASSERT_TRUE(ctx.autoReconnectEnabled);
+
+    ctx.scanningEnabled = true;
+    ctx.autoReconnectEnabled = false;
+
+    hciEventsResetDevice(&ctx);
+
+    TEST_ASSERT_FALSE(ctx.scanningEnabled);
+    TEST_ASSERT_FALSE(ctx.autoReconnectEnabled);
 }
 
 void testHciEventsInquiryAndRemoteNameFlow() {
@@ -404,6 +421,193 @@ void testFastReconnectDisabledWhenTtlIsZero() {
     TEST_ASSERT_EQUAL_UINT16(kHciOpcodeInquiry, txOpcode());
 }
 
+void testFastReconnectDisabledByPolicyFallsBackToInquiry() {
+    HciEventContext ctx;
+    hciEventsInit(&ctx, captureTx, nullptr);
+    hciEventsSetTimeProvider(&ctx, fakeNowMs);
+
+    gFakeNowMs = 1000;
+    seedKnownWiimoteAndConnectedState(&ctx);
+    ctx.autoReconnectEnabled = false;
+
+    hciEventsResetDevice(&ctx);
+    sendCommandComplete(&ctx, kHciOpcodeReset, 0x00);
+    sendCommandComplete(&ctx, kHciOpcodeReadBdAddr, 0x00);
+    sendCommandComplete(&ctx, kHciOpcodeWriteLocalName, 0x00);
+    sendCommandComplete(&ctx, kHciOpcodeWriteClassOfDevice, 0x00);
+    sendCommandComplete(&ctx, kHciOpcodeWriteScanEnable, 0x00);
+
+    TEST_ASSERT_EQUAL_UINT16(kHciOpcodeInquiry, txOpcode());
+}
+
+// ---------------------------------------------------------------------------
+// Error branches in handleCommandComplete (status != 0x00 for each opcode)
+// ---------------------------------------------------------------------------
+void testHciEventsCommandCompleteErrorBranches() {
+    HciEventContext ctx;
+    hciEventsInit(&ctx, captureTx, nullptr);
+
+    gSendCount = 0;
+    // Each error status should NOT trigger a follow-up command.
+    sendCommandComplete(&ctx, kHciOpcodeReset, 0x01);
+    TEST_ASSERT_EQUAL(0, gSendCount);
+
+    sendCommandComplete(&ctx, kHciOpcodeReadBdAddr, 0x01);
+    TEST_ASSERT_EQUAL(0, gSendCount);
+
+    sendCommandComplete(&ctx, kHciOpcodeWriteLocalName, 0x01);
+    TEST_ASSERT_EQUAL(0, gSendCount);
+
+    sendCommandComplete(&ctx, kHciOpcodeWriteClassOfDevice, 0x01);
+    TEST_ASSERT_EQUAL(0, gSendCount);
+
+    sendCommandComplete(&ctx, kHciOpcodeWriteScanEnable, 0x01);
+    TEST_ASSERT_EQUAL(0, gSendCount);
+
+    // Default/unknown opcode with non-zero status → logs warning, sends nothing.
+    sendCommandComplete(&ctx, 0x1234, 0x01);
+    TEST_ASSERT_EQUAL(0, gSendCount);
+
+    // Default/unknown opcode with zero status → also sends nothing.
+    sendCommandComplete(&ctx, 0x1234, 0x00);
+    TEST_ASSERT_EQUAL(0, gSendCount);
+}
+
+// ---------------------------------------------------------------------------
+// hciSend when sendPacket is null (ctx->sendPacket == nullptr)
+// ---------------------------------------------------------------------------
+void testHciEventsNullSendPacket() {
+    HciEventContext ctx;
+    hciEventsInit(&ctx, nullptr, nullptr);
+    // All sends in resetDevice go through hciSend which guards on sendPacket nullptr.
+    hciEventsResetDevice(&ctx);  // must not crash
+}
+
+// ---------------------------------------------------------------------------
+// InquiryComplete triggers hciEventsResetDevice
+// ---------------------------------------------------------------------------
+void testHciEventsInquiryCompleteResetsDevice() {
+    HciEventContext ctx;
+    hciEventsInit(&ctx, captureTx, nullptr);
+
+    gSendCount = 0;
+    uint8_t dummy = 0x00;
+    HciEventPacket packet = {kHciInquiryCompEvt, 1, &dummy};
+    hciEventsHandleEvent(&ctx, packet);
+
+    TEST_ASSERT_GREATER_THAN(0, gSendCount);
+    TEST_ASSERT_EQUAL_UINT16(kHciOpcodeReset, txOpcode());
+}
+
+// ---------------------------------------------------------------------------
+// Inquiry result: duplicate device detection (device already in scanned list)
+// ---------------------------------------------------------------------------
+void testHciEventsInquiryResultDuplicateDevice() {
+    HciEventContext ctx;
+    hciEventsInit(&ctx, captureTx, nullptr);
+
+    // Non-Wiimote CoD → device is added to list but no name request issued.
+    uint8_t inquiryResult[15] = {0};
+    inquiryResult[0] = 1;
+    inquiryResult[1] = 0x11;
+    inquiryResult[2] = 0x22;
+    inquiryResult[3] = 0x33;
+    inquiryResult[4] = 0x44;
+    inquiryResult[5] = 0x55;
+    inquiryResult[6] = 0x66;
+    inquiryResult[7] = 0x01;
+    inquiryResult[10] = 0x01;
+    inquiryResult[11] = 0x02;
+    inquiryResult[12] = 0x00;
+
+    HciEventPacket packet = {kHciInquiryResultEvt, sizeof(inquiryResult), inquiryResult};
+    hciEventsHandleEvent(&ctx, packet);  // adds device to scanned list
+
+    gSendCount = 0;
+    hciEventsHandleEvent(&ctx, packet);  // same device again → skipped (duplicate path)
+    TEST_ASSERT_EQUAL(0, gSendCount);
+}
+
+// ---------------------------------------------------------------------------
+// Inquiry result: non-Wiimote class-of-device → no remote name request
+// ---------------------------------------------------------------------------
+void testHciEventsInquiryResultNonWiimoteCoD() {
+    HciEventContext ctx;
+    hciEventsInit(&ctx, captureTx, nullptr);
+
+    uint8_t inquiryResult[15] = {0};
+    inquiryResult[0] = 1;
+    inquiryResult[1] = 0xAA;
+    inquiryResult[2] = 0xBB;
+    inquiryResult[3] = 0xCC;
+    inquiryResult[4] = 0xDD;
+    inquiryResult[5] = 0xEE;
+    inquiryResult[6] = 0xFF;
+    inquiryResult[7] = 0x01;
+    // CoD bytes [10..12] do NOT match Wiimote [04 25 00]
+    inquiryResult[10] = 0xFF;
+    inquiryResult[11] = 0xFF;
+    inquiryResult[12] = 0xFF;
+
+    gSendCount = 0;
+    HciEventPacket packet = {kHciInquiryResultEvt, sizeof(inquiryResult), inquiryResult};
+    hciEventsHandleEvent(&ctx, packet);
+
+    // No remote name request should be sent.
+    TEST_ASSERT_EQUAL(0, gSendCount);
+}
+
+// ---------------------------------------------------------------------------
+// Remote name complete for a device NOT in the scanned list → ignored
+// ---------------------------------------------------------------------------
+void testHciEventsRemoteNameNotInScannedList() {
+    HciEventContext ctx;
+    hciEventsInit(&ctx, captureTx, nullptr);
+
+    // BdAddr that was never put into the scanned list.
+    uint8_t remoteNameData[64] = {0};
+    remoteNameData[1] = 0xDE;
+    remoteNameData[2] = 0xAD;
+    remoteNameData[3] = 0xBE;
+    remoteNameData[4] = 0xEF;
+    remoteNameData[5] = 0xCA;
+    remoteNameData[6] = 0xFE;
+    const char *name = "Nintendo RVL-CNT-01";
+    memcpy(remoteNameData + 7, name, strlen(name) + 1);
+
+    gSendCount = 0;
+    HciEventPacket packet = {kHciRmtNameRequestCompEvt, sizeof(remoteNameData), remoteNameData};
+    hciEventsHandleEvent(&ctx, packet);
+
+    // Device not in scanned list → no connection attempt.
+    TEST_ASSERT_EQUAL(0, gSendCount);
+}
+
+// ---------------------------------------------------------------------------
+// Command status error for non-CreateConnection opcode → no fallback
+// ---------------------------------------------------------------------------
+void testHciEventsCommandStatusNonCreateConnection() {
+    HciEventContext ctx;
+    hciEventsInit(&ctx, captureTx, nullptr);
+    hciEventsSetTimeProvider(&ctx, fakeNowMs);
+
+    gFakeNowMs = 1000;
+    seedKnownWiimoteAndConnectedState(&ctx);
+
+    // Trigger fast reconnect so there's a pending CreateConnection attempt.
+    hciEventsResetDevice(&ctx);
+    sendCommandComplete(&ctx, kHciOpcodeReset, 0x00);
+    sendCommandComplete(&ctx, kHciOpcodeReadBdAddr, 0x00);
+    sendCommandComplete(&ctx, kHciOpcodeWriteLocalName, 0x00);
+    sendCommandComplete(&ctx, kHciOpcodeWriteClassOfDevice, 0x00);
+    sendCommandComplete(&ctx, kHciOpcodeWriteScanEnable, 0x00);
+
+    // Error status for a different opcode (not CreateConnection) → no inquiry fallback.
+    int beforeCount = gSendCount;
+    sendCommandStatus(&ctx, 0x01, kHciOpcodeReset);
+    TEST_ASSERT_EQUAL(beforeCount, gSendCount);
+}
+
 #ifdef NATIVE_TEST
 int main(int argc, char **argv) {
     UNITY_BEGIN();
@@ -411,6 +615,7 @@ int main(int argc, char **argv) {
     RUN_TEST(testHciCommandBuilders);
     RUN_TEST(testHciDisconnectCommandBuilderBytes);
     RUN_TEST(testHciEventsInitResetAndCommandFlow);
+    RUN_TEST(testHciEventContextDefaultsAndResetPersistence);
     RUN_TEST(testHciEventsInquiryAndRemoteNameFlow);
     RUN_TEST(testHciEventsCallbacksAndNullGuards);
     RUN_TEST(testFastReconnectWithinTtlSkipsInquiry);
@@ -418,6 +623,14 @@ int main(int argc, char **argv) {
     RUN_TEST(testFastReconnectFailureFallsBackToInquiry);
     RUN_TEST(testDifferentControllerConnectionReplacesCache);
     RUN_TEST(testFastReconnectDisabledWhenTtlIsZero);
+    RUN_TEST(testFastReconnectDisabledByPolicyFallsBackToInquiry);
+    RUN_TEST(testHciEventsCommandCompleteErrorBranches);
+    RUN_TEST(testHciEventsNullSendPacket);
+    RUN_TEST(testHciEventsInquiryCompleteResetsDevice);
+    RUN_TEST(testHciEventsInquiryResultDuplicateDevice);
+    RUN_TEST(testHciEventsInquiryResultNonWiimoteCoD);
+    RUN_TEST(testHciEventsRemoteNameNotInScannedList);
+    RUN_TEST(testHciEventsCommandStatusNonCreateConnection);
 
     return UNITY_END();
 }
@@ -428,6 +641,7 @@ void setup() {
     RUN_TEST(testHciCommandBuilders);
     RUN_TEST(testHciDisconnectCommandBuilderBytes);
     RUN_TEST(testHciEventsInitResetAndCommandFlow);
+    RUN_TEST(testHciEventContextDefaultsAndResetPersistence);
     RUN_TEST(testHciEventsInquiryAndRemoteNameFlow);
     RUN_TEST(testHciEventsCallbacksAndNullGuards);
     RUN_TEST(testFastReconnectWithinTtlSkipsInquiry);
@@ -435,6 +649,14 @@ void setup() {
     RUN_TEST(testFastReconnectFailureFallsBackToInquiry);
     RUN_TEST(testDifferentControllerConnectionReplacesCache);
     RUN_TEST(testFastReconnectDisabledWhenTtlIsZero);
+    RUN_TEST(testFastReconnectDisabledByPolicyFallsBackToInquiry);
+    RUN_TEST(testHciEventsCommandCompleteErrorBranches);
+    RUN_TEST(testHciEventsNullSendPacket);
+    RUN_TEST(testHciEventsInquiryCompleteResetsDevice);
+    RUN_TEST(testHciEventsInquiryResultDuplicateDevice);
+    RUN_TEST(testHciEventsInquiryResultNonWiimoteCoD);
+    RUN_TEST(testHciEventsRemoteNameNotInScannedList);
+    RUN_TEST(testHciEventsCommandStatusNonCreateConnection);
 
     UNITY_END();
 }

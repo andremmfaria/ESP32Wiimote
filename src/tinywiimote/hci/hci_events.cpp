@@ -115,6 +115,8 @@ void hciEventsInit(struct HciEventContext *ctx, HciSendPacketFunc sendPacket, vo
     ctx->sendPacket = sendPacket;
     ctx->userData = userData;
     ctx->fastReconnectTtlMs = kFastReconnectTtlMs;
+    ctx->scanningEnabled = false;
+    ctx->autoReconnectEnabled = true;
 }
 
 void hciEventsSetCallbacks(struct HciEventContext *ctx,
@@ -150,6 +152,7 @@ void hciEventsResetDevice(struct HciEventContext *ctx) {
     }
 
     clearScannedDevices(ctx);
+    ctx->scanningEnabled = false;
     const uint16_t kTxLen = makeCmdReset(gHciTxBuffer);
     hciSend(ctx, kTxLen);
 }
@@ -195,6 +198,7 @@ static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *da
         case kHciOpcodeWriteClassOfDevice: {
             if (kStatus == 0x00) {
                 const uint16_t kTxLen = makeCmdWriteScanEnable(gHciTxBuffer, 3);
+                ctx->scanningEnabled = true;
                 hciSend(ctx, kTxLen);
             } else {
                 logCommandCompleteError(kCmdOpcode, kStatus);
@@ -204,7 +208,7 @@ static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *da
 
         case kHciOpcodeWriteScanEnable: {
             if (kStatus == 0x00) {
-                if (isFastReconnectCacheValid(ctx)) {
+                if (ctx->autoReconnectEnabled && isFastReconnectCacheValid(ctx)) {
                     LOG_INFO("HCI: Fast reconnect: trying cached Wiimote address\n");
                     startCreateConnection(ctx, ctx->lastWiimote, true);
                 } else {
