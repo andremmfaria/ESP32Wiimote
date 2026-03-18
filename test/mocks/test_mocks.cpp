@@ -49,6 +49,19 @@ int mockReadMemoryCallCount = 0;
 uint8_t mockLastReadMemoryAddressSpace = 0;
 uint32_t mockLastReadMemoryOffset = 0;
 uint16_t mockLastReadMemorySize = 0;
+int mockSetScanEnabledCallCount = 0;
+bool mockLastScanEnabled = false;
+bool mockStartDiscoveryResult = false;
+int mockStartDiscoveryCallCount = 0;
+bool mockStopDiscoveryResult = false;
+int mockStopDiscoveryCallCount = 0;
+bool mockDisconnectResult = false;
+int mockDisconnectCallCount = 0;
+uint8_t mockLastDisconnectReason = 0;
+int mockSetAutoReconnectEnabledCallCount = 0;
+bool mockLastAutoReconnectEnabled = false;
+int mockClearReconnectCacheCallCount = 0;
+BluetoothControllerState mockControllerState = {false, false, false, false, 0, false, false};
 
 // ESP32 BT VHCI mock state
 bool gMockVhciSendAvailable = true;
@@ -160,6 +173,40 @@ bool tinyWiimoteReadMemory(uint8_t addressSpace, uint32_t offset, uint16_t size)
     mockLastReadMemoryOffset = offset;
     mockLastReadMemorySize = size;
     return mockReadMemoryResult;
+}
+
+void tinyWiimoteSetScanEnabled(bool enabled) {
+    mockSetScanEnabledCallCount++;
+    mockLastScanEnabled = enabled;
+}
+
+bool tinyWiimoteStartDiscovery() {
+    mockStartDiscoveryCallCount++;
+    return mockStartDiscoveryResult;
+}
+
+bool tinyWiimoteStopDiscovery() {
+    mockStopDiscoveryCallCount++;
+    return mockStopDiscoveryResult;
+}
+
+bool tinyWiimoteDisconnect(uint8_t reason) {
+    mockDisconnectCallCount++;
+    mockLastDisconnectReason = reason;
+    return mockDisconnectResult;
+}
+
+void tinyWiimoteSetAutoReconnectEnabled(bool enabled) {
+    mockSetAutoReconnectEnabledCallCount++;
+    mockLastAutoReconnectEnabled = enabled;
+}
+
+void tinyWiimoteClearReconnectCache() {
+    mockClearReconnectCacheCallCount++;
+}
+
+BluetoothControllerState tinyWiimoteGetControllerState() {
+    return mockControllerState;
 }
 
 // ---- ESP32 BT VHCI mock implementations ----

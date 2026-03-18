@@ -59,6 +59,19 @@ extern int mockReadMemoryCallCount;
 extern uint8_t mockLastReadMemoryAddressSpace;
 extern uint32_t mockLastReadMemoryOffset;
 extern uint16_t mockLastReadMemorySize;
+extern int mockSetScanEnabledCallCount;
+extern bool mockLastScanEnabled;
+extern bool mockStartDiscoveryResult;
+extern int mockStartDiscoveryCallCount;
+extern bool mockStopDiscoveryResult;
+extern int mockStopDiscoveryCallCount;
+extern bool mockDisconnectResult;
+extern int mockDisconnectCallCount;
+extern uint8_t mockLastDisconnectReason;
+extern int mockSetAutoReconnectEnabledCallCount;
+extern bool mockLastAutoReconnectEnabled;
+extern int mockClearReconnectCacheCallCount;
+extern BluetoothControllerState mockControllerState;
 
 // ESP32 BT VHCI mock state (used by hci_queue.cpp and test_esp32_components)
 extern bool gMockVhciSendAvailable;

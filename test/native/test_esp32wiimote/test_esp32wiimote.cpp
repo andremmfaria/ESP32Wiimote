@@ -36,6 +36,19 @@ void setUp(void) {
     mockLastReadMemoryAddressSpace = 0;
     mockLastReadMemoryOffset = 0;
     mockLastReadMemorySize = 0;
+    mockSetScanEnabledCallCount = 0;
+    mockLastScanEnabled = false;
+    mockStartDiscoveryResult = false;
+    mockStartDiscoveryCallCount = 0;
+    mockStopDiscoveryResult = false;
+    mockStopDiscoveryCallCount = 0;
+    mockDisconnectResult = false;
+    mockDisconnectCallCount = 0;
+    mockLastDisconnectReason = 0;
+    mockSetAutoReconnectEnabledCallCount = 0;
+    mockLastAutoReconnectEnabled = false;
+    mockClearReconnectCacheCallCount = 0;
+    mockControllerState = {false, false, false, false, 0, false, false};
     mockHandleHciDataCallCount = 0;
     mockHasData = false;
     mockData = {0, {0}, 0};
@@ -211,6 +224,45 @@ void testESP32WiimoteOutputMethodsDelegateAndPropagateResults() {
     TEST_ASSERT_EQUAL_UINT16(32U, mockLastReadMemorySize);
 }
 
+void testESP32WiimoteControllerMethodsDelegateAndMapState() {
+    ESP32Wiimote device;
+
+    device.setScanEnabled(true);
+    TEST_ASSERT_EQUAL(1, mockSetScanEnabledCallCount);
+    TEST_ASSERT_TRUE(mockLastScanEnabled);
+
+    mockStartDiscoveryResult = true;
+    TEST_ASSERT_TRUE(device.startDiscovery());
+    TEST_ASSERT_EQUAL(1, mockStartDiscoveryCallCount);
+
+    mockStopDiscoveryResult = false;
+    TEST_ASSERT_FALSE(device.stopDiscovery());
+    TEST_ASSERT_EQUAL(1, mockStopDiscoveryCallCount);
+
+    mockDisconnectResult = true;
+    TEST_ASSERT_TRUE(
+        device.disconnectActiveController(ESP32Wiimote::DisconnectReason::AuthenticationFailure));
+    TEST_ASSERT_EQUAL(1, mockDisconnectCallCount);
+    TEST_ASSERT_EQUAL_UINT8(0x05, mockLastDisconnectReason);
+
+    device.setAutoReconnectEnabled(true);
+    TEST_ASSERT_EQUAL(1, mockSetAutoReconnectEnabledCallCount);
+    TEST_ASSERT_TRUE(mockLastAutoReconnectEnabled);
+
+    device.clearReconnectCache();
+    TEST_ASSERT_EQUAL(1, mockClearReconnectCacheCallCount);
+
+    mockControllerState = {true, true, true, true, 0xBEEF, true, true};
+    ESP32Wiimote::BluetoothControllerState state = device.getBluetoothControllerState();
+    TEST_ASSERT_TRUE(state.initialized);
+    TEST_ASSERT_TRUE(state.started);
+    TEST_ASSERT_TRUE(state.scanning);
+    TEST_ASSERT_TRUE(state.connected);
+    TEST_ASSERT_EQUAL_UINT16(0xBEEF, state.activeConnectionHandle);
+    TEST_ASSERT_TRUE(state.fastReconnectActive);
+    TEST_ASSERT_TRUE(state.autoReconnectEnabled);
+}
+
 #ifdef NATIVE_TEST
 int main(int argc, char **argv) {
     UNITY_BEGIN();
@@ -224,6 +276,7 @@ int main(int argc, char **argv) {
     RUN_TEST(testESP32WiimoteAddFilterUpdatesParserAndAccelRequest);
     RUN_TEST(testESP32WiimotePublicControllerTypesHaveExpectedShape);
     RUN_TEST(testESP32WiimoteOutputMethodsDelegateAndPropagateResults);
+    RUN_TEST(testESP32WiimoteControllerMethodsDelegateAndMapState);
 
     return UNITY_END();
 }
@@ -240,6 +293,7 @@ void setup() {
     RUN_TEST(testESP32WiimoteAddFilterUpdatesParserAndAccelRequest);
     RUN_TEST(testESP32WiimotePublicControllerTypesHaveExpectedShape);
     RUN_TEST(testESP32WiimoteOutputMethodsDelegateAndPropagateResults);
+    RUN_TEST(testESP32WiimoteControllerMethodsDelegateAndMapState);
 
     UNITY_END();
 }

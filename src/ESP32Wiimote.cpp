@@ -146,6 +146,43 @@ bool ESP32Wiimote::readMemory(uint8_t addressSpace, uint32_t offset, uint16_t si
     return tinyWiimoteReadMemory(addressSpace, offset, size);
 }
 
+void ESP32Wiimote::setScanEnabled(bool enabled) {
+    tinyWiimoteSetScanEnabled(enabled);
+}
+
+bool ESP32Wiimote::startDiscovery() {
+    return tinyWiimoteStartDiscovery();
+}
+
+bool ESP32Wiimote::stopDiscovery() {
+    return tinyWiimoteStopDiscovery();
+}
+
+bool ESP32Wiimote::disconnectActiveController(DisconnectReason reason) {
+    return tinyWiimoteDisconnect(static_cast<uint8_t>(reason));
+}
+
+void ESP32Wiimote::setAutoReconnectEnabled(bool enabled) {
+    tinyWiimoteSetAutoReconnectEnabled(enabled);
+}
+
+void ESP32Wiimote::clearReconnectCache() {
+    tinyWiimoteClearReconnectCache();
+}
+
+ESP32Wiimote::BluetoothControllerState ESP32Wiimote::getBluetoothControllerState() {
+    const ::BluetoothControllerState state = tinyWiimoteGetControllerState();
+    BluetoothControllerState apiState = {};
+    apiState.initialized = state.initialized;
+    apiState.started = state.started;
+    apiState.scanning = state.scanning;
+    apiState.connected = state.connected;
+    apiState.activeConnectionHandle = state.activeConnectionHandle;
+    apiState.fastReconnectActive = state.fastReconnectActive;
+    apiState.autoReconnectEnabled = state.autoReconnectEnabled;
+    return apiState;
+}
+
 void ESP32Wiimote::setLogLevel(uint8_t level) {
     wiimoteSetLogLevel(level);
 }
