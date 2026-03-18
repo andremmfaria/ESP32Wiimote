@@ -34,6 +34,14 @@
 // NOLINTNEXTLINE(readability-identifier-naming)
 #define tinyWiimoteStopDiscovery twReal_tinyWiimoteStopDiscovery
 // NOLINTNEXTLINE(readability-identifier-naming)
+#define tinyWiimoteDisconnect twReal_tinyWiimoteDisconnect
+// NOLINTNEXTLINE(readability-identifier-naming)
+#define tinyWiimoteSetAutoReconnectEnabled twReal_tinyWiimoteSetAutoReconnectEnabled
+// NOLINTNEXTLINE(readability-identifier-naming)
+#define tinyWiimoteClearReconnectCache twReal_tinyWiimoteClearReconnectCache
+// NOLINTNEXTLINE(readability-identifier-naming)
+#define tinyWiimoteGetControllerState twReal_tinyWiimoteGetControllerState
+// NOLINTNEXTLINE(readability-identifier-naming)
 #define handleHciData twReal_handleHciData
 #include "../../../src/TinyWiimote.cpp"
 #undef tinyWiimoteInit
@@ -49,6 +57,10 @@
 #undef tinyWiimoteSetScanEnabled
 #undef tinyWiimoteStartDiscovery
 #undef tinyWiimoteStopDiscovery
+#undef tinyWiimoteDisconnect
+#undef tinyWiimoteSetAutoReconnectEnabled
+#undef tinyWiimoteClearReconnectCache
+#undef tinyWiimoteGetControllerState
 #undef handleHciData
 
 static uint8_t gLastTx[512];
@@ -389,6 +401,71 @@ void testTinyWiimoteDiscoveryStartStopGuards() {
     TEST_ASSERT_EQUAL_UINT8(0x00, gLastTx[3]);
 }
 
+void testTinyWiimoteDisconnectGuardAndCommand() {
+    TwHciInterface hci = {captureTx};
+    twReal_tinyWiimoteInit(hci);
+    twReal_tinyWiimoteResetDevice();
+
+    // Not connected => reject.
+    gSendCount = 0;
+    TEST_ASSERT_FALSE(twReal_tinyWiimoteDisconnect(0x16));
+    TEST_ASSERT_EQUAL(0, gSendCount);
+
+    // Build connection table + connected state.
+    uint8_t connResp[12] = {0};
+    connResp[0] = (uint8_t)L2capSignalingCode::ConnectionResponse;
+    connResp[1] = 0x01;
+    connResp[4] = 0x45;
+    connResp[5] = 0x00;
+    connResp[8] = 0x00;
+    connResp[9] = 0x00;
+
+    uint8_t frame[64] = {0};
+    size_t frameLen = 0;
+    buildAclFrame(frame, &frameLen, 0x0040, (uint16_t)L2capCid::SIGNALING, connResp,
+                  sizeof(connResp));
+    twReal_handleHciData(frame, frameLen);
+
+    uint8_t hidReport[4] = {(uint8_t)WiimoteHidPrefix::InputReport,
+                            (uint8_t)WiimoteInputReport::CoreButtons, 0x00, 0x08};
+    buildAclFrame(frame, &frameLen, 0x0040, 0x0045, hidReport, sizeof(hidReport));
+    twReal_handleHciData(frame, frameLen);
+
+    gSendCount = 0;
+    TEST_ASSERT_TRUE(twReal_tinyWiimoteDisconnect(0x16));
+    TEST_ASSERT_EQUAL(1, gSendCount);
+    TEST_ASSERT_EQUAL_UINT8(static_cast<uint8_t>(H4PacketType::Command), gLastTx[0]);
+    TEST_ASSERT_EQUAL_UINT8(0x06, gLastTx[1]);
+    TEST_ASSERT_EQUAL_UINT8(0x04, gLastTx[2]);
+    TEST_ASSERT_EQUAL_UINT8(0x03, gLastTx[3]);
+    TEST_ASSERT_EQUAL_UINT8(0x40, gLastTx[4]);
+    TEST_ASSERT_EQUAL_UINT8(0x00, gLastTx[5]);
+    TEST_ASSERT_EQUAL_UINT8(0x16, gLastTx[6]);
+}
+
+void testTinyWiimoteReconnectPolicyAndStateSnapshot() {
+    TwHciInterface hci = {captureTx};
+    twReal_tinyWiimoteInit(hci);
+
+    twReal_tinyWiimoteSetAutoReconnectEnabled(false);
+    TEST_ASSERT_FALSE(gRuntime.hciEventContext.autoReconnectEnabled);
+
+    gRuntime.hciEventContext.pendingFastReconnect = true;
+    gRuntime.hciEventContext.hasLastWiimote = true;
+    gRuntime.hciEventContext.lastWiimote.bdAddr.addr[0] = 0xAA;
+
+    twReal_tinyWiimoteClearReconnectCache();
+    TEST_ASSERT_FALSE(gRuntime.hciEventContext.hasLastWiimote);
+    TEST_ASSERT_FALSE(gRuntime.hciEventContext.pendingFastReconnect);
+    TEST_ASSERT_EQUAL_UINT8(0x00, gRuntime.hciEventContext.lastWiimote.bdAddr.addr[0]);
+
+    BluetoothControllerState state = twReal_tinyWiimoteGetControllerState();
+    TEST_ASSERT_FALSE(state.initialized);
+    TEST_ASSERT_FALSE(state.connected);
+    TEST_ASSERT_FALSE(state.autoReconnectEnabled);
+    TEST_ASSERT_EQUAL_UINT16(0x0000, state.activeConnectionHandle);
+}
+
 #ifdef NATIVE_TEST
 int main(int argc, char **argv) {
     UNITY_BEGIN();
@@ -401,6 +478,8 @@ int main(int argc, char **argv) {
     RUN_TEST(testTinyWiimoteHandleHciDataUnknownType);
     RUN_TEST(testTinyWiimoteSetScanEnabledSendsExpectedModes);
     RUN_TEST(testTinyWiimoteDiscoveryStartStopGuards);
+    RUN_TEST(testTinyWiimoteDisconnectGuardAndCommand);
+    RUN_TEST(testTinyWiimoteReconnectPolicyAndStateSnapshot);
 
     return UNITY_END();
 }
@@ -416,6 +495,8 @@ void setup() {
     RUN_TEST(testTinyWiimoteHandleHciDataUnknownType);
     RUN_TEST(testTinyWiimoteSetScanEnabledSendsExpectedModes);
     RUN_TEST(testTinyWiimoteDiscoveryStartStopGuards);
+    RUN_TEST(testTinyWiimoteDisconnectGuardAndCommand);
+    RUN_TEST(testTinyWiimoteReconnectPolicyAndStateSnapshot);
 
     UNITY_END();
 }

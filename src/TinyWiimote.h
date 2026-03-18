@@ -25,6 +25,16 @@ struct TwHciInterface {
     void (*hciSendPacket)(uint8_t *data, size_t len);
 };
 
+struct BluetoothControllerState {
+    bool initialized;
+    bool started;
+    bool scanning;
+    bool connected;
+    uint16_t activeConnectionHandle;
+    bool fastReconnectActive;
+    bool autoReconnectEnabled;
+};
+
 void tinyWiimoteInit(struct TwHciInterface hciInterface);
 int tinyWiimoteAvailable();
 TinyWiimoteData tinyWiimoteRead();
@@ -40,6 +50,10 @@ void tinyWiimoteSetFastReconnectTtlMs(uint32_t ttlMs);
 void tinyWiimoteSetScanEnabled(bool enabled);
 bool tinyWiimoteStartDiscovery();
 bool tinyWiimoteStopDiscovery();
+bool tinyWiimoteDisconnect(uint8_t reason);
+void tinyWiimoteSetAutoReconnectEnabled(bool enabled);
+void tinyWiimoteClearReconnectCache();
+BluetoothControllerState tinyWiimoteGetControllerState();
 
 void handleHciData(uint8_t *data, size_t len);
 

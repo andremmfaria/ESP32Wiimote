@@ -15,6 +15,7 @@
 
 #include "tinywiimote/hci/hci_events.h"
 #include "tinywiimote/hci/hci_commands.h"
+#include "esp32wiimote/bt_controller.h"
 #include "tinywiimote/l2cap/l2cap_connection.h"
 #include "tinywiimote/l2cap/l2cap_packets.h"
 #include "tinywiimote/l2cap/l2cap_signaling.h"
@@ -311,4 +312,47 @@ bool tinyWiimoteStopDiscovery() {
     sendHciPacketRaw(tx, txLen);
     gRuntime.hciEventContext.scanningEnabled = false;
     return true;
+}
+
+bool tinyWiimoteDisconnect(uint8_t reason) {
+    if (!gRuntime.wiimoteState.isConnected()) {
+        return false;
+    }
+
+    uint16_t connectionHandle = 0;
+    if (gRuntime.l2capConnections.getFirstConnectionHandle(&connectionHandle) != 0) {
+        return false;
+    }
+
+    uint8_t tx[8] = {0};
+    const uint16_t txLen = makeCmdDisconnect(tx, connectionHandle, reason);
+    sendHciPacketRaw(tx, txLen);
+    return true;
+}
+
+void tinyWiimoteSetAutoReconnectEnabled(bool enabled) {
+    gRuntime.hciEventContext.autoReconnectEnabled = enabled;
+}
+
+void tinyWiimoteClearReconnectCache() {
+    gRuntime.hciEventContext.hasLastWiimote = false;
+    memset(&gRuntime.hciEventContext.lastWiimote, 0, sizeof(gRuntime.hciEventContext.lastWiimote));
+    gRuntime.hciEventContext.pendingFastReconnect = false;
+}
+
+BluetoothControllerState tinyWiimoteGetControllerState() {
+    BluetoothControllerState state = {};
+    state.initialized = gRuntime.hciEventContext.deviceInited;
+    state.started = BluetoothController::isStarted();
+    state.scanning = gRuntime.hciEventContext.scanningEnabled;
+    state.connected = gRuntime.wiimoteState.isConnected();
+    state.fastReconnectActive = gRuntime.hciEventContext.pendingFastReconnect;
+    state.autoReconnectEnabled = gRuntime.hciEventContext.autoReconnectEnabled;
+
+    uint16_t connectionHandle = 0;
+    if (gRuntime.l2capConnections.getFirstConnectionHandle(&connectionHandle) == 0) {
+        state.activeConnectionHandle = connectionHandle;
+    }
+
+    return state;
 }
