@@ -118,6 +118,34 @@ void ESP32Wiimote::requestBatteryUpdate() {
     tinyWiimoteRequestBatteryUpdate();
 }
 
+bool ESP32Wiimote::setLeds(uint8_t ledMask) {
+    return tinyWiimoteSetLeds(ledMask);
+}
+
+bool ESP32Wiimote::setReportingMode(ReportingMode mode, bool continuous) {
+    return tinyWiimoteSetReportingMode(static_cast<uint8_t>(mode), continuous);
+}
+
+bool ESP32Wiimote::setAccelerometerEnabled(bool enabled) {
+    tinyWiimoteReqAccelerometer(enabled);
+    return true;
+}
+
+bool ESP32Wiimote::requestStatus() {
+    return tinyWiimoteRequestStatus();
+}
+
+bool ESP32Wiimote::writeMemory(uint8_t addressSpace,
+                               uint32_t offset,
+                               const uint8_t *data,
+                               uint8_t len) {
+    return tinyWiimoteWriteMemory(addressSpace, offset, data, len);
+}
+
+bool ESP32Wiimote::readMemory(uint8_t addressSpace, uint32_t offset, uint16_t size) {
+    return tinyWiimoteReadMemory(addressSpace, offset, size);
+}
+
 void ESP32Wiimote::setLogLevel(uint8_t level) {
     wiimoteSetLogLevel(level);
 }
