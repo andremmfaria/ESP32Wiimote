@@ -1,6 +1,7 @@
 #include "../../../src/ESP32Wiimote.h"
 #include "../../mocks/test_mocks.h"
 
+#include <type_traits>
 #include <unity.h>
 
 void setUp(void) {
@@ -128,6 +129,29 @@ void testESP32WiimoteAddFilterUpdatesParserAndAccelRequest() {
     TEST_ASSERT_FALSE(mockLastReqAccelerometerUse);
 }
 
+void testESP32WiimotePublicControllerTypesHaveExpectedShape() {
+    static_assert(
+        std::is_same<uint8_t, std::underlying_type<ESP32Wiimote::DisconnectReason>::type>::value,
+        "DisconnectReason must keep uint8_t ABI");
+
+    TEST_ASSERT_EQUAL_UINT8(
+        0x16, static_cast<uint8_t>(ESP32Wiimote::DisconnectReason::LocalHostTerminated));
+    TEST_ASSERT_EQUAL_UINT8(
+        0x13, static_cast<uint8_t>(ESP32Wiimote::DisconnectReason::RemoteUserTerminated));
+    TEST_ASSERT_EQUAL_UINT8(
+        0x05, static_cast<uint8_t>(ESP32Wiimote::DisconnectReason::AuthenticationFailure));
+    TEST_ASSERT_EQUAL_UINT8(0x15, static_cast<uint8_t>(ESP32Wiimote::DisconnectReason::PowerOff));
+
+    ESP32Wiimote::BluetoothControllerState state = {true, false, true, false, 0x1234, true, false};
+    TEST_ASSERT_TRUE(state.initialized);
+    TEST_ASSERT_FALSE(state.started);
+    TEST_ASSERT_TRUE(state.scanning);
+    TEST_ASSERT_FALSE(state.connected);
+    TEST_ASSERT_EQUAL_UINT16(0x1234, state.activeConnectionHandle);
+    TEST_ASSERT_TRUE(state.fastReconnectActive);
+    TEST_ASSERT_FALSE(state.autoReconnectEnabled);
+}
+
 #ifdef NATIVE_TEST
 int main(int argc, char **argv) {
     UNITY_BEGIN();
@@ -139,6 +163,7 @@ int main(int argc, char **argv) {
     RUN_TEST(testESP32WiimoteAvailableAndStateAccessorsUseDataParser);
     RUN_TEST(testESP32WiimoteStaticDelegationMethodsCallTinyWiimoteLayer);
     RUN_TEST(testESP32WiimoteAddFilterUpdatesParserAndAccelRequest);
+    RUN_TEST(testESP32WiimotePublicControllerTypesHaveExpectedShape);
 
     return UNITY_END();
 }
@@ -153,6 +178,7 @@ void setup() {
     RUN_TEST(testESP32WiimoteAvailableAndStateAccessorsUseDataParser);
     RUN_TEST(testESP32WiimoteStaticDelegationMethodsCallTinyWiimoteLayer);
     RUN_TEST(testESP32WiimoteAddFilterUpdatesParserAndAccelRequest);
+    RUN_TEST(testESP32WiimotePublicControllerTypesHaveExpectedShape);
 
     UNITY_END();
 }
