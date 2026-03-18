@@ -360,9 +360,9 @@ void tinyWiimoteSetFastReconnectTtlMs(uint32_t ttlMs) {
 
 void tinyWiimoteSetScanEnabled(bool enabled) {
     uint8_t tx[8] = {0};
-    const uint8_t mode = enabled ? 0x02 : 0x00;
-    const uint16_t txLen = makeCmdWriteScanEnable(tx, mode);
-    sendHciPacketRaw(tx, txLen);
+    const uint8_t kMode = enabled ? 0x02 : 0x00;
+    const uint16_t kTxLen = makeCmdWriteScanEnable(tx, kMode);
+    sendHciPacketRaw(tx, kTxLen);
     gRuntime.hciEventContext.scanningEnabled = enabled;
 }
 
@@ -373,8 +373,8 @@ bool tinyWiimoteStartDiscovery() {
 
     uint8_t tx[16] = {0};
     HciInquiryParams inquiryParams = {0x9E8B33, 0x08, 0xFF};
-    const uint16_t txLen = makeCmdInquiry(tx, inquiryParams);
-    sendHciPacketRaw(tx, txLen);
+    const uint16_t kTxLen = makeCmdInquiry(tx, inquiryParams);
+    sendHciPacketRaw(tx, kTxLen);
     gRuntime.hciEventContext.scanningEnabled = true;
     return true;
 }
@@ -385,8 +385,8 @@ bool tinyWiimoteStopDiscovery() {
     }
 
     uint8_t tx[8] = {0};
-    const uint16_t txLen = makeCmdInquiryCancel(tx);
-    sendHciPacketRaw(tx, txLen);
+    const uint16_t kTxLen = makeCmdInquiryCancel(tx);
+    sendHciPacketRaw(tx, kTxLen);
     gRuntime.hciEventContext.scanningEnabled = false;
     return true;
 }
@@ -402,8 +402,8 @@ bool tinyWiimoteDisconnect(uint8_t reason) {
     }
 
     uint8_t tx[8] = {0};
-    const uint16_t txLen = makeCmdDisconnect(tx, connectionHandle, reason);
-    sendHciPacketRaw(tx, txLen);
+    const uint16_t kTxLen = makeCmdDisconnect(tx, connectionHandle, reason);
+    sendHciPacketRaw(tx, kTxLen);
     return true;
 }
 

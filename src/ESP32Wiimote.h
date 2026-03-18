@@ -180,6 +180,48 @@ class ESP32Wiimote {
     bool readMemory(uint8_t addressSpace, uint32_t offset, uint16_t size);
 
     /**
+     * Set Bluetooth scan mode
+     * @param enabled true to enable scan, false to disable
+     */
+    void setScanEnabled(bool enabled);
+
+    /**
+     * Start discovery flow
+     * @return true if discovery request was accepted, false otherwise
+     */
+    bool startDiscovery();
+
+    /**
+     * Stop discovery flow
+     * @return true if stop request was accepted, false otherwise
+     */
+    bool stopDiscovery();
+
+    /**
+     * Disconnect active controller
+     * @param reason HCI disconnect reason code
+     * @return true if disconnect request was sent, false otherwise
+     */
+    bool disconnectActiveController(DisconnectReason reason);
+
+    /**
+     * Enable or disable automatic reconnect behavior
+     * @param enabled true to enable auto reconnect
+     */
+    void setAutoReconnectEnabled(bool enabled);
+
+    /**
+     * Clear cached reconnect target
+     */
+    void clearReconnectCache();
+
+    /**
+     * Get Bluetooth controller runtime state snapshot
+     * @return Current controller state
+     */
+    BluetoothControllerState getBluetoothControllerState();
+
+    /**
      * Set runtime log level for all library components
      * @param level WiimoteLogLevel value
      */
