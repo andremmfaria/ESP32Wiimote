@@ -31,6 +31,13 @@ struct ESP32WiimoteConfig {
     uint32_t fastReconnectTtlMs = 3UL * 60UL * 1000UL;
 };
 
+enum class ReportingMode : uint8_t {
+    CoreButtons = 0x30,
+    CoreButtonsAccel = 0x31,
+    CoreButtonsAccelIr = 0x33,
+    CoreButtonsAccelExt = 0x35,
+};
+
 /**
  * ESP32Wiimote - Main Wiimote controller interface for ESP32
  * Provides high-level API for Wiimote button, sensor, and nunchuk data
@@ -125,6 +132,53 @@ class ESP32Wiimote {
      * Battery level will be updated when response is received
      */
     static void requestBatteryUpdate();
+
+    /**
+     * Set Wiimote LED mask
+     * @param ledMask Bitmask of LEDs to enable
+     * @return true if command was queued, false if not connected
+     */
+    bool setLeds(uint8_t ledMask);
+
+    /**
+     * Set Wiimote reporting mode
+     * @param mode Reporting mode to apply
+     * @param continuous true for continuous reports, false for change-triggered
+     * @return true if command was queued, false if not connected
+     */
+    bool setReportingMode(ReportingMode mode, bool continuous = false);
+
+    /**
+     * Enable or disable accelerometer parsing
+     * @param enabled true to enable accelerometer, false to disable
+     * @return true when request is accepted
+     */
+    bool setAccelerometerEnabled(bool enabled);
+
+    /**
+     * Request status report from Wiimote
+     * @return true if command was queued, false if not connected
+     */
+    bool requestStatus();
+
+    /**
+     * Write data to Wiimote memory/register space
+     * @param addressSpace WiimoteAddressSpace value
+     * @param offset Address offset in selected space
+     * @param data Pointer to payload bytes
+     * @param len Number of bytes to write
+     * @return true if command was queued, false if not connected
+     */
+    bool writeMemory(uint8_t addressSpace, uint32_t offset, const uint8_t *data, uint8_t len);
+
+    /**
+     * Read data from Wiimote memory/register space
+     * @param addressSpace WiimoteAddressSpace value
+     * @param offset Address offset in selected space
+     * @param size Number of bytes to read
+     * @return true if command was queued, false if not connected
+     */
+    bool readMemory(uint8_t addressSpace, uint32_t offset, uint16_t size);
 
     /**
      * Set runtime log level for all library components

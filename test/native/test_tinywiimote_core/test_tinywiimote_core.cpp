@@ -24,6 +24,16 @@
 // NOLINTNEXTLINE(readability-identifier-naming)
 #define tinyWiimoteRequestBatteryUpdate twReal_tinyWiimoteRequestBatteryUpdate
 // NOLINTNEXTLINE(readability-identifier-naming)
+#define tinyWiimoteSetLeds twReal_tinyWiimoteSetLeds
+// NOLINTNEXTLINE(readability-identifier-naming)
+#define tinyWiimoteSetReportingMode twReal_tinyWiimoteSetReportingMode
+// NOLINTNEXTLINE(readability-identifier-naming)
+#define tinyWiimoteRequestStatus twReal_tinyWiimoteRequestStatus
+// NOLINTNEXTLINE(readability-identifier-naming)
+#define tinyWiimoteWriteMemory twReal_tinyWiimoteWriteMemory
+// NOLINTNEXTLINE(readability-identifier-naming)
+#define tinyWiimoteReadMemory twReal_tinyWiimoteReadMemory
+// NOLINTNEXTLINE(readability-identifier-naming)
 #define tinyWiimoteReqAccelerometer twReal_tinyWiimoteReqAccelerometer
 // NOLINTNEXTLINE(readability-identifier-naming)
 #define tinyWiimoteSetFastReconnectTtlMs twReal_tinyWiimoteSetFastReconnectTtlMs
@@ -52,6 +62,11 @@
 #undef tinyWiimoteIsConnected
 #undef tinyWiimoteGetBatteryLevel
 #undef tinyWiimoteRequestBatteryUpdate
+#undef tinyWiimoteSetLeds
+#undef tinyWiimoteSetReportingMode
+#undef tinyWiimoteRequestStatus
+#undef tinyWiimoteWriteMemory
+#undef tinyWiimoteReadMemory
 #undef tinyWiimoteReqAccelerometer
 #undef tinyWiimoteSetFastReconnectTtlMs
 #undef tinyWiimoteSetScanEnabled

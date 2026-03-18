@@ -39,6 +39,26 @@ extern int mockRequestBatteryUpdateCallCount;
 extern int mockReqAccelerometerCallCount;
 extern bool mockLastReqAccelerometerUse;
 extern uint32_t mockLastFastReconnectTtlMs;
+extern bool mockSetLedsResult;
+extern int mockSetLedsCallCount;
+extern uint8_t mockLastLedsMask;
+extern bool mockSetReportingModeResult;
+extern int mockSetReportingModeCallCount;
+extern uint8_t mockLastReportingMode;
+extern bool mockLastReportingContinuous;
+extern bool mockRequestStatusResult;
+extern int mockRequestStatusCallCount;
+extern bool mockWriteMemoryResult;
+extern int mockWriteMemoryCallCount;
+extern uint8_t mockLastWriteMemoryAddressSpace;
+extern uint32_t mockLastWriteMemoryOffset;
+extern const uint8_t *mockLastWriteMemoryData;
+extern uint8_t mockLastWriteMemoryLen;
+extern bool mockReadMemoryResult;
+extern int mockReadMemoryCallCount;
+extern uint8_t mockLastReadMemoryAddressSpace;
+extern uint32_t mockLastReadMemoryOffset;
+extern uint16_t mockLastReadMemorySize;
 
 // ESP32 BT VHCI mock state (used by hci_queue.cpp and test_esp32_components)
 extern bool gMockVhciSendAvailable;

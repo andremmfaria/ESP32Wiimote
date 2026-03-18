@@ -44,6 +44,14 @@ bool tinyWiimoteDeviceIsInited();
 bool tinyWiimoteIsConnected();
 uint8_t tinyWiimoteGetBatteryLevel();
 void tinyWiimoteRequestBatteryUpdate();
+bool tinyWiimoteSetLeds(uint8_t ledMask);
+bool tinyWiimoteSetReportingMode(uint8_t mode, bool continuous);
+bool tinyWiimoteRequestStatus();
+bool tinyWiimoteWriteMemory(uint8_t addressSpace,
+                            uint32_t offset,
+                            const uint8_t *data,
+                            uint8_t len);
+bool tinyWiimoteReadMemory(uint8_t addressSpace, uint32_t offset, uint16_t size);
 
 void tinyWiimoteReqAccelerometer(bool use);
 void tinyWiimoteSetFastReconnectTtlMs(uint32_t ttlMs);

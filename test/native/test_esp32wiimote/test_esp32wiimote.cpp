@@ -16,6 +16,26 @@ void setUp(void) {
     mockReqAccelerometerCallCount = 0;
     mockLastReqAccelerometerUse = true;
     mockLastFastReconnectTtlMs = 0;
+    mockSetLedsResult = false;
+    mockSetLedsCallCount = 0;
+    mockLastLedsMask = 0;
+    mockSetReportingModeResult = false;
+    mockSetReportingModeCallCount = 0;
+    mockLastReportingMode = 0;
+    mockLastReportingContinuous = false;
+    mockRequestStatusResult = false;
+    mockRequestStatusCallCount = 0;
+    mockWriteMemoryResult = false;
+    mockWriteMemoryCallCount = 0;
+    mockLastWriteMemoryAddressSpace = 0;
+    mockLastWriteMemoryOffset = 0;
+    mockLastWriteMemoryData = nullptr;
+    mockLastWriteMemoryLen = 0;
+    mockReadMemoryResult = false;
+    mockReadMemoryCallCount = 0;
+    mockLastReadMemoryAddressSpace = 0;
+    mockLastReadMemoryOffset = 0;
+    mockLastReadMemorySize = 0;
     mockHandleHciDataCallCount = 0;
     mockHasData = false;
     mockData = {0, {0}, 0};
@@ -152,6 +172,45 @@ void testESP32WiimotePublicControllerTypesHaveExpectedShape() {
     TEST_ASSERT_FALSE(state.autoReconnectEnabled);
 }
 
+void testESP32WiimoteOutputMethodsDelegateAndPropagateResults() {
+    ESP32Wiimote device;
+
+    mockSetLedsResult = true;
+    TEST_ASSERT_TRUE(device.setLeds(0x0A));
+    TEST_ASSERT_EQUAL(1, mockSetLedsCallCount);
+    TEST_ASSERT_EQUAL_UINT8(0x0A, mockLastLedsMask);
+
+    mockSetReportingModeResult = true;
+    TEST_ASSERT_TRUE(device.setReportingMode(ReportingMode::CoreButtonsAccel, true));
+    TEST_ASSERT_EQUAL(1, mockSetReportingModeCallCount);
+    TEST_ASSERT_EQUAL_UINT8(0x31, mockLastReportingMode);
+    TEST_ASSERT_TRUE(mockLastReportingContinuous);
+
+    TEST_ASSERT_TRUE(device.setAccelerometerEnabled(false));
+    TEST_ASSERT_EQUAL(1, mockReqAccelerometerCallCount);
+    TEST_ASSERT_FALSE(mockLastReqAccelerometerUse);
+
+    mockRequestStatusResult = true;
+    TEST_ASSERT_TRUE(device.requestStatus());
+    TEST_ASSERT_EQUAL(1, mockRequestStatusCallCount);
+
+    uint8_t payload[] = {0xAA, 0xBB, 0xCC};
+    mockWriteMemoryResult = false;
+    TEST_ASSERT_FALSE(device.writeMemory(0x04, 0x12345678U, payload, sizeof(payload)));
+    TEST_ASSERT_EQUAL(1, mockWriteMemoryCallCount);
+    TEST_ASSERT_EQUAL_UINT8(0x04, mockLastWriteMemoryAddressSpace);
+    TEST_ASSERT_EQUAL_UINT32(0x12345678U, mockLastWriteMemoryOffset);
+    TEST_ASSERT_EQUAL_PTR(payload, mockLastWriteMemoryData);
+    TEST_ASSERT_EQUAL_UINT8(sizeof(payload), mockLastWriteMemoryLen);
+
+    mockReadMemoryResult = true;
+    TEST_ASSERT_TRUE(device.readMemory(0x00, 0x000FA0BCU, 32U));
+    TEST_ASSERT_EQUAL(1, mockReadMemoryCallCount);
+    TEST_ASSERT_EQUAL_UINT8(0x00, mockLastReadMemoryAddressSpace);
+    TEST_ASSERT_EQUAL_UINT32(0x000FA0BCU, mockLastReadMemoryOffset);
+    TEST_ASSERT_EQUAL_UINT16(32U, mockLastReadMemorySize);
+}
+
 #ifdef NATIVE_TEST
 int main(int argc, char **argv) {
     UNITY_BEGIN();
@@ -164,6 +223,7 @@ int main(int argc, char **argv) {
     RUN_TEST(testESP32WiimoteStaticDelegationMethodsCallTinyWiimoteLayer);
     RUN_TEST(testESP32WiimoteAddFilterUpdatesParserAndAccelRequest);
     RUN_TEST(testESP32WiimotePublicControllerTypesHaveExpectedShape);
+    RUN_TEST(testESP32WiimoteOutputMethodsDelegateAndPropagateResults);
 
     return UNITY_END();
 }
@@ -179,6 +239,7 @@ void setup() {
     RUN_TEST(testESP32WiimoteStaticDelegationMethodsCallTinyWiimoteLayer);
     RUN_TEST(testESP32WiimoteAddFilterUpdatesParserAndAccelRequest);
     RUN_TEST(testESP32WiimotePublicControllerTypesHaveExpectedShape);
+    RUN_TEST(testESP32WiimoteOutputMethodsDelegateAndPropagateResults);
 
     UNITY_END();
 }

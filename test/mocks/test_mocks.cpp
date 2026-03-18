@@ -29,6 +29,26 @@ int mockRequestBatteryUpdateCallCount = 0;
 int mockReqAccelerometerCallCount = 0;
 bool mockLastReqAccelerometerUse = false;
 uint32_t mockLastFastReconnectTtlMs = 0;
+bool mockSetLedsResult = false;
+int mockSetLedsCallCount = 0;
+uint8_t mockLastLedsMask = 0;
+bool mockSetReportingModeResult = false;
+int mockSetReportingModeCallCount = 0;
+uint8_t mockLastReportingMode = 0;
+bool mockLastReportingContinuous = false;
+bool mockRequestStatusResult = false;
+int mockRequestStatusCallCount = 0;
+bool mockWriteMemoryResult = false;
+int mockWriteMemoryCallCount = 0;
+uint8_t mockLastWriteMemoryAddressSpace = 0;
+uint32_t mockLastWriteMemoryOffset = 0;
+const uint8_t *mockLastWriteMemoryData = nullptr;
+uint8_t mockLastWriteMemoryLen = 0;
+bool mockReadMemoryResult = false;
+int mockReadMemoryCallCount = 0;
+uint8_t mockLastReadMemoryAddressSpace = 0;
+uint32_t mockLastReadMemoryOffset = 0;
+uint16_t mockLastReadMemorySize = 0;
 
 // ESP32 BT VHCI mock state
 bool gMockVhciSendAvailable = true;
@@ -102,6 +122,44 @@ void tinyWiimoteReqAccelerometer(bool use) {
 
 void tinyWiimoteSetFastReconnectTtlMs(uint32_t ttlMs) {
     mockLastFastReconnectTtlMs = ttlMs;
+}
+
+bool tinyWiimoteSetLeds(uint8_t ledMask) {
+    mockSetLedsCallCount++;
+    mockLastLedsMask = ledMask;
+    return mockSetLedsResult;
+}
+
+bool tinyWiimoteSetReportingMode(uint8_t mode, bool continuous) {
+    mockSetReportingModeCallCount++;
+    mockLastReportingMode = mode;
+    mockLastReportingContinuous = continuous;
+    return mockSetReportingModeResult;
+}
+
+bool tinyWiimoteRequestStatus() {
+    mockRequestStatusCallCount++;
+    return mockRequestStatusResult;
+}
+
+bool tinyWiimoteWriteMemory(uint8_t addressSpace,
+                            uint32_t offset,
+                            const uint8_t *data,
+                            uint8_t len) {
+    mockWriteMemoryCallCount++;
+    mockLastWriteMemoryAddressSpace = addressSpace;
+    mockLastWriteMemoryOffset = offset;
+    mockLastWriteMemoryData = data;
+    mockLastWriteMemoryLen = len;
+    return mockWriteMemoryResult;
+}
+
+bool tinyWiimoteReadMemory(uint8_t addressSpace, uint32_t offset, uint16_t size) {
+    mockReadMemoryCallCount++;
+    mockLastReadMemoryAddressSpace = addressSpace;
+    mockLastReadMemoryOffset = offset;
+    mockLastReadMemorySize = size;
+    return mockReadMemoryResult;
 }
 
 // ---- ESP32 BT VHCI mock implementations ----

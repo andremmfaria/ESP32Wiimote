@@ -13,9 +13,9 @@
 //     NonCommercial — You may not use the material for commercial purposes.
 #include "TinyWiimote.h"
 
-#include "tinywiimote/hci/hci_events.h"
-#include "tinywiimote/hci/hci_commands.h"
 #include "esp32wiimote/bt_controller.h"
+#include "tinywiimote/hci/hci_commands.h"
+#include "tinywiimote/hci/hci_events.h"
 #include "tinywiimote/l2cap/l2cap_connection.h"
 #include "tinywiimote/l2cap/l2cap_packets.h"
 #include "tinywiimote/l2cap/l2cap_signaling.h"
@@ -233,6 +233,83 @@ void tinyWiimoteRequestBatteryUpdate() {
 
     LOG_DEBUG("TinyWiimote: Requesting battery status update\n");
     gRuntime.wiimoteProtocol.requestStatus(ch);
+}
+
+bool tinyWiimoteSetLeds(uint8_t ledMask) {
+    if (!gRuntime.wiimoteState.isConnected()) {
+        return false;
+    }
+
+    uint16_t ch = 0;
+    if (gRuntime.l2capConnections.getFirstConnectionHandle(&ch) != 0) {
+        return false;
+    }
+
+    WiimoteLedCommand command = {ledMask};
+    gRuntime.wiimoteProtocol.setLeds(ch, command);
+    return true;
+}
+
+bool tinyWiimoteSetReportingMode(uint8_t mode, bool continuous) {
+    if (!gRuntime.wiimoteState.isConnected()) {
+        return false;
+    }
+
+    uint16_t ch = 0;
+    if (gRuntime.l2capConnections.getFirstConnectionHandle(&ch) != 0) {
+        return false;
+    }
+
+    WiimoteReportingModeCommand command = {mode, continuous};
+    gRuntime.wiimoteProtocol.setReportingMode(ch, command);
+    return true;
+}
+
+bool tinyWiimoteRequestStatus() {
+    if (!gRuntime.wiimoteState.isConnected()) {
+        return false;
+    }
+
+    uint16_t ch = 0;
+    if (gRuntime.l2capConnections.getFirstConnectionHandle(&ch) != 0) {
+        return false;
+    }
+
+    gRuntime.wiimoteProtocol.requestStatus(ch);
+    return true;
+}
+
+bool tinyWiimoteWriteMemory(uint8_t addressSpace,
+                            uint32_t offset,
+                            const uint8_t *data,
+                            uint8_t len) {
+    if (!gRuntime.wiimoteState.isConnected()) {
+        return false;
+    }
+
+    uint16_t ch = 0;
+    if (gRuntime.l2capConnections.getFirstConnectionHandle(&ch) != 0) {
+        return false;
+    }
+
+    gRuntime.wiimoteProtocol.writeMemory(ch, static_cast<WiimoteAddressSpace>(addressSpace), offset,
+                                         data, len);
+    return true;
+}
+
+bool tinyWiimoteReadMemory(uint8_t addressSpace, uint32_t offset, uint16_t size) {
+    if (!gRuntime.wiimoteState.isConnected()) {
+        return false;
+    }
+
+    uint16_t ch = 0;
+    if (gRuntime.l2capConnections.getFirstConnectionHandle(&ch) != 0) {
+        return false;
+    }
+
+    gRuntime.wiimoteProtocol.readMemory(ch, static_cast<WiimoteAddressSpace>(addressSpace), offset,
+                                        size);
+    return true;
 }
 
 int tinyWiimoteAvailable() {
