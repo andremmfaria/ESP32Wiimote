@@ -78,6 +78,7 @@ enum class HciOpcode : uint16_t {
     INQUIRY = 0x0401,
     InquiryCancel = 0x0402,
     CreateConnection = 0x0405,
+    Disconnect = 0x0406,
     RemoteNameRequest = 0x0419,
 
     RESET = 0x0C03,
