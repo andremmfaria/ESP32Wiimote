@@ -44,6 +44,23 @@ struct ESP32WiimoteConfig {
  */
 class ESP32Wiimote {
    public:
+    enum class DisconnectReason : uint8_t {
+        LocalHostTerminated = 0x16,
+        RemoteUserTerminated = 0x13,
+        AuthenticationFailure = 0x05,
+        PowerOff = 0x15,
+    };
+
+    struct BluetoothControllerState {
+        bool initialized;
+        bool started;
+        bool scanning;
+        bool connected;
+        uint16_t activeConnectionHandle;
+        bool fastReconnectActive;
+        bool autoReconnectEnabled;
+    };
+
     /**
      * Create ESP32Wiimote instance with default configuration
      */
