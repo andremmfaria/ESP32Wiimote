@@ -37,6 +37,9 @@ void tinyWiimoteRequestBatteryUpdate();
 
 void tinyWiimoteReqAccelerometer(bool use);
 void tinyWiimoteSetFastReconnectTtlMs(uint32_t ttlMs);
+void tinyWiimoteSetScanEnabled(bool enabled);
+bool tinyWiimoteStartDiscovery();
+bool tinyWiimoteStopDiscovery();
 
 void handleHciData(uint8_t *data, size_t len);
 

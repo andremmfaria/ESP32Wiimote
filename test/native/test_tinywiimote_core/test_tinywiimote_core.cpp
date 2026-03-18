@@ -28,6 +28,12 @@
 // NOLINTNEXTLINE(readability-identifier-naming)
 #define tinyWiimoteSetFastReconnectTtlMs twReal_tinyWiimoteSetFastReconnectTtlMs
 // NOLINTNEXTLINE(readability-identifier-naming)
+#define tinyWiimoteSetScanEnabled twReal_tinyWiimoteSetScanEnabled
+// NOLINTNEXTLINE(readability-identifier-naming)
+#define tinyWiimoteStartDiscovery twReal_tinyWiimoteStartDiscovery
+// NOLINTNEXTLINE(readability-identifier-naming)
+#define tinyWiimoteStopDiscovery twReal_tinyWiimoteStopDiscovery
+// NOLINTNEXTLINE(readability-identifier-naming)
 #define handleHciData twReal_handleHciData
 #include "../../../src/TinyWiimote.cpp"
 #undef tinyWiimoteInit
@@ -40,6 +46,9 @@
 #undef tinyWiimoteRequestBatteryUpdate
 #undef tinyWiimoteReqAccelerometer
 #undef tinyWiimoteSetFastReconnectTtlMs
+#undef tinyWiimoteSetScanEnabled
+#undef tinyWiimoteStartDiscovery
+#undef tinyWiimoteStopDiscovery
 #undef handleHciData
 
 static uint8_t gLastTx[512];
@@ -323,6 +332,63 @@ void testTinyWiimoteHandleHciDataUnknownType() {
     TEST_ASSERT_EQUAL(0, gSendCount);
 }
 
+void testTinyWiimoteSetScanEnabledSendsExpectedModes() {
+    TwHciInterface hci = {captureTx};
+    twReal_tinyWiimoteInit(hci);
+
+    gSendCount = 0;
+    twReal_tinyWiimoteSetScanEnabled(true);
+    TEST_ASSERT_EQUAL(1, gSendCount);
+    TEST_ASSERT_EQUAL_UINT8(static_cast<uint8_t>(H4PacketType::Command), gLastTx[0]);
+    TEST_ASSERT_EQUAL_UINT8(0x1A, gLastTx[1]);
+    TEST_ASSERT_EQUAL_UINT8(0x0C, gLastTx[2]);
+    TEST_ASSERT_EQUAL_UINT8(0x01, gLastTx[3]);
+    TEST_ASSERT_EQUAL_UINT8(0x02, gLastTx[4]);
+
+    gSendCount = 0;
+    twReal_tinyWiimoteSetScanEnabled(false);
+    TEST_ASSERT_EQUAL(1, gSendCount);
+    TEST_ASSERT_EQUAL_UINT8(0x00, gLastTx[4]);
+}
+
+void testTinyWiimoteDiscoveryStartStopGuards() {
+    TwHciInterface hci = {captureTx};
+    twReal_tinyWiimoteInit(hci);
+
+    // Stop while not scanning should be rejected.
+    gSendCount = 0;
+    TEST_ASSERT_FALSE(twReal_tinyWiimoteStopDiscovery());
+    TEST_ASSERT_EQUAL(0, gSendCount);
+
+    // Start should issue INQUIRY command and succeed.
+    gSendCount = 0;
+    TEST_ASSERT_TRUE(twReal_tinyWiimoteStartDiscovery());
+    TEST_ASSERT_EQUAL(1, gSendCount);
+    TEST_ASSERT_EQUAL_UINT8(static_cast<uint8_t>(H4PacketType::Command), gLastTx[0]);
+    TEST_ASSERT_EQUAL_UINT8(0x01, gLastTx[1]);
+    TEST_ASSERT_EQUAL_UINT8(0x04, gLastTx[2]);
+    TEST_ASSERT_EQUAL_UINT8(0x05, gLastTx[3]);
+    TEST_ASSERT_EQUAL_UINT8(0x33, gLastTx[4]);
+    TEST_ASSERT_EQUAL_UINT8(0x8B, gLastTx[5]);
+    TEST_ASSERT_EQUAL_UINT8(0x9E, gLastTx[6]);
+    TEST_ASSERT_EQUAL_UINT8(0x08, gLastTx[7]);
+    TEST_ASSERT_EQUAL_UINT8(0xFF, gLastTx[8]);
+
+    // Second start while scanning should be rejected.
+    gSendCount = 0;
+    TEST_ASSERT_FALSE(twReal_tinyWiimoteStartDiscovery());
+    TEST_ASSERT_EQUAL(0, gSendCount);
+
+    // Stop while scanning should issue INQUIRY_CANCEL and succeed.
+    gSendCount = 0;
+    TEST_ASSERT_TRUE(twReal_tinyWiimoteStopDiscovery());
+    TEST_ASSERT_EQUAL(1, gSendCount);
+    TEST_ASSERT_EQUAL_UINT8(static_cast<uint8_t>(H4PacketType::Command), gLastTx[0]);
+    TEST_ASSERT_EQUAL_UINT8(0x02, gLastTx[1]);
+    TEST_ASSERT_EQUAL_UINT8(0x04, gLastTx[2]);
+    TEST_ASSERT_EQUAL_UINT8(0x00, gLastTx[3]);
+}
+
 #ifdef NATIVE_TEST
 int main(int argc, char **argv) {
     UNITY_BEGIN();
@@ -333,6 +399,8 @@ int main(int argc, char **argv) {
     RUN_TEST(testTinyWiimoteL2capConfigRequestAndResponse);
     RUN_TEST(testTinyWiimoteAclDataEdgeCases);
     RUN_TEST(testTinyWiimoteHandleHciDataUnknownType);
+    RUN_TEST(testTinyWiimoteSetScanEnabledSendsExpectedModes);
+    RUN_TEST(testTinyWiimoteDiscoveryStartStopGuards);
 
     return UNITY_END();
 }
@@ -346,6 +414,8 @@ void setup() {
     RUN_TEST(testTinyWiimoteL2capConfigRequestAndResponse);
     RUN_TEST(testTinyWiimoteAclDataEdgeCases);
     RUN_TEST(testTinyWiimoteHandleHciDataUnknownType);
+    RUN_TEST(testTinyWiimoteSetScanEnabledSendsExpectedModes);
+    RUN_TEST(testTinyWiimoteDiscoveryStartStopGuards);
 
     UNITY_END();
 }

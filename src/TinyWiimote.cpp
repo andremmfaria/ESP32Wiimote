@@ -14,6 +14,7 @@
 #include "TinyWiimote.h"
 
 #include "tinywiimote/hci/hci_events.h"
+#include "tinywiimote/hci/hci_commands.h"
 #include "tinywiimote/l2cap/l2cap_connection.h"
 #include "tinywiimote/l2cap/l2cap_packets.h"
 #include "tinywiimote/l2cap/l2cap_signaling.h"
@@ -277,4 +278,37 @@ void tinyWiimoteReqAccelerometer(bool use) {
 
 void tinyWiimoteSetFastReconnectTtlMs(uint32_t ttlMs) {
     hciEventsSetFastReconnectTtlMs(&gRuntime.hciEventContext, ttlMs);
+}
+
+void tinyWiimoteSetScanEnabled(bool enabled) {
+    uint8_t tx[8] = {0};
+    const uint8_t mode = enabled ? 0x02 : 0x00;
+    const uint16_t txLen = makeCmdWriteScanEnable(tx, mode);
+    sendHciPacketRaw(tx, txLen);
+    gRuntime.hciEventContext.scanningEnabled = enabled;
+}
+
+bool tinyWiimoteStartDiscovery() {
+    if (gRuntime.hciEventContext.scanningEnabled) {
+        return false;
+    }
+
+    uint8_t tx[16] = {0};
+    HciInquiryParams inquiryParams = {0x9E8B33, 0x08, 0xFF};
+    const uint16_t txLen = makeCmdInquiry(tx, inquiryParams);
+    sendHciPacketRaw(tx, txLen);
+    gRuntime.hciEventContext.scanningEnabled = true;
+    return true;
+}
+
+bool tinyWiimoteStopDiscovery() {
+    if (!gRuntime.hciEventContext.scanningEnabled) {
+        return false;
+    }
+
+    uint8_t tx[8] = {0};
+    const uint16_t txLen = makeCmdInquiryCancel(tx);
+    sendHciPacketRaw(tx, txLen);
+    gRuntime.hciEventContext.scanningEnabled = false;
+    return true;
 }
