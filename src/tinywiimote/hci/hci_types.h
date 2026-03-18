@@ -35,6 +35,7 @@ static constexpr uint16_t kHciOcfReadBdAddr = 0x0009;
 static constexpr uint16_t kHciOcfInquiry = 0x0001;
 static constexpr uint16_t kHciOcfInquiryCancel = 0x0002;
 static constexpr uint16_t kHciOcfCreateConnection = 0x0005;
+static constexpr uint16_t kHciOcfDisconnect = 0x0006;
 static constexpr uint16_t kHciOcfRemoteNameRequest = 0x0019;
 
 // HCI Command opcodes
@@ -52,6 +53,7 @@ static constexpr uint16_t kHciOpcodeInquiryCancel =
     kHciOcfInquiryCancel | (kHciOgfLinkControl << 10);
 static constexpr uint16_t kHciOpcodeCreateConnection =
     kHciOcfCreateConnection | (kHciOgfLinkControl << 10);
+static constexpr uint16_t kHciOpcodeDisconnect = kHciOcfDisconnect | (kHciOgfLinkControl << 10);
 static constexpr uint16_t kHciOpcodeRemoteNameRequest =
     kHciOcfRemoteNameRequest | (kHciOgfLinkControl << 10);
 
@@ -60,6 +62,7 @@ static constexpr uint8_t kHcicParamSizeWriteLocalName = 248;
 static constexpr uint8_t kHcicParamSizeWriteClassOfDevice = 3;
 static constexpr uint8_t kHcicParamSizeWriteScanEnable = 1;
 static constexpr uint8_t kHcicParamSizeCreateConnection = 13;
+static constexpr uint8_t kHcicParamSizeDisconnect = 3;
 static constexpr uint8_t kHcicParamSizeRemoteNameRequest = 10;
 static constexpr uint8_t kHcicParamSizeWriteInquiryCancel = 0;
 static constexpr uint8_t kHcicParamSizeWriteInquiry = 5;

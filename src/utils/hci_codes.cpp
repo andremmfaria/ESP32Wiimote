@@ -144,6 +144,8 @@ const char *hciOpcodeToString(uint16_t opcode) {
             return "INQUIRY_CANCEL";
         case HciOpcode::CreateConnection:
             return "CREATE_CONNECTION";
+        case HciOpcode::Disconnect:
+            return "DISCONNECT";
         case HciOpcode::RemoteNameRequest:
             return "REMOTE_NAME_REQUEST";
         case HciOpcode::RESET:

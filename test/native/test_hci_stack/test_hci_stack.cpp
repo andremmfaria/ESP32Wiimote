@@ -171,6 +171,21 @@ void testHciCommandBuilders() {
                              makeCmdCreateConnection(tx, create));
 }
 
+void testHciDisconnectCommandBuilderBytes() {
+    uint8_t tx[16] = {0};
+
+    const uint16_t len = makeCmdDisconnect(tx, 0x0040, 0x16);
+    TEST_ASSERT_EQUAL_UINT16(7, len);
+
+    TEST_ASSERT_EQUAL_UINT8(static_cast<uint8_t>(H4PacketType::Command), tx[0]);
+    TEST_ASSERT_EQUAL_UINT8(0x06, tx[1]);
+    TEST_ASSERT_EQUAL_UINT8(0x04, tx[2]);
+    TEST_ASSERT_EQUAL_UINT8(0x03, tx[3]);
+    TEST_ASSERT_EQUAL_UINT8(0x40, tx[4]);
+    TEST_ASSERT_EQUAL_UINT8(0x00, tx[5]);
+    TEST_ASSERT_EQUAL_UINT8(0x16, tx[6]);
+}
+
 void testHciEventsInitResetAndCommandFlow() {
     HciEventContext ctx;
     hciEventsInit(&ctx, captureTx, nullptr);
@@ -562,6 +577,7 @@ int main(int argc, char **argv) {
     UNITY_BEGIN();
 
     RUN_TEST(testHciCommandBuilders);
+    RUN_TEST(testHciDisconnectCommandBuilderBytes);
     RUN_TEST(testHciEventsInitResetAndCommandFlow);
     RUN_TEST(testHciEventsInquiryAndRemoteNameFlow);
     RUN_TEST(testHciEventsCallbacksAndNullGuards);
@@ -585,6 +601,7 @@ void setup() {
     UNITY_BEGIN();
 
     RUN_TEST(testHciCommandBuilders);
+    RUN_TEST(testHciDisconnectCommandBuilderBytes);
     RUN_TEST(testHciEventsInitResetAndCommandFlow);
     RUN_TEST(testHciEventsInquiryAndRemoteNameFlow);
     RUN_TEST(testHciEventsCallbacksAndNullGuards);

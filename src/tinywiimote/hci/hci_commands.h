@@ -41,5 +41,6 @@ uint16_t makeCmdInquiry(uint8_t *buf, const HciInquiryParams &params);
 uint16_t makeCmdInquiryCancel(uint8_t *buf);
 uint16_t makeCmdRemoteNameRequest(uint8_t *buf, const HciRemoteNameRequestParams &params);
 uint16_t makeCmdCreateConnection(uint8_t *buf, const HciCreateConnectionParams &params);
+uint16_t makeCmdDisconnect(uint8_t *buf, uint16_t connectionHandle, uint8_t reason);
 
 #endif  // ESP32_WIIMOTE_TINYWIIMOTE_HCI_COMMANDS_H

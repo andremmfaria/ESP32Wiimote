@@ -106,3 +106,14 @@ uint16_t makeCmdCreateConnection(uint8_t *buf, const HciCreateConnectionParams &
 
     return kHciH4CmdPreambleSize + kHcicParamSizeCreateConnection;
 }
+
+uint16_t makeCmdDisconnect(uint8_t *buf, uint16_t connectionHandle, uint8_t reason) {
+    streamU8ToLe(buf, static_cast<uint8_t>(H4PacketType::Command));
+    streamU16ToLe(buf, kHciOpcodeDisconnect);
+    streamU8ToLe(buf, kHcicParamSizeDisconnect);
+
+    streamU16ToLe(buf, connectionHandle);
+    streamU8ToLe(buf, reason);
+
+    return kHciH4CmdPreambleSize + kHcicParamSizeDisconnect;
+}
