@@ -1,0 +1,4 @@
+#ifndef FREERTOS_TASK_MOCK_H
+#define FREERTOS_TASK_MOCK_H
+
+#endif  // FREERTOS_TASK_MOCK_H

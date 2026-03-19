@@ -15,6 +15,7 @@
 #include "esp32wiimote/queue/hci_queue.h"
 #include "esp32wiimote/state/button_state.h"
 #include "esp32wiimote/state/sensor_state.h"
+#include "utils/serial_logging.h"
 
 /**
  * Action types for filters
