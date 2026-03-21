@@ -250,6 +250,40 @@ Coverage outputs are written under `coverage/`:
 
 See [Testing Guide](docs/TESTING.md) for complete instructions.
 
+### Run GitHub Workflows Locally (act)
+
+To catch CI/release issues before pushing, run the repository workflows locally with [act](https://github.com/nektos/act):
+
+```bash
+./scripts/run-workflows-local.sh help
+```
+
+Common commands:
+
+```bash
+# Run PlatformIO CI workflow
+./scripts/run-workflows-local.sh ci
+
+# Simulate pull_request event for CI
+./scripts/run-workflows-local.sh ci --event pull_request --branch develop
+
+# Run the local-safe release workflow
+# This validates the tag and builds the demo, but skips GitHub release publishing steps
+./scripts/run-workflows-local.sh release
+
+# Run a specific release job
+./scripts/run-workflows-local.sh release --job validate-tag-version --tag 1.5.0
+
+# Allow the original publishing workflow when you explicitly want it
+GITHUB_TOKEN=ghp_xxx ./scripts/run-workflows-local.sh release --allow-publish --tag 1.5.0
+```
+
+You can pass extra act options after `--`, for example:
+
+```bash
+./scripts/run-workflows-local.sh ci -- --pull=false
+```
+
 ## Troubleshooting
 
 ### Connection Issues
