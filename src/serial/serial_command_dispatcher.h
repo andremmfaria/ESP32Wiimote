@@ -2,6 +2,7 @@
 #define ESP32_WIIMOTE_SERIAL_COMMAND_DISPATCHER_H
 
 #include "serial_command_parser.h"
+#include "serial_command_session.h"
 
 #include <stdint.h>
 
@@ -12,10 +13,17 @@
 enum class SerialDispatchResult : uint8_t {
     Ok,               // Command accepted / queued
     NotConnected,     // Command requires a Wiimote connection
+    Locked,           // Command requires an active unlock window
     UnknownCommand,   // Verb not recognised
     BadArgument,      // Argument was present but could not be parsed
     MissingArgument,  // Required argument was absent
     Rejected,         // Command accepted but rejected by implementation (guard)
+};
+
+struct SerialDispatchOptions {
+    SerialCommandSession *session;
+    bool privilegedCommandsRequireUnlock;
+    uint32_t nowMs;
 };
 
 // ---------------------------------------------------------------------------
@@ -54,6 +62,10 @@ struct SerialCommandTarget {
 // Returns a SerialDispatchResult that the caller can turn into a response line.
 SerialDispatchResult serialCommandDispatch(const SerialParsedCommand &cmd,
                                            SerialCommandTarget *target);
+
+SerialDispatchResult serialCommandDispatch(const SerialParsedCommand &cmd,
+                                           SerialCommandTarget *target,
+                                           const SerialDispatchOptions &options);
 
 // ---------------------------------------------------------------------------
 // Argument parsing helpers (exposed for testing)

@@ -36,6 +36,9 @@ void testFormatDispatchResultMappings() {
     serialFormatDispatchResult(out, sizeof(out), SerialDispatchResult::NotConnected);
     TEST_ASSERT_EQUAL_STRING("@wm: error not_connected", out);
 
+    serialFormatDispatchResult(out, sizeof(out), SerialDispatchResult::Locked);
+    TEST_ASSERT_EQUAL_STRING("@wm: error locked", out);
+
     serialFormatDispatchResult(out, sizeof(out), SerialDispatchResult::UnknownCommand);
     TEST_ASSERT_EQUAL_STRING("@wm: error unknown_command", out);
 

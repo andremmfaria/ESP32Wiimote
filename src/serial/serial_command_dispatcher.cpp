@@ -188,6 +188,33 @@ static SerialDispatchResult handleReconnect(const SerialParsedCommand &cmd,
     return SerialDispatchResult::Ok;
 }
 
+// wm unlock <seconds>
+static SerialDispatchResult handleUnlock(const SerialParsedCommand &cmd,
+                                         SerialCommandSession *session,
+                                         uint32_t nowMs) {
+    if (cmd.tokenCount < 3) {
+        return SerialDispatchResult::MissingArgument;
+    }
+    if (session == nullptr) {
+        return SerialDispatchResult::Rejected;
+    }
+
+    uint16_t seconds = 0;
+    if (!serialParseUint16(cmd.tokens[2], &seconds)) {
+        return SerialDispatchResult::BadArgument;
+    }
+
+    const uint32_t kDurationMs = static_cast<uint32_t>(seconds) * 1000U;
+    session->unlock(kDurationMs, nowMs);
+    return SerialDispatchResult::Ok;
+}
+
+static bool serialCommandIsPrivileged(const char *verb) {
+    return strcmp(verb, "led") == 0 || strcmp(verb, "mode") == 0 || strcmp(verb, "accel") == 0 ||
+           strcmp(verb, "scan") == 0 || strcmp(verb, "discover") == 0 ||
+           strcmp(verb, "disconnect") == 0 || strcmp(verb, "reconnect") == 0;
+}
+
 // ---------------------------------------------------------------------------
 // Dispatch table entry
 // ---------------------------------------------------------------------------
@@ -215,12 +242,30 @@ static const DispatchEntry kDispatchTable[] = {
 
 SerialDispatchResult serialCommandDispatch(const SerialParsedCommand &cmd,
                                            SerialCommandTarget *target) {
+    const SerialDispatchOptions kDefaultOptions = {nullptr, false, 0U};
+    return serialCommandDispatch(cmd, target, kDefaultOptions);
+}
+
+SerialDispatchResult serialCommandDispatch(const SerialParsedCommand &cmd,
+                                           SerialCommandTarget *target,
+                                           const SerialDispatchOptions &options) {
     // cmd.tokens[0] == "wm" (guaranteed by the parser)
     // cmd.tokens[1] is the verb
     if (cmd.tokenCount < 2) {
         return SerialDispatchResult::UnknownCommand;
     }
     const char *verb = cmd.tokens[1];
+
+    if (strcmp(verb, "unlock") == 0) {
+        return handleUnlock(cmd, options.session, options.nowMs);
+    }
+
+    if (options.privilegedCommandsRequireUnlock && serialCommandIsPrivileged(verb)) {
+        if (options.session == nullptr || !options.session->isUnlocked(options.nowMs)) {
+            return SerialDispatchResult::Locked;
+        }
+    }
+
     for (const auto &entry : kDispatchTable) {
         if (strcmp(entry.verb, verb) == 0) {
             return entry.handler(cmd, target);

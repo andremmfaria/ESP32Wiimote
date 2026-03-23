@@ -1,5 +1,6 @@
 #include "../../../src/serial/serial_command_dispatcher.h"
 #include "../../../src/serial/serial_command_parser.h"
+#include "../../../src/serial/serial_command_session.h"
 
 #include <cstring>
 #include <unity.h>
@@ -90,9 +91,7 @@ struct MockTarget : SerialCommandTarget {
         setAutoReconnectCalledWith = true;
         lastAutoReconnect = enabled;
     }
-    void clearReconnectCache() override {
-        clearReconnectCacheCalled = true;
-    }
+    void clearReconnectCache() override { clearReconnectCacheCalled = true; }
     bool isConnected() const override { return connected; }
     uint8_t getBatteryLevel() const override { return battery; }
 };
@@ -105,6 +104,21 @@ static SerialDispatchResult dispatch(const char *line, MockTarget *target) {
     SerialParsedCommand cmd;
     serialCommandParse(line, &cmd);
     return serialCommandDispatch(cmd, target);
+}
+
+static SerialDispatchResult dispatchWithOptions(const char *line,
+                                                MockTarget *target,
+                                                SerialCommandSession *session,
+                                                bool privilegedRequireUnlock,
+                                                uint32_t nowMs) {
+    SerialParsedCommand cmd;
+    serialCommandParse(line, &cmd);
+
+    SerialDispatchOptions options = {};
+    options.session = session;
+    options.privilegedCommandsRequireUnlock = privilegedRequireUnlock;
+    options.nowMs = nowMs;
+    return serialCommandDispatch(cmd, target, options);
 }
 
 void setUp() {}
@@ -459,8 +473,82 @@ void testReconnectMissingArgument() {
 
 void testReconnectBadArgument() {
     MockTarget t;
+    TEST_ASSERT_EQUAL(SerialDispatchResult::BadArgument, dispatch("wm reconnect maybe", &t));
+}
+
+// ---------------------------------------------------------------------------
+// wm unlock / privileged gate
+// ---------------------------------------------------------------------------
+
+void testUnlockMissingArgument() {
+    MockTarget t;
+    SerialCommandSession session;
+
+    TEST_ASSERT_EQUAL(SerialDispatchResult::MissingArgument,
+                      dispatchWithOptions("wm unlock", &t, &session, true, 1000U));
+}
+
+void testUnlockBadArgument() {
+    MockTarget t;
+    SerialCommandSession session;
+
     TEST_ASSERT_EQUAL(SerialDispatchResult::BadArgument,
-                      dispatch("wm reconnect maybe", &t));
+                      dispatchWithOptions("wm unlock nope", &t, &session, true, 1000U));
+}
+
+void testUnlockEnablesSessionWindow() {
+    MockTarget t;
+    SerialCommandSession session;
+
+    TEST_ASSERT_EQUAL(SerialDispatchResult::Ok,
+                      dispatchWithOptions("wm unlock 30", &t, &session, true, 2000U));
+    TEST_ASSERT_TRUE(session.isUnlocked(2000U));
+    TEST_ASSERT_TRUE(session.isUnlocked(31999U));
+    TEST_ASSERT_FALSE(session.isUnlocked(32000U));
+}
+
+void testPrivilegedCommandIsLockedWhenWindowDisabled() {
+    MockTarget t;
+    t.connected = true;
+    SerialCommandSession session;
+
+    const SerialDispatchResult kResult =
+        dispatchWithOptions("wm led 0x01", &t, &session, true, 10U);
+    TEST_ASSERT_EQUAL(SerialDispatchResult::Locked, kResult);
+    TEST_ASSERT_FALSE(t.setLedsCalledWith);
+}
+
+void testPrivilegedCommandRunsWhenUnlocked() {
+    MockTarget t;
+    t.connected = true;
+    SerialCommandSession session;
+
+    TEST_ASSERT_EQUAL(SerialDispatchResult::Ok,
+                      dispatchWithOptions("wm unlock 2", &t, &session, true, 100U));
+    TEST_ASSERT_EQUAL(SerialDispatchResult::Ok,
+                      dispatchWithOptions("wm led 0x07", &t, &session, true, 150U));
+    TEST_ASSERT_TRUE(t.setLedsCalledWith);
+    TEST_ASSERT_EQUAL_UINT8(0x07, t.lastLedMask);
+}
+
+void testPrivilegedCommandRelocksAfterExpiry() {
+    MockTarget t;
+    t.connected = true;
+    SerialCommandSession session;
+
+    TEST_ASSERT_EQUAL(SerialDispatchResult::Ok,
+                      dispatchWithOptions("wm unlock 1", &t, &session, true, 1000U));
+    const SerialDispatchResult kResult =
+        dispatchWithOptions("wm led 0x03", &t, &session, true, 2500U);
+    TEST_ASSERT_EQUAL(SerialDispatchResult::Locked, kResult);
+}
+
+void testStatusRemainsAvailableWhenPrivilegedGateEnabled() {
+    MockTarget t;
+    SerialCommandSession session;
+
+    TEST_ASSERT_EQUAL(SerialDispatchResult::Ok,
+                      dispatchWithOptions("wm status", &t, &session, true, 10U));
 }
 
 // ---------------------------------------------------------------------------
@@ -531,6 +619,14 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testReconnectClearCallsClearCache);
     RUN_TEST(testReconnectMissingArgument);
     RUN_TEST(testReconnectBadArgument);
+
+    RUN_TEST(testUnlockMissingArgument);
+    RUN_TEST(testUnlockBadArgument);
+    RUN_TEST(testUnlockEnablesSessionWindow);
+    RUN_TEST(testPrivilegedCommandIsLockedWhenWindowDisabled);
+    RUN_TEST(testPrivilegedCommandRunsWhenUnlocked);
+    RUN_TEST(testPrivilegedCommandRelocksAfterExpiry);
+    RUN_TEST(testStatusRemainsAvailableWhenPrivilegedGateEnabled);
 
     return UNITY_END();
 }
