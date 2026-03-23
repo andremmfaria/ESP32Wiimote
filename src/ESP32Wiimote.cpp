@@ -171,15 +171,15 @@ void ESP32Wiimote::clearReconnectCache() {
 }
 
 ESP32Wiimote::BluetoothControllerState ESP32Wiimote::getBluetoothControllerState() {
-    const ::BluetoothControllerState state = tinyWiimoteGetControllerState();
+    const ::BluetoothControllerState kState = tinyWiimoteGetControllerState();
     BluetoothControllerState apiState = {};
-    apiState.initialized = state.initialized;
-    apiState.started = state.started;
-    apiState.scanning = state.scanning;
-    apiState.connected = state.connected;
-    apiState.activeConnectionHandle = state.activeConnectionHandle;
-    apiState.fastReconnectActive = state.fastReconnectActive;
-    apiState.autoReconnectEnabled = state.autoReconnectEnabled;
+    apiState.initialized = kState.initialized;
+    apiState.started = kState.started;
+    apiState.scanning = kState.scanning;
+    apiState.connected = kState.connected;
+    apiState.activeConnectionHandle = kState.activeConnectionHandle;
+    apiState.fastReconnectActive = kState.fastReconnectActive;
+    apiState.autoReconnectEnabled = kState.autoReconnectEnabled;
     return apiState;
 }
 

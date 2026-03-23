@@ -56,7 +56,8 @@ bool HciQueueManager::sendToQueue(xQueueHandle queue,
     queuedata->len = len;
     memcpy(queuedata->data, data, len);
 
-    if (xQueueSend(queue, &queuedata, portMAX_DELAY) != pdPASS) {
+    const void *queueItem = reinterpret_cast<const void *>(&queuedata);
+    if (xQueueSend(queue, queueItem, portMAX_DELAY) != pdPASS) {
         LOG_ERROR("HciQueue: xQueueSend failed\n");
         free(queuedata);
         return false;

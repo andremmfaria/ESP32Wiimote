@@ -10,6 +10,7 @@ Checks: >
   modernize-use-default-member-init,
   modernize-redundant-void-arg,
   modernize-loop-convert,
+  -readability-convert-member-functions-to-static,
   -readability-magic-numbers,
   -readability-identifier-length,
   -readability-function-cognitive-complexity,

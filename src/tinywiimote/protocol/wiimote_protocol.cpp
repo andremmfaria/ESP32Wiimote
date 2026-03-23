@@ -18,17 +18,17 @@
 #include <string.h>
 
 namespace {
-static constexpr uint8_t kWiimoteRptSetLeds = static_cast<uint8_t>(WiimoteOutputReport::SetLeds);
-static constexpr uint8_t kWiimoteRptSetReportingMode =
+constexpr uint8_t kWiimoteRptSetLeds = static_cast<uint8_t>(WiimoteOutputReport::SetLeds);
+constexpr uint8_t kWiimoteRptSetReportingMode =
     static_cast<uint8_t>(WiimoteOutputReport::SetReportingMode);
-static constexpr uint8_t kWiimoteRptRequestStatus =
+constexpr uint8_t kWiimoteRptRequestStatus =
     static_cast<uint8_t>(WiimoteOutputReport::RequestStatus);
-static constexpr uint8_t kWiimoteRptWriteMemory =
+constexpr uint8_t kWiimoteRptWriteMemory =
     static_cast<uint8_t>(WiimoteOutputReport::WriteMemory);
-static constexpr uint8_t kWiimoteRptReadMemory =
+constexpr uint8_t kWiimoteRptReadMemory =
     static_cast<uint8_t>(WiimoteOutputReport::ReadMemory);
-static constexpr uint8_t kHidOutputReport = static_cast<uint8_t>(WiimoteHidPrefix::OutputReport);
-static constexpr uint8_t kEepromDataSize = 16;
+constexpr uint8_t kHidOutputReport = static_cast<uint8_t>(WiimoteHidPrefix::OutputReport);
+constexpr uint8_t kEepromDataSize = 16;
 }  // namespace
 
 WiimoteProtocol::WiimoteProtocol() : connections_(nullptr), sender_(nullptr), payload_{0} {}
@@ -151,9 +151,9 @@ void WiimoteProtocol::writeMemory(uint16_t ch,
                                   uint32_t offset,
                                   const uint8_t *data,
                                   uint8_t length) {
-    const uint8_t addressSpaceByte = static_cast<uint8_t>(addressSpace);
-    LOG_DEBUG("wiimote_write_memory addr_space=%d (%s) offset=0x%06lX len=%d\n", addressSpaceByte,
-              wiimoteAddressSpaceToString(addressSpaceByte), offset, length);
+    const uint8_t kAddressSpaceByte = static_cast<uint8_t>(addressSpace);
+    LOG_DEBUG("wiimote_write_memory addr_space=%d (%s) offset=0x%06lX len=%d\n",
+              kAddressSpaceByte, wiimoteAddressSpaceToString(kAddressSpaceByte), offset, length);
 
     if (connections_ == nullptr || sender_ == nullptr) {
         return;
@@ -173,7 +173,7 @@ void WiimoteProtocol::writeMemory(uint16_t ch,
     PayloadBuilder pb(payload_, sizeof(payload_));
     pb.append(kHidOutputReport);        // 0xA2
     pb.append(kWiimoteRptWriteMemory);  // 0x16
-    pb.append(addressSpaceByte);        // MM
+    pb.append(kAddressSpaceByte);       // MM
     pb.appendU24BE(offset);             // 24-bit offset (big-endian)
     pb.append(length);                  // Length of data to write
 
@@ -195,9 +195,9 @@ void WiimoteProtocol::readMemory(uint16_t ch,
                                  WiimoteAddressSpace addressSpace,
                                  uint32_t offset,
                                  uint16_t size) {
-    const uint8_t addressSpaceByte = static_cast<uint8_t>(addressSpace);
-    LOG_DEBUG("wiimote_read_memory addr_space=%d (%s) offset=0x%06lX size=%d\n", addressSpaceByte,
-              wiimoteAddressSpaceToString(addressSpaceByte), offset, size);
+    const uint8_t kAddressSpaceByte = static_cast<uint8_t>(addressSpace);
+    LOG_DEBUG("wiimote_read_memory addr_space=%d (%s) offset=0x%06lX size=%d\n",
+              kAddressSpaceByte, wiimoteAddressSpaceToString(kAddressSpaceByte), offset, size);
 
     if (connections_ == nullptr || sender_ == nullptr) {
         return;
@@ -217,7 +217,7 @@ void WiimoteProtocol::readMemory(uint16_t ch,
     PayloadBuilder pb(payload_, sizeof(payload_));
     pb.append(kHidOutputReport);       // 0xA2
     pb.append(kWiimoteRptReadMemory);  // 0x17
-    pb.append(addressSpaceByte);       // MM
+    pb.append(kAddressSpaceByte);      // MM
     pb.appendU24BE(offset);            // 24-bit offset (big-endian)
     pb.appendU16BE(size);              // 16-bit size (big-endian)
 

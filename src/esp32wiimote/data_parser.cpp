@@ -60,9 +60,9 @@ void WiimoteDataParser::parseButtonData(const TinyWiimoteData &data, int &button
     // Check for button data in report
     if ((data.data[1] >= 0x30) && (data.data[1] <= 0x37)) {
         offs = 2;
-        const uint16_t rawButtons =
+        const uint16_t kRawButtons =
             (static_cast<uint16_t>(data.data[offs]) << 8) | data.data[offs + 1];
-        ButtonState buttonState = buttonStateFromRaw(rawButtons);
+        ButtonState buttonState = buttonStateFromRaw(kRawButtons);
         buttonState_->update(buttonState);
     }
 

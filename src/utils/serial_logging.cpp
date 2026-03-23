@@ -38,7 +38,10 @@ void wiimoteLogVPrint(uint8_t level, const char *prefix, const char *format, va_
     Serial.print(prefix);
 
     char buffer[256];
-    const int kWritten = vsnprintf(buffer, sizeof(buffer), format, args);
+    va_list argsCopy;
+    va_copy(argsCopy, args);
+    const int kWritten = vsnprintf(buffer, sizeof(buffer), format, argsCopy);
+    va_end(argsCopy);
 
     if (kWritten <= 0) {
         return;
