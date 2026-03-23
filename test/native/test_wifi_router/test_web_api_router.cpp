@@ -1,0 +1,530 @@
+#include "../../../src/wifi/web_api_router.h"
+
+#include <cstring>
+#include <unity.h>
+
+// ===== Valid Auth Token =====
+
+static const char *kValidBearer = "Bearer esp32wiimote_bearer_token_v1";
+static const char *kValidBasic = "Basic YWRtaW46cGFzc3dvcmQ=";  // admin:password
+
+// ===== Mock State =====
+
+static WebWiimoteStatusSnapshot gMockStatus;
+static WebConfigSnapshot gMockConfig;
+
+static bool gSetLedsResult;
+static uint8_t gLastLedsMask;
+
+static bool gSetReportingModeResult;
+static uint8_t gLastReportingMode;
+static bool gLastReportingContinuous;
+
+static bool gSetAccelResult;
+static bool gLastAccelEnabled;
+
+static bool gRequestStatusResult;
+
+static bool gLastScanEnabled;
+
+static bool gStartDiscoveryResult;
+static bool gStopDiscoveryResult;
+
+static bool gDisconnectResult;
+static uint8_t gLastDisconnectReason;
+
+static bool gLastAutoReconnect;
+
+static char gBuf[512];
+
+// ===== Mock Callbacks =====
+
+static WebWiimoteStatusSnapshot mockGetStatus(void * /*userData*/) {
+    return gMockStatus;
+}
+static WebConfigSnapshot mockGetConfig(void * /*userData*/) {
+    return gMockConfig;
+}
+static bool mockSetLeds(uint8_t mask, void * /*userData*/) {
+    gLastLedsMask = mask;
+    return gSetLedsResult;
+}
+static bool mockSetReportingMode(uint8_t mode, bool cont, void * /*userData*/) {
+    gLastReportingMode = mode;
+    gLastReportingContinuous = cont;
+    return gSetReportingModeResult;
+}
+static bool mockSetAccelEnabled(bool enabled, void * /*userData*/) {
+    gLastAccelEnabled = enabled;
+    return gSetAccelResult;
+}
+static bool mockRequestStatus(void * /*userData*/) {
+    return gRequestStatusResult;
+}
+static void mockSetScanEnabled(bool enabled, void * /*userData*/) {
+    gLastScanEnabled = enabled;
+}
+static bool mockStartDiscovery(void * /*userData*/) {
+    return gStartDiscoveryResult;
+}
+static bool mockStopDiscovery(void * /*userData*/) {
+    return gStopDiscoveryResult;
+}
+static bool mockDisconnect(uint8_t reason, void * /*userData*/) {
+    gLastDisconnectReason = reason;
+    return gDisconnectResult;
+}
+static void mockSetAutoReconnect(bool enabled, void * /*userData*/) {
+    gLastAutoReconnect = enabled;
+}
+
+// ===== Context Factory =====
+
+static WebApiContext makeCtx() {
+    WebApiContext ctx;
+    ctx.getWiimoteStatus = mockGetStatus;
+    ctx.getConfig = mockGetConfig;
+    ctx.setLeds = mockSetLeds;
+    ctx.setReportingMode = mockSetReportingMode;
+    ctx.setAccelEnabled = mockSetAccelEnabled;
+    ctx.requestStatus = mockRequestStatus;
+    ctx.setScanEnabled = mockSetScanEnabled;
+    ctx.startDiscovery = mockStartDiscovery;
+    ctx.stopDiscovery = mockStopDiscovery;
+    ctx.disconnect = mockDisconnect;
+    ctx.setAutoReconnect = mockSetAutoReconnect;
+    ctx.userData = nullptr;
+    return ctx;
+}
+
+// ===== Call Helper =====
+
+static WebApiRouteResult callRoute(const WebApiContext *ctx,
+                                   const char *method,
+                                   const char *path,
+                                   const char *auth,
+                                   const char *body) {
+    size_t bodyLen = (body != nullptr) ? std::strlen(body) : 0U;
+    return webApiRoute(ctx, method, path, auth, body, bodyLen, gBuf, sizeof(gBuf));
+}
+
+// ===== Unity Hooks =====
+
+void setUp() {
+    gMockStatus = {};
+    gMockConfig = {};
+    gSetLedsResult = true;
+    gLastLedsMask = 0;
+    gSetReportingModeResult = true;
+    gLastReportingMode = 0;
+    gLastReportingContinuous = false;
+    gSetAccelResult = true;
+    gLastAccelEnabled = false;
+    gRequestStatusResult = true;
+    gLastScanEnabled = false;
+    gStartDiscoveryResult = true;
+    gStopDiscoveryResult = true;
+    gDisconnectResult = true;
+    gLastDisconnectReason = 0;
+    gLastAutoReconnect = false;
+    std::memset(gBuf, 0, sizeof(gBuf));
+}
+
+void tearDown() {}
+
+// ===== Auth Tests =====
+
+void testNullCtxReturns400() {
+    WebApiRouteResult r = webApiRoute(nullptr, "GET", "/api/wiimote/status", kValidBearer, nullptr,
+                                      0U, gBuf, sizeof(gBuf));
+    TEST_ASSERT_EQUAL(400, r.httpStatus);
+}
+
+void testMissingAuthReturns401() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "GET", "/api/wiimote/status", nullptr, nullptr);
+    TEST_ASSERT_EQUAL(401, r.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "unauthorized"));
+}
+
+void testInvalidAuthReturns401() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r =
+        callRoute(&ctx, "GET", "/api/wiimote/status", "Bearer wrong_token", nullptr);
+    TEST_ASSERT_EQUAL(401, r.httpStatus);
+}
+
+void testValidBearerAuthPasses() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "GET", "/api/wiimote/status", kValidBearer, nullptr);
+    TEST_ASSERT_NOT_EQUAL(401, r.httpStatus);
+}
+
+void testValidBasicAuthPasses() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "GET", "/api/wiimote/status", kValidBasic, nullptr);
+    TEST_ASSERT_NOT_EQUAL(401, r.httpStatus);
+}
+
+// ===== Routing Tests =====
+
+void testUnknownPathReturns404() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "GET", "/api/wiimote/unknown", kValidBearer, nullptr);
+    TEST_ASSERT_EQUAL(404, r.httpStatus);
+}
+
+void testMethodMismatchReturns404() {
+    WebApiContext ctx = makeCtx();
+    // GET on a POST-only route
+    WebApiRouteResult r =
+        callRoute(&ctx, "GET", "/api/wiimote/commands/leds", kValidBearer, nullptr);
+    TEST_ASSERT_EQUAL(404, r.httpStatus);
+}
+
+// ===== GET /api/wiimote/status =====
+
+void testGetStatusReturns200() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "GET", "/api/wiimote/status", kValidBearer, nullptr);
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+}
+
+void testGetStatusJsonShape() {
+    gMockStatus.connected = true;
+    gMockStatus.batteryLevel = 75;
+    WebApiContext ctx = makeCtx();
+    callRoute(&ctx, "GET", "/api/wiimote/status", kValidBearer, nullptr);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "\"connected\":true"));
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "\"batteryLevel\":75"));
+}
+
+// ===== GET /api/wiimote/config =====
+
+void testGetConfigReturns200() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "GET", "/api/wiimote/config", kValidBearer, nullptr);
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+}
+
+void testGetConfigJsonShape() {
+    gMockConfig.nunchukStickThreshold = 3;
+    gMockConfig.txQueueSize = 16;
+    gMockConfig.rxQueueSize = 16;
+    gMockConfig.fastReconnectTtlMs = 60000UL;
+    WebApiContext ctx = makeCtx();
+    callRoute(&ctx, "GET", "/api/wiimote/config", kValidBearer, nullptr);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "\"nunchukStickThreshold\":3"));
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "\"txQueueSize\":16"));
+}
+
+// ===== POST /api/wiimote/commands/leds =====
+
+void testPostLedsSuccess() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/leds", kValidBearer,
+                                    "{\"command\":\"set_leds\",\"mask\":\"15\"}");
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+    TEST_ASSERT_EQUAL_UINT8(15, gLastLedsMask);
+}
+
+void testPostLedsMissingMaskReturns400() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/leds", kValidBearer,
+                                    "{\"command\":\"set_leds\"}");
+    TEST_ASSERT_EQUAL(400, r.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "missing field"));
+}
+
+void testPostLedsInvalidMaskReturns400() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/leds", kValidBearer,
+                                    "{\"command\":\"set_leds\",\"mask\":\"300\"}");
+    TEST_ASSERT_EQUAL(400, r.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "invalid field"));
+}
+
+void testPostLedsRejectedReturns409() {
+    gSetLedsResult = false;
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/leds", kValidBearer,
+                                    "{\"command\":\"set_leds\",\"mask\":\"3\"}");
+    TEST_ASSERT_EQUAL(409, r.httpStatus);
+}
+
+// ===== POST /api/wiimote/commands/reporting-mode =====
+
+void testPostReportingModeSuccess() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/reporting-mode",
+                                    kValidBearer, "{\"command\":\"set_mode\",\"mode\":\"49\"}");
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+    TEST_ASSERT_EQUAL_UINT8(49, gLastReportingMode);
+    TEST_ASSERT_FALSE(gLastReportingContinuous);
+}
+
+void testPostReportingModeWithContinuous() {
+    WebApiContext ctx = makeCtx();
+    callRoute(&ctx, "POST", "/api/wiimote/commands/reporting-mode", kValidBearer,
+              "{\"command\":\"set_mode\",\"mode\":\"49\",\"continuous\":\"true\"}");
+    TEST_ASSERT_TRUE(gLastReportingContinuous);
+}
+
+void testPostReportingModeMissingModeReturns400() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/reporting-mode",
+                                    kValidBearer, "{\"command\":\"set_mode\"}");
+    TEST_ASSERT_EQUAL(400, r.httpStatus);
+}
+
+void testPostReportingModeRejectedReturns409() {
+    gSetReportingModeResult = false;
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/reporting-mode",
+                                    kValidBearer, "{\"command\":\"set_mode\",\"mode\":\"49\"}");
+    TEST_ASSERT_EQUAL(409, r.httpStatus);
+}
+
+// ===== POST /api/wiimote/commands/accelerometer =====
+
+void testPostAccelerometerEnable() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r =
+        callRoute(&ctx, "POST", "/api/wiimote/commands/accelerometer", kValidBearer,
+                  "{\"command\":\"set_accel\",\"enabled\":\"true\"}");
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+    TEST_ASSERT_TRUE(gLastAccelEnabled);
+}
+
+void testPostAccelerometerDisable() {
+    WebApiContext ctx = makeCtx();
+    callRoute(&ctx, "POST", "/api/wiimote/commands/accelerometer", kValidBearer,
+              "{\"command\":\"set_accel\",\"enabled\":\"false\"}");
+    TEST_ASSERT_FALSE(gLastAccelEnabled);
+}
+
+void testPostAccelerometerMissingEnabledReturns400() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/accelerometer",
+                                    kValidBearer, "{\"command\":\"set_accel\"}");
+    TEST_ASSERT_EQUAL(400, r.httpStatus);
+}
+
+// ===== POST /api/wiimote/commands/request-status =====
+
+void testPostRequestStatusSuccess() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/request-status",
+                                    kValidBearer, "{\"command\":\"request_status\"}");
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+}
+
+void testPostRequestStatusRejectedReturns409() {
+    gRequestStatusResult = false;
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/request-status",
+                                    kValidBearer, "{\"command\":\"request_status\"}");
+    TEST_ASSERT_EQUAL(409, r.httpStatus);
+}
+
+// ===== POST /api/wiimote/commands/scan =====
+
+void testPostScanStart() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/scan", kValidBearer,
+                                    "{\"command\":\"scan_start\"}");
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+    TEST_ASSERT_TRUE(gLastScanEnabled);
+}
+
+void testPostScanStop() {
+    gLastScanEnabled = true;
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/scan", kValidBearer,
+                                    "{\"command\":\"scan_stop\"}");
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+    TEST_ASSERT_FALSE(gLastScanEnabled);
+}
+
+void testPostScanUnknownVerbReturns400() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/scan", kValidBearer,
+                                    "{\"command\":\"scan_unknown\"}");
+    TEST_ASSERT_EQUAL(400, r.httpStatus);
+}
+
+// ===== POST /api/wiimote/commands/discovery =====
+
+void testPostDiscoveryStartSuccess() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/discovery", kValidBearer,
+                                    "{\"command\":\"discovery_start\"}");
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+}
+
+void testPostDiscoveryStopSuccess() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/discovery", kValidBearer,
+                                    "{\"command\":\"discovery_stop\"}");
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+}
+
+void testPostDiscoveryStartRejectedReturns409() {
+    gStartDiscoveryResult = false;
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/discovery", kValidBearer,
+                                    "{\"command\":\"discovery_start\"}");
+    TEST_ASSERT_EQUAL(409, r.httpStatus);
+}
+
+void testPostDiscoveryUnknownVerbReturns400() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/discovery", kValidBearer,
+                                    "{\"command\":\"discovery_bad\"}");
+    TEST_ASSERT_EQUAL(400, r.httpStatus);
+}
+
+// ===== POST /api/wiimote/commands/disconnect =====
+
+void testPostDisconnectDefaultReason() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/disconnect", kValidBearer,
+                                    "{\"command\":\"disconnect\"}");
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+    TEST_ASSERT_EQUAL_UINT8(0x16U, gLastDisconnectReason);
+}
+
+void testPostDisconnectCustomReason() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/disconnect", kValidBearer,
+                                    "{\"command\":\"disconnect\",\"reason\":\"19\"}");
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+    TEST_ASSERT_EQUAL_UINT8(19, gLastDisconnectReason);
+}
+
+void testPostDisconnectInvalidReasonReturns400() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/disconnect", kValidBearer,
+                                    "{\"command\":\"disconnect\",\"reason\":\"300\"}");
+    TEST_ASSERT_EQUAL(400, r.httpStatus);
+}
+
+void testPostDisconnectRejectedReturns409() {
+    gDisconnectResult = false;
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/disconnect", kValidBearer,
+                                    "{\"command\":\"disconnect\"}");
+    TEST_ASSERT_EQUAL(409, r.httpStatus);
+}
+
+// ===== POST /api/wiimote/commands/reconnect-policy =====
+
+void testPostReconnectPolicyEnable() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r =
+        callRoute(&ctx, "POST", "/api/wiimote/commands/reconnect-policy", kValidBearer,
+                  "{\"command\":\"set_reconnect\",\"enabled\":\"true\"}");
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+    TEST_ASSERT_TRUE(gLastAutoReconnect);
+}
+
+void testPostReconnectPolicyDisable() {
+    WebApiContext ctx = makeCtx();
+    callRoute(&ctx, "POST", "/api/wiimote/commands/reconnect-policy", kValidBearer,
+              "{\"command\":\"set_reconnect\",\"enabled\":\"false\"}");
+    TEST_ASSERT_FALSE(gLastAutoReconnect);
+}
+
+void testPostReconnectPolicyMissingEnabledReturns400() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/reconnect-policy",
+                                    kValidBearer, "{\"command\":\"set_reconnect\"}");
+    TEST_ASSERT_EQUAL(400, r.httpStatus);
+}
+
+// ===== Body Error Tests =====
+
+void testPostMissingBodyReturns400() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r =
+        callRoute(&ctx, "POST", "/api/wiimote/commands/leds", kValidBearer, nullptr);
+    TEST_ASSERT_EQUAL(400, r.httpStatus);
+}
+
+void testPostMalformedBodyReturns400() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r =
+        callRoute(&ctx, "POST", "/api/wiimote/commands/leds", kValidBearer, "{malformed");
+    TEST_ASSERT_EQUAL(400, r.httpStatus);
+}
+
+void testPostBodyTooLargeReturns400() {
+    WebApiContext ctx = makeCtx();
+    // bodyLen > kWebRequestMaxBodySize (1024) triggers BodyTooLarge
+    const char *body = "{\"command\":\"set_leds\",\"mask\":\"1\"}";
+    WebApiRouteResult r = webApiRoute(&ctx, "POST", "/api/wiimote/commands/leds", kValidBearer,
+                                      body, 1025U, gBuf, sizeof(gBuf));
+    TEST_ASSERT_EQUAL(400, r.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "too large"));
+}
+
+// ===== Main =====
+
+int main(int /*argc*/, char ** /*argv*/) {
+    UNITY_BEGIN();
+
+    RUN_TEST(testNullCtxReturns400);
+    RUN_TEST(testMissingAuthReturns401);
+    RUN_TEST(testInvalidAuthReturns401);
+    RUN_TEST(testValidBearerAuthPasses);
+    RUN_TEST(testValidBasicAuthPasses);
+
+    RUN_TEST(testUnknownPathReturns404);
+    RUN_TEST(testMethodMismatchReturns404);
+
+    RUN_TEST(testGetStatusReturns200);
+    RUN_TEST(testGetStatusJsonShape);
+    RUN_TEST(testGetConfigReturns200);
+    RUN_TEST(testGetConfigJsonShape);
+
+    RUN_TEST(testPostLedsSuccess);
+    RUN_TEST(testPostLedsMissingMaskReturns400);
+    RUN_TEST(testPostLedsInvalidMaskReturns400);
+    RUN_TEST(testPostLedsRejectedReturns409);
+
+    RUN_TEST(testPostReportingModeSuccess);
+    RUN_TEST(testPostReportingModeWithContinuous);
+    RUN_TEST(testPostReportingModeMissingModeReturns400);
+    RUN_TEST(testPostReportingModeRejectedReturns409);
+
+    RUN_TEST(testPostAccelerometerEnable);
+    RUN_TEST(testPostAccelerometerDisable);
+    RUN_TEST(testPostAccelerometerMissingEnabledReturns400);
+
+    RUN_TEST(testPostRequestStatusSuccess);
+    RUN_TEST(testPostRequestStatusRejectedReturns409);
+
+    RUN_TEST(testPostScanStart);
+    RUN_TEST(testPostScanStop);
+    RUN_TEST(testPostScanUnknownVerbReturns400);
+
+    RUN_TEST(testPostDiscoveryStartSuccess);
+    RUN_TEST(testPostDiscoveryStopSuccess);
+    RUN_TEST(testPostDiscoveryStartRejectedReturns409);
+    RUN_TEST(testPostDiscoveryUnknownVerbReturns400);
+
+    RUN_TEST(testPostDisconnectDefaultReason);
+    RUN_TEST(testPostDisconnectCustomReason);
+    RUN_TEST(testPostDisconnectInvalidReasonReturns400);
+    RUN_TEST(testPostDisconnectRejectedReturns409);
+
+    RUN_TEST(testPostReconnectPolicyEnable);
+    RUN_TEST(testPostReconnectPolicyDisable);
+    RUN_TEST(testPostReconnectPolicyMissingEnabledReturns400);
+
+    RUN_TEST(testPostMissingBodyReturns400);
+    RUN_TEST(testPostMalformedBodyReturns400);
+    RUN_TEST(testPostBodyTooLargeReturns400);
+
+    return UNITY_END();
+}
