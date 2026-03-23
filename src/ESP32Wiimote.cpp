@@ -202,7 +202,14 @@ bool ESP32Wiimote::init() {
     runtimeConfigSnapshot_.fastReconnectTtlMs = config_.fastReconnectTtlMs;
     runtimeConfigStoreReady_ = runtimeConfigStore_.init();
     if (runtimeConfigStoreReady_) {
-        runtimeConfigStoreReady_ = runtimeConfigStore_.save(runtimeConfigSnapshot_);
+        RuntimeConfigSnapshot persisted = {};
+        if (runtimeConfigStore_.load(&persisted)) {
+            runtimeConfigSnapshot_ = persisted;
+            tinyWiimoteSetFastReconnectTtlMs(runtimeConfigSnapshot_.fastReconnectTtlMs);
+            tinyWiimoteSetAutoReconnectEnabled(runtimeConfigSnapshot_.autoReconnectEnabled);
+        } else {
+            runtimeConfigStoreReady_ = runtimeConfigStore_.save(runtimeConfigSnapshot_);
+        }
     }
 
     LOG_INFO("ESP32Wiimote: Initialization complete!\n");

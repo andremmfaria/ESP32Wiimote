@@ -627,6 +627,83 @@ void testESP32WiimoteRejectedOutputCommandsDoNotPersist() {
     TEST_ASSERT_FALSE(snapshot.reportingContinuous);
 }
 
+void testESP32WiimoteInitRestoresPersistedFieldsFromStore() {
+    // First boot: persist non-default values via API calls.
+    {
+        ESP32Wiimote first;
+        TEST_ASSERT_TRUE(first.init());
+        first.setAutoReconnectEnabled(true);
+    }
+
+    // Second boot: a new device instance restores from the store.
+    mockLastFastReconnectTtlMs = 0U;
+    mockLastAutoReconnectEnabled = false;
+    mockSetAutoReconnectEnabledCallCount = 0;
+
+    ESP32Wiimote second;
+    TEST_ASSERT_TRUE(second.init());
+
+    // autoReconnectEnabled was persisted as true and must be re-applied.
+    TEST_ASSERT_EQUAL(1, mockSetAutoReconnectEnabledCallCount);
+    TEST_ASSERT_TRUE(mockLastAutoReconnectEnabled);
+
+    // The in-memory snapshot must also reflect the restored value.
+    RuntimeConfigStore store;
+    RuntimeConfigSnapshot snapshot = {};
+    TEST_ASSERT_TRUE(store.init());
+    TEST_ASSERT_TRUE(store.load(&snapshot));
+    TEST_ASSERT_TRUE(snapshot.autoReconnectEnabled);
+}
+
+void testESP32WiimoteInitWithNoPersistedDataUsesConfigDefaults() {
+    // NVS is empty (cleared in setUp); init() should bootstrap defaults and
+    // NOT call setAutoReconnectEnabled (default is false, TinyWiimote init
+    // already sets false state, but we verify no spurious restore-path call).
+    mockSetAutoReconnectEnabledCallCount = 0;
+    mockLastFastReconnectTtlMs = 0U;
+
+    ESP32WiimoteConfig config;
+    config.fastReconnectTtlMs = 99000U;
+    ESP32Wiimote device(config);
+    TEST_ASSERT_TRUE(device.init());
+
+    // Defaults applied: fastReconnectTtlMs from config, no extra autoReconnect apply.
+    TEST_ASSERT_EQUAL_UINT32(99000U, mockLastFastReconnectTtlMs);
+    TEST_ASSERT_EQUAL(0, mockSetAutoReconnectEnabledCallCount);
+
+    // Store now bootstrapped with defaults.
+    RuntimeConfigStore store;
+    RuntimeConfigSnapshot snapshot = {};
+    TEST_ASSERT_TRUE(store.init());
+    TEST_ASSERT_TRUE(store.load(&snapshot));
+    TEST_ASSERT_FALSE(snapshot.autoReconnectEnabled);
+    TEST_ASSERT_EQUAL_UINT32(99000U, snapshot.fastReconnectTtlMs);
+}
+
+void testESP32WiimoteInitRestoresFastReconnectTtlFromStore() {
+    // First boot: call init with a specific ttl, then persist a different ttl
+    // by directly saving to the store (simulating a prior runtime update path).
+    {
+        ESP32Wiimote first;
+        TEST_ASSERT_TRUE(first.init());
+        // Manually patch the store with a custom TTL to simulate persisted state.
+        RuntimeConfigStore store;
+        RuntimeConfigSnapshot snap = {};
+        TEST_ASSERT_TRUE(store.init());
+        TEST_ASSERT_TRUE(store.load(&snap));
+        snap.fastReconnectTtlMs = 77777U;
+        TEST_ASSERT_TRUE(store.save(snap));
+    }
+
+    // Second boot restores the custom TTL.
+    mockLastFastReconnectTtlMs = 0U;
+
+    ESP32Wiimote second;
+    TEST_ASSERT_TRUE(second.init());
+
+    TEST_ASSERT_EQUAL_UINT32(77777U, mockLastFastReconnectTtlMs);
+}
+
 #ifdef NATIVE_TEST
 int main(int argc, char **argv) {
     UNITY_BEGIN();
@@ -658,6 +735,9 @@ int main(int argc, char **argv) {
     RUN_TEST(testESP32WiimoteInitPersistsDefaultRuntimeConfigSnapshot);
     RUN_TEST(testESP32WiimotePersistsRuntimePolicyUpdates);
     RUN_TEST(testESP32WiimoteRejectedOutputCommandsDoNotPersist);
+    RUN_TEST(testESP32WiimoteInitRestoresPersistedFieldsFromStore);
+    RUN_TEST(testESP32WiimoteInitWithNoPersistedDataUsesConfigDefaults);
+    RUN_TEST(testESP32WiimoteInitRestoresFastReconnectTtlFromStore);
 
     return UNITY_END();
 }
@@ -692,6 +772,9 @@ void setup() {
     RUN_TEST(testESP32WiimoteInitPersistsDefaultRuntimeConfigSnapshot);
     RUN_TEST(testESP32WiimotePersistsRuntimePolicyUpdates);
     RUN_TEST(testESP32WiimoteRejectedOutputCommandsDoNotPersist);
+    RUN_TEST(testESP32WiimoteInitRestoresPersistedFieldsFromStore);
+    RUN_TEST(testESP32WiimoteInitWithNoPersistedDataUsesConfigDefaults);
+    RUN_TEST(testESP32WiimoteInitRestoresFastReconnectTtlFromStore);
 
     UNITY_END();
 }
