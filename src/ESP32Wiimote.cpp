@@ -13,6 +13,8 @@
 #include "freertos/task.h"
 #include "nvs.h"
 #include "nvs_flash.h"
+#include "serial/serial_command_dispatcher.h"
+#include "serial/serial_response_formatter.h"
 #include "utils/serial_logging.h"
 
 #include <stdbool.h>
@@ -20,12 +22,64 @@
 #include <stdio.h>
 #include <string.h>
 
+namespace {
+
+constexpr size_t kSerialResponseBufSize = 192U;
+
+class Esp32SerialCommandTarget : public SerialCommandTarget {
+   public:
+    explicit Esp32SerialCommandTarget(ESP32Wiimote *device) : device_(device) {}
+
+    bool setLeds(uint8_t ledMask) override { return device_->setLeds(ledMask); }
+
+    bool setReportingMode(uint8_t mode, bool continuous) override {
+        return device_->setReportingMode(static_cast<ReportingMode>(mode), continuous);
+    }
+
+    bool setAccelerometerEnabled(bool enabled) override {
+        return device_->setAccelerometerEnabled(enabled);
+    }
+
+    bool requestStatus() override { return device_->requestStatus(); }
+
+    void setScanEnabled(bool enabled) override { device_->setScanEnabled(enabled); }
+
+    bool startDiscovery() override { return device_->startDiscovery(); }
+
+    bool stopDiscovery() override { return device_->stopDiscovery(); }
+
+    bool disconnectActiveController(uint8_t reason) override {
+        return device_->disconnectActiveController(
+            static_cast<ESP32Wiimote::DisconnectReason>(reason));
+    }
+
+    void setAutoReconnectEnabled(bool enabled) override {
+        device_->setAutoReconnectEnabled(enabled);
+    }
+
+    void clearReconnectCache() override { device_->clearReconnectCache(); }
+
+    bool isConnected() const override { return ESP32Wiimote::isConnected(); }
+
+    uint8_t getBatteryLevel() const override { return ESP32Wiimote::getBatteryLevel(); }
+
+   private:
+    ESP32Wiimote *device_;
+};
+
+}  // namespace
+
 /**
  * Constructor - Initialize all component managers
  */
 ESP32Wiimote::ESP32Wiimote() : ESP32Wiimote(ESP32WiimoteConfig()) {}
 
-ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config) : config_(config) {
+ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config)
+    : config_(config)
+    , serialControlEnabled_(false)
+    , serialInputLine_{0}
+    , serialInputLen_(0)
+    , serialInputOverflow_(false) {
     hciCallbacks_ = new HciCallbacksHandler();
     queueManager_ = new HciQueueManager(config_.txQueueSize, config_.rxQueueSize);
     buttonState_ = new ButtonStateManager();
@@ -66,6 +120,10 @@ void ESP32Wiimote::task() {
     // Process pending HCI packets
     queueManager_->processTxQueue();
     queueManager_->processRxQueue();
+
+    if (serialControlEnabled_) {
+        processSerialControl();
+    }
 }
 
 /**
@@ -170,6 +228,14 @@ void ESP32Wiimote::clearReconnectCache() {
     tinyWiimoteClearReconnectCache();
 }
 
+void ESP32Wiimote::enableSerialControl(bool enabled) {
+    serialControlEnabled_ = enabled;
+}
+
+bool ESP32Wiimote::isSerialControlEnabled() const {
+    return serialControlEnabled_;
+}
+
 ESP32Wiimote::BluetoothControllerState ESP32Wiimote::getBluetoothControllerState() {
     const ::BluetoothControllerState kState = tinyWiimoteGetControllerState();
     BluetoothControllerState apiState = {};
@@ -201,4 +267,70 @@ void ESP32Wiimote::addFilter(FilterAction action, int filter) {
             tinyWiimoteReqAccelerometer(false);
         }
     }
+}
+
+void ESP32Wiimote::processSerialControl() {
+    while (Serial.available() > 0) {
+        const int kRaw = Serial.read();
+        if (kRaw < 0) {
+            return;
+        }
+
+        const char kCh = static_cast<char>(kRaw);
+        if (kCh == '\r') {
+            continue;
+        }
+
+        if (kCh == '\n') {
+            if (serialInputOverflow_) {
+                char response[kSerialResponseBufSize] = {0};
+                serialFormatParseResult(response, sizeof(response), SerialParseResult::LineTooLong);
+                Serial.println(response);
+            } else if (serialInputLen_ > 0U) {
+                serialInputLine_[serialInputLen_] = '\0';
+                processSerialCommandLine(serialInputLine_);
+            }
+
+            serialInputLen_ = 0U;
+            serialInputOverflow_ = false;
+            serialInputLine_[0] = '\0';
+
+            // Bounded loop: process at most one completed line per task() call.
+            return;
+        }
+
+        if (serialInputOverflow_) {
+            continue;
+        }
+
+        if (serialInputLen_ < kSerialMaxLineLength) {
+            serialInputLine_[serialInputLen_] = kCh;
+            serialInputLen_++;
+        } else {
+            serialInputOverflow_ = true;
+        }
+    }
+}
+
+void ESP32Wiimote::processSerialCommandLine(const char *line) {
+    SerialParsedCommand parsed = {};
+    const SerialParseResult kParseResult = serialCommandParse(line, &parsed);
+
+    if (kParseResult == SerialParseResult::NotACommand ||
+        kParseResult == SerialParseResult::EmptyLine) {
+        return;
+    }
+
+    char response[kSerialResponseBufSize] = {0};
+
+    if (kParseResult != SerialParseResult::Ok) {
+        serialFormatParseResult(response, sizeof(response), kParseResult);
+        Serial.println(response);
+        return;
+    }
+
+    Esp32SerialCommandTarget target(this);
+    const SerialDispatchResult kDispatchResult = serialCommandDispatch(parsed, &target);
+    serialFormatDispatchResult(response, sizeof(response), kDispatchResult);
+    Serial.println(response);
 }

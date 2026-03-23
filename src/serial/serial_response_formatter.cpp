@@ -1,10 +1,10 @@
 #include "serial_response_formatter.h"
 
-#include <cstdarg>
 #include <cstdio>
+#include <stdarg.h>
 
 static size_t serialFormatLine(char *out, size_t outSize, const char *format, ...) {
-    va_list args;
+    va_list args = {};
     va_start(args, format);
     const int kWritten = vsnprintf(out, outSize, format, args);
     va_end(args);

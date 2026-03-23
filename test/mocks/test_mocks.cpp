@@ -79,6 +79,13 @@ uint8_t mockBtControllerStatus = static_cast<uint8_t>(ESP_BT_CONTROLLER_STATUS_I
 size_t mockEspFreeHeap = 0;
 MockEspClass ESP;
 
+char mockSerialInputBuffer[kMockSerialInputBufferSize] = {0};
+size_t mockSerialInputLen = 0;
+size_t mockSerialInputPos = 0;
+
+char mockSerialOutputBuffer[kMockSerialOutputBufferSize] = {0};
+size_t mockSerialOutputLen = 0;
+
 // FreeRTOS queue creation control
 int mockQueueCreateCallCount = 0;
 int mockQueueCreateFailOnCall = 0;

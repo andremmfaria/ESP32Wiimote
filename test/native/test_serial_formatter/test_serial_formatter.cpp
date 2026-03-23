@@ -8,23 +8,23 @@ void tearDown() {}
 
 void testFormatOk() {
     char out[32];
-    const size_t written = serialFormatOk(out, sizeof(out));
+    const size_t kWritten = serialFormatOk(out, sizeof(out));
     TEST_ASSERT_EQUAL_STRING("@wm: ok", out);
-    TEST_ASSERT_EQUAL(strlen("@wm: ok"), written);
+    TEST_ASSERT_EQUAL(strlen("@wm: ok"), kWritten);
 }
 
 void testFormatOkQueued() {
     char out[32];
-    const size_t written = serialFormatOkQueued(out, sizeof(out));
+    const size_t kWritten = serialFormatOkQueued(out, sizeof(out));
     TEST_ASSERT_EQUAL_STRING("@wm: ok queued", out);
-    TEST_ASSERT_EQUAL(strlen("@wm: ok queued"), written);
+    TEST_ASSERT_EQUAL(strlen("@wm: ok queued"), kWritten);
 }
 
 void testFormatError() {
     char out[64];
-    const size_t written = serialFormatError(out, sizeof(out), "bad_argument");
+    const size_t kWritten = serialFormatError(out, sizeof(out), "bad_argument");
     TEST_ASSERT_EQUAL_STRING("@wm: error bad_argument", out);
-    TEST_ASSERT_EQUAL(strlen("@wm: error bad_argument"), written);
+    TEST_ASSERT_EQUAL(strlen("@wm: error bad_argument"), kWritten);
 }
 
 void testFormatDispatchResultMappings() {
@@ -70,19 +70,20 @@ void testFormatParseResultMappings() {
 
 void testFormatStatus() {
     char out[128];
-    const size_t written = serialFormatStatus(out, sizeof(out), true, false, 0x31, true, 87);
+    const size_t kWritten = serialFormatStatus(out, sizeof(out), true, false, 0x31, true, 87);
     TEST_ASSERT_EQUAL_STRING("@wm: status connected=1 scan=0 mode=0x31 accel=1 battery=87", out);
     TEST_ASSERT_EQUAL(strlen("@wm: status connected=1 scan=0 mode=0x31 accel=1 battery=87"),
-                      written);
+                      kWritten);
 }
 
 void testFormatConfig() {
     char out[160];
-    const size_t written = serialFormatConfig(out, sizeof(out), true, 180000UL, false);
+    const size_t kWritten = serialFormatConfig(out, sizeof(out), true, 180000UL, false);
     TEST_ASSERT_EQUAL_STRING(
         "@wm: cfg auto_reconnect=1 fast_reconnect_ttl_ms=180000 serial_control=0", out);
     TEST_ASSERT_EQUAL(
-        strlen("@wm: cfg auto_reconnect=1 fast_reconnect_ttl_ms=180000 serial_control=0"), written);
+        strlen("@wm: cfg auto_reconnect=1 fast_reconnect_ttl_ms=180000 serial_control=0"),
+        kWritten);
 }
 
 void testBoundedWriteKeepsSentinelIntact() {
@@ -94,10 +95,10 @@ void testBoundedWriteKeepsSentinelIntact() {
     memset(buf.out, 'X', sizeof(buf.out));
     buf.guard = 'Z';
 
-    const size_t written = serialFormatError(buf.out, sizeof(buf.out), "this_is_long");
+    const size_t kWritten = serialFormatError(buf.out, sizeof(buf.out), "this_is_long");
 
     TEST_ASSERT_EQUAL('Z', buf.guard);
-    TEST_ASSERT_TRUE(written >= sizeof(buf.out) - 1U);
+    TEST_ASSERT_TRUE(kWritten >= sizeof(buf.out) - 1U);
     TEST_ASSERT_EQUAL('\0', buf.out[sizeof(buf.out) - 1]);
 }
 

@@ -15,6 +15,7 @@
 #include "esp32wiimote/queue/hci_queue.h"
 #include "esp32wiimote/state/button_state.h"
 #include "esp32wiimote/state/sensor_state.h"
+#include "serial/serial_command_parser.h"
 #include "utils/serial_logging.h"
 
 /**
@@ -217,6 +218,17 @@ class ESP32Wiimote {
     void clearReconnectCache();
 
     /**
+     * Enable/disable serial command processing in task loop
+     * Disabled by default.
+     */
+    void enableSerialControl(bool enabled);
+
+    /**
+     * Returns true when serial command processing is enabled.
+     */
+    bool isSerialControlEnabled() const;
+
+    /**
      * Get Bluetooth controller runtime state snapshot
      * @return Current controller state
      */
@@ -250,6 +262,14 @@ class ESP32Wiimote {
     ButtonStateManager *buttonState_;
     SensorStateManager *sensorState_;
     WiimoteDataParser *dataParser_;
+
+    bool serialControlEnabled_;
+    char serialInputLine_[kSerialMaxLineLength + 1U];
+    uint8_t serialInputLen_;
+    bool serialInputOverflow_;
+
+    void processSerialControl();
+    void processSerialCommandLine(const char *line);
 };
 
 #endif  // ESP32_WIIMOTE_ES_P32_WIIMOTE_H

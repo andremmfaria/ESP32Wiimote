@@ -59,6 +59,8 @@ void setUp(void) {
     mockLastVhciCallback = nullptr;
     mockQueueCreateCallCount = 0;
     mockQueueCreateFailOnCall = 0;
+    mockSerialClearInput();
+    mockSerialClearOutput();
     HciCallbacksHandler::setQueueManager(nullptr);
     wiimoteSetLogLevel(kWiimoteLogWarning);
 }
@@ -263,6 +265,71 @@ void testESP32WiimoteControllerMethodsDelegateAndMapState() {
     TEST_ASSERT_TRUE(state.autoReconnectEnabled);
 }
 
+void testESP32WiimoteSerialControlDisabledByDefaultAndOptIn() {
+    ESP32Wiimote device;
+
+    TEST_ASSERT_FALSE(device.isSerialControlEnabled());
+
+    device.enableSerialControl(true);
+    TEST_ASSERT_TRUE(device.isSerialControlEnabled());
+
+    device.enableSerialControl(false);
+    TEST_ASSERT_FALSE(device.isSerialControlEnabled());
+}
+
+void testESP32WiimoteSerialControlProcessesOneLinePerTaskCall() {
+    ESP32Wiimote device;
+    mockBtStarted = true;
+    mockTinyWiimoteConnected = true;
+    mockSetLedsResult = true;
+
+    device.enableSerialControl(true);
+    mockSerialSetInput("wm led 0x01\nwm led 0x02\n");
+
+    device.task();
+    TEST_ASSERT_EQUAL(1, mockSetLedsCallCount);
+    TEST_ASSERT_EQUAL_UINT8(0x01, mockLastLedsMask);
+    TEST_ASSERT_EQUAL_STRING("@wm: ok\n", mockSerialGetOutput());
+
+    device.task();
+    TEST_ASSERT_EQUAL(2, mockSetLedsCallCount);
+    TEST_ASSERT_EQUAL_UINT8(0x02, mockLastLedsMask);
+    TEST_ASSERT_EQUAL_STRING("@wm: ok\n@wm: ok\n", mockSerialGetOutput());
+}
+
+void testESP32WiimoteSerialControlIgnoresNonCommandInput() {
+    ESP32Wiimote device;
+    mockBtStarted = true;
+
+    device.enableSerialControl(true);
+    mockSerialSetInput("hello world\n");
+
+    device.task();
+
+    TEST_ASSERT_EQUAL(0, mockSetLedsCallCount);
+    TEST_ASSERT_EQUAL_STRING("", mockSerialGetOutput());
+}
+
+void testESP32WiimoteSerialControlReportsLineTooLong() {
+    ESP32Wiimote device;
+    mockBtStarted = true;
+
+    char line[kSerialMaxLineLength + 8U];
+    memset(line, 'a', sizeof(line));
+    line[0] = 'w';
+    line[1] = 'm';
+    line[2] = ' ';
+    line[kSerialMaxLineLength + 6U] = '\n';
+    line[kSerialMaxLineLength + 7U] = '\0';
+
+    device.enableSerialControl(true);
+    mockSerialSetInput(line);
+
+    device.task();
+
+    TEST_ASSERT_EQUAL_STRING("@wm: error line_too_long\n", mockSerialGetOutput());
+}
+
 #ifdef NATIVE_TEST
 int main(int argc, char **argv) {
     UNITY_BEGIN();
@@ -277,6 +344,10 @@ int main(int argc, char **argv) {
     RUN_TEST(testESP32WiimotePublicControllerTypesHaveExpectedShape);
     RUN_TEST(testESP32WiimoteOutputMethodsDelegateAndPropagateResults);
     RUN_TEST(testESP32WiimoteControllerMethodsDelegateAndMapState);
+    RUN_TEST(testESP32WiimoteSerialControlDisabledByDefaultAndOptIn);
+    RUN_TEST(testESP32WiimoteSerialControlProcessesOneLinePerTaskCall);
+    RUN_TEST(testESP32WiimoteSerialControlIgnoresNonCommandInput);
+    RUN_TEST(testESP32WiimoteSerialControlReportsLineTooLong);
 
     return UNITY_END();
 }
@@ -294,6 +365,10 @@ void setup() {
     RUN_TEST(testESP32WiimotePublicControllerTypesHaveExpectedShape);
     RUN_TEST(testESP32WiimoteOutputMethodsDelegateAndPropagateResults);
     RUN_TEST(testESP32WiimoteControllerMethodsDelegateAndMapState);
+    RUN_TEST(testESP32WiimoteSerialControlDisabledByDefaultAndOptIn);
+    RUN_TEST(testESP32WiimoteSerialControlProcessesOneLinePerTaskCall);
+    RUN_TEST(testESP32WiimoteSerialControlIgnoresNonCommandInput);
+    RUN_TEST(testESP32WiimoteSerialControlReportsLineTooLong);
 
     UNITY_END();
 }
