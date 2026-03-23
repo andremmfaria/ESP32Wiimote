@@ -25,6 +25,7 @@
 namespace {
 
 constexpr size_t kSerialResponseBufSize = 192U;
+constexpr const char *kWifiMockFailSsid = "__fail__";
 
 enum WifiInitStage : uint8_t {
     KWifiInitStageStartWifi = 0U,
@@ -86,6 +87,7 @@ ESP32Wiimote::ESP32Wiimote() : ESP32Wiimote(ESP32WiimoteConfig()) {}
 ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config)
     : config_(config)
     , credentials_()
+    , networkCredentials_()
     , wifiEnabled_(false)
     , serialControlEnabled_(false)
     , serialPrivilegedCommandsRequireUnlock_(true)
@@ -95,6 +97,10 @@ ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config)
     , wifiControlEnabled_(false)
     , wifiControlInitializing_(false)
     , wifiControlReady_(false)
+    , wifiNetworkCredentialsConfigured_(false)
+    , wifiNetworkConnectAttempted_(false)
+    , wifiNetworkConnected_(false)
+    , wifiNetworkConnectFailed_(false)
     , wifiDeliveryMode_(WifiDeliveryMode::RestOnly)
     , wifiInitStage_(KWifiInitStageStartWifi)
     , wifiLayerStarted_(false)
@@ -112,6 +118,11 @@ ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config)
 void ESP32Wiimote::configure(const WiimoteConfig &config) {
     wifiEnabled_ = config.wifiEnabled;
     credentials_ = config.credentials;
+    networkCredentials_ = config.network;
+
+    wifiNetworkCredentialsConfigured_ =
+        networkCredentials_.ssid != nullptr && networkCredentials_.ssid[0] != '\0' &&
+        networkCredentials_.password != nullptr && networkCredentials_.password[0] != '\0';
     serialCommandSession_.setCredentials(&credentials_);
 
     if (!wifiEnabled_) {
@@ -150,6 +161,10 @@ ESP32Wiimote::WifiControlState ESP32Wiimote::getWifiControlState() const {
     state.enabled = wifiControlEnabled_;
     state.initializing = wifiControlInitializing_;
     state.ready = wifiControlReady_;
+    state.networkCredentialsConfigured = wifiNetworkCredentialsConfigured_;
+    state.networkConnectAttempted = wifiNetworkConnectAttempted_;
+    state.networkConnected = wifiNetworkConnected_;
+    state.networkConnectFailed = wifiNetworkConnectFailed_;
     state.deliveryMode = wifiDeliveryMode_;
     state.wifiLayerStarted = wifiLayerStarted_;
     state.littleFsMounted = littleFsMounted_;
@@ -437,6 +452,23 @@ void ESP32Wiimote::processWifiControl() {
 
     switch (wifiInitStage_) {
         case KWifiInitStageStartWifi:
+            wifiNetworkConnectAttempted_ = true;
+            if (!wifiNetworkCredentialsConfigured_) {
+                wifiNetworkConnectFailed_ = true;
+                wifiControlEnabled_ = false;
+                wifiControlInitializing_ = false;
+                return;
+            }
+
+            if (strcmp(networkCredentials_.ssid, kWifiMockFailSsid) == 0) {
+                wifiNetworkConnectFailed_ = true;
+                wifiControlEnabled_ = false;
+                wifiControlInitializing_ = false;
+                return;
+            }
+
+            wifiNetworkConnected_ = true;
+            wifiNetworkConnectFailed_ = false;
             wifiLayerStarted_ = true;
             wifiInitStage_ = KWifiInitStageMountLittleFs;
             break;
@@ -474,6 +506,9 @@ void ESP32Wiimote::processWifiControl() {
 void ESP32Wiimote::resetWifiLifecycleState() {
     wifiControlInitializing_ = false;
     wifiControlReady_ = false;
+    wifiNetworkConnectAttempted_ = false;
+    wifiNetworkConnected_ = false;
+    wifiNetworkConnectFailed_ = false;
     wifiInitStage_ = KWifiInitStageStartWifi;
     wifiLayerStarted_ = false;
     littleFsMounted_ = false;

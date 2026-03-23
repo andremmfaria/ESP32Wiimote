@@ -151,6 +151,7 @@ Current implementation snapshot:
 
 Deliverables:
 
+- runtime Wi-Fi station credentials and network join flow (SSID/password)
 - optional queued command execution and result tracking
 - optional persistence for reconnect/runtime policy fields
 - optional split WebSocket events for input/status
@@ -159,6 +160,7 @@ Exit criteria:
 
 - stable mixed local/remote command behavior
 - persistence and event features validated when enabled
+- Wi-Fi join behavior is explicit, test-covered, and fail-closed on invalid credentials
 
 ## Cross-Cutting Requirements
 

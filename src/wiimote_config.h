@@ -7,9 +7,15 @@ struct WiimoteCredentials {
     const char *bearerToken;
 };
 
+struct WiimoteNetworkCredentials {
+    const char *ssid;
+    const char *password;
+};
+
 struct WiimoteConfig {
     bool wifiEnabled;
     WiimoteCredentials credentials;
+    WiimoteNetworkCredentials network;
 };
 
 #endif  // WIIMOTE_CONFIG_H_

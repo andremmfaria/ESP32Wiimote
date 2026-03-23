@@ -388,6 +388,10 @@ void testESP32WiimoteWifiControlDisabledByDefault() {
     const ESP32Wiimote::WifiControlState kState = device.getWifiControlState();
     TEST_ASSERT_FALSE(kState.enabled);
     TEST_ASSERT_FALSE(kState.ready);
+    TEST_ASSERT_FALSE(kState.networkCredentialsConfigured);
+    TEST_ASSERT_FALSE(kState.networkConnectAttempted);
+    TEST_ASSERT_FALSE(kState.networkConnected);
+    TEST_ASSERT_FALSE(kState.networkConnectFailed);
     TEST_ASSERT_FALSE(kState.wifiLayerStarted);
 }
 
@@ -413,14 +417,20 @@ void testESP32WiimoteWifiControlAsyncLifecycleRestOnly() {
     config.credentials.username = "admin";
     config.credentials.password = "password";
     config.credentials.bearerToken = "token";
+    config.network.ssid = "ssid";
+    config.network.password = "wifi_password";
 
     device.configure(config);
     device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
 
     TEST_ASSERT_TRUE(device.isWifiControlEnabled());
     TEST_ASSERT_FALSE(device.isWifiControlReady());
+    TEST_ASSERT_TRUE(device.getWifiControlState().networkCredentialsConfigured);
 
     device.task();
+    TEST_ASSERT_TRUE(device.getWifiControlState().networkConnectAttempted);
+    TEST_ASSERT_TRUE(device.getWifiControlState().networkConnected);
+    TEST_ASSERT_FALSE(device.getWifiControlState().networkConnectFailed);
     TEST_ASSERT_TRUE(device.getWifiControlState().wifiLayerStarted);
     TEST_ASSERT_FALSE(device.getWifiControlState().littleFsMounted);
 
@@ -449,6 +459,8 @@ void testESP32WiimoteWifiControlRestAndWebSocketAddsWebSocketStage() {
     config.credentials.username = "admin";
     config.credentials.password = "password";
     config.credentials.bearerToken = "token";
+    config.network.ssid = "ssid";
+    config.network.password = "wifi_password";
 
     device.configure(config);
     device.enableWifiControl(true, WifiDeliveryMode::RestAndWebSocket);
@@ -462,6 +474,53 @@ void testESP32WiimoteWifiControlRestAndWebSocketAddsWebSocketStage() {
 
     device.task();
     TEST_ASSERT_TRUE(device.isWifiControlReady());
+}
+
+void testESP32WiimoteWifiControlFailsWithoutNetworkCredentials() {
+    ESP32Wiimote device;
+    WiimoteConfig config = {};
+    config.wifiEnabled = true;
+    config.credentials.username = "admin";
+    config.credentials.password = "password";
+    config.credentials.bearerToken = "token";
+
+    device.configure(config);
+    device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
+
+    TEST_ASSERT_TRUE(device.isWifiControlEnabled());
+    device.task();
+
+    const ESP32Wiimote::WifiControlState kState = device.getWifiControlState();
+    TEST_ASSERT_FALSE(kState.enabled);
+    TEST_ASSERT_FALSE(kState.ready);
+    TEST_ASSERT_TRUE(kState.networkConnectAttempted);
+    TEST_ASSERT_FALSE(kState.networkConnected);
+    TEST_ASSERT_TRUE(kState.networkConnectFailed);
+    TEST_ASSERT_FALSE(kState.wifiLayerStarted);
+}
+
+void testESP32WiimoteWifiControlFailsWhenJoinFails() {
+    ESP32Wiimote device;
+    WiimoteConfig config = {};
+    config.wifiEnabled = true;
+    config.credentials.username = "admin";
+    config.credentials.password = "password";
+    config.credentials.bearerToken = "token";
+    config.network.ssid = "__fail__";
+    config.network.password = "wifi_password";
+
+    device.configure(config);
+    device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
+    device.task();
+
+    const ESP32Wiimote::WifiControlState kState = device.getWifiControlState();
+    TEST_ASSERT_FALSE(kState.enabled);
+    TEST_ASSERT_FALSE(kState.ready);
+    TEST_ASSERT_TRUE(kState.networkCredentialsConfigured);
+    TEST_ASSERT_TRUE(kState.networkConnectAttempted);
+    TEST_ASSERT_FALSE(kState.networkConnected);
+    TEST_ASSERT_TRUE(kState.networkConnectFailed);
+    TEST_ASSERT_FALSE(kState.wifiLayerStarted);
 }
 
 void testESP32WiimoteSerialControlIgnoresNonCommandInput() {
@@ -521,6 +580,8 @@ int main(int argc, char **argv) {
     RUN_TEST(testESP32WiimoteWifiControlNotEnabledWhenConfigDisablesWifi);
     RUN_TEST(testESP32WiimoteWifiControlAsyncLifecycleRestOnly);
     RUN_TEST(testESP32WiimoteWifiControlRestAndWebSocketAddsWebSocketStage);
+    RUN_TEST(testESP32WiimoteWifiControlFailsWithoutNetworkCredentials);
+    RUN_TEST(testESP32WiimoteWifiControlFailsWhenJoinFails);
     RUN_TEST(testESP32WiimoteSerialControlIgnoresNonCommandInput);
     RUN_TEST(testESP32WiimoteSerialControlReportsLineTooLong);
 
@@ -550,6 +611,8 @@ void setup() {
     RUN_TEST(testESP32WiimoteWifiControlNotEnabledWhenConfigDisablesWifi);
     RUN_TEST(testESP32WiimoteWifiControlAsyncLifecycleRestOnly);
     RUN_TEST(testESP32WiimoteWifiControlRestAndWebSocketAddsWebSocketStage);
+    RUN_TEST(testESP32WiimoteWifiControlFailsWithoutNetworkCredentials);
+    RUN_TEST(testESP32WiimoteWifiControlFailsWhenJoinFails);
     RUN_TEST(testESP32WiimoteSerialControlIgnoresNonCommandInput);
     RUN_TEST(testESP32WiimoteSerialControlReportsLineTooLong);
 

@@ -81,6 +81,10 @@ class ESP32Wiimote {
         bool enabled;
         bool initializing;
         bool ready;
+        bool networkCredentialsConfigured;
+        bool networkConnectAttempted;
+        bool networkConnected;
+        bool networkConnectFailed;
         WifiDeliveryMode deliveryMode;
         bool wifiLayerStarted;
         bool littleFsMounted;
@@ -304,6 +308,7 @@ class ESP32Wiimote {
    private:
     ESP32WiimoteConfig config_;
     WiimoteCredentials credentials_;
+    WiimoteNetworkCredentials networkCredentials_;
     bool wifiEnabled_;
 
     // Component managers
@@ -323,6 +328,10 @@ class ESP32Wiimote {
     bool wifiControlEnabled_;
     bool wifiControlInitializing_;
     bool wifiControlReady_;
+    bool wifiNetworkCredentialsConfigured_;
+    bool wifiNetworkConnectAttempted_;
+    bool wifiNetworkConnected_;
+    bool wifiNetworkConnectFailed_;
     WifiDeliveryMode wifiDeliveryMode_;
     uint8_t wifiInitStage_;
     bool wifiLayerStarted_;
