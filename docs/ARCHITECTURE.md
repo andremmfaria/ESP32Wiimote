@@ -624,6 +624,30 @@ config.nunchukStickThreshold = 5;  // Stick sensitivity
 ESP32Wiimote wiimote(config);
 ```
 
+### Runtime Auth and Wi-Fi Policy
+
+Runtime credentials and Wi-Fi enablement are configured through `WiimoteConfig`:
+
+```cpp
+WiimoteConfig runtimeConfig = {
+  true,
+  {"admin", "password", "esp32wiimote_bearer_token_v1"}
+};
+
+ESP32Wiimote wiimote;
+wiimote.configure(runtimeConfig);
+```
+
+### Wi-Fi Lifecycle Control
+
+Wi-Fi startup is controlled independently and progresses asynchronously in `task()`:
+
+```cpp
+wiimote.enableWifiControl(true, WifiDeliveryMode::RestOnly);
+bool ready = wiimote.isWifiControlReady();
+ESP32Wiimote::WifiControlState state = wiimote.getWifiControlState();
+```
+
 ---
 
 ## Extensibility

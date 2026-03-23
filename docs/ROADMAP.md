@@ -134,6 +134,19 @@ Exit criteria:
 - runtime commands accepted/rejected deterministically
 - Wi-Fi load does not destabilize core Wiimote behavior
 
+Status:
+
+- Completed
+
+Current implementation snapshot:
+
+- Bearer/Basic auth implemented in web auth layer with runtime credentials
+- static assets served at `/`, `/app.js`, `/styles.css`
+- OpenAPI 3.0 asset served at `/openapi.json`
+- REST reads: `/api/wiimote/status`, `/api/wiimote/config`
+- REST writes: `/api/wiimote/commands/*` for leds, mode, accelerometer, request-status, scan, discovery, disconnect, reconnect-policy
+- asynchronous Wi-Fi lifecycle progression exposed through `enableWifiControl(...)`, `isWifiControlReady()`, and `getWifiControlState()`
+
 ### Phase 5: Reliability and persistence refinement
 
 Deliverables:

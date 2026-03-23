@@ -14,7 +14,10 @@ Due to ESP32 Bluetooth Classic HCI limitations, this project supports one active
 - ✅ Battery level readout (0-100%) via `getBatteryLevel()`
 - ✅ Battery status requests via `requestBatteryUpdate()`
 - ✅ Serial runtime control (`wm ...`) with deterministic responses
-- ✅ Optional time-bounded unlock window for privileged serial commands
+- ✅ Credential-validated unlock window for privileged serial commands
+- ✅ Runtime credentials model shared by Serial and Wi-Fi auth
+- ✅ Wi-Fi REST control API with Bearer/Basic auth
+- ✅ Static OpenAPI 3.0 document at `/openapi.json`
 - ✅ Comprehensive 4-level logging system (ERROR/WARN/INFO/DEBUG)
 - ✅ Unit tests with PlatformIO
 - ✅ Hardware integration tests
@@ -212,7 +215,7 @@ Example session:
 wm status
 @wm: ok
 
-wm unlock 30
+wm unlock admin password 30
 @wm: ok
 
 wm led 0x01
@@ -220,6 +223,23 @@ wm led 0x01
 ```
 
 Privileged commands are locked by default and return `@wm: error locked` until an unlock window is active.
+
+When credentials are configured, invalid unlock credentials return `@wm: error bad_credentials`.
+
+### Runtime Wi-Fi/Auth Configuration
+
+Configure runtime auth credentials and Wi-Fi policy before startup:
+
+```cpp
+WiimoteConfig runtimeConfig = {
+  true,
+  {"admin", "password", "esp32wiimote_bearer_token_v1"}
+};
+
+ESP32Wiimote wiimote;
+wiimote.configure(runtimeConfig);
+wiimote.enableWifiControl(true, WifiDeliveryMode::RestOnly);
+```
 
 See [API Reference](docs/API.md#serial-control-interface) for command details.
 

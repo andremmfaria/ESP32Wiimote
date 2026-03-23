@@ -5,6 +5,7 @@ Complete API documentation for the ESP32Wiimote library.
 ## Table of Contents
 
 - [ESP32Wiimote Class](#esp32wiimote-class)
+- [Runtime Wi-Fi/Auth Configuration](#runtime-wi-fiauth-configuration)
 - [Serial Control Interface](#serial-control-interface)
 - [Wi-Fi Control API](#wi-fi-control-api)
 - [Button States](#button-states)
@@ -52,6 +53,65 @@ ESP32Wiimote wiimote(cfg);
 ```
 
 Set `fastReconnectTtlMs = 0` to disable fast reconnect and always use inquiry after disconnect.
+
+---
+
+### Runtime Wi-Fi/Auth Configuration
+
+Runtime credentials and Wi-Fi policy are configured via `WiimoteConfig`:
+
+```cpp
+struct WiimoteCredentials {
+    const char *username;
+    const char *password;
+    const char *bearerToken;
+};
+
+struct WiimoteConfig {
+    bool wifiEnabled;
+    WiimoteCredentials credentials;
+};
+```
+
+Apply this configuration before `init()`:
+
+```cpp
+ESP32Wiimote wiimote;
+
+WiimoteConfig runtimeConfig = {
+    true,
+    {"admin", "password", "esp32wiimote_bearer_token_v1"}
+};
+
+wiimote.configure(runtimeConfig);
+wiimote.enableWifiControl(true, WifiDeliveryMode::RestOnly);
+```
+
+#### `void configure(const WiimoteConfig &config)`
+
+Sets runtime credentials and Wi-Fi enablement policy.
+
+Behavior:
+
+- `wifiEnabled=false` prevents Wi-Fi control startup
+- credentials are reused by both web auth and serial unlock validation
+- serial control remains available regardless of `wifiEnabled`
+
+#### `void enableWifiControl(bool enabled, WifiDeliveryMode deliveryMode = WifiDeliveryMode::RestOnly)`
+
+Enables or disables Wi-Fi control lifecycle. Startup is asynchronous and progresses in `task()`.
+
+#### `bool isWifiControlEnabled() const`
+
+Returns whether Wi-Fi lifecycle processing is enabled.
+
+#### `bool isWifiControlReady() const`
+
+Returns whether Wi-Fi startup stages have completed.
+
+#### `WifiControlState getWifiControlState() const`
+
+Returns lifecycle state flags (`enabled`, `initializing`, `ready`, stage registration flags, and delivery mode).
 
 ---
 
@@ -527,6 +587,7 @@ Error examples:
 - `@wm: error missing_argument`
 - `@wm: error not_connected`
 - `@wm: error locked`
+- `@wm: error bad_credentials`
 - `@wm: error line_too_long`
 
 #### Privileged-command lock model
@@ -641,6 +702,27 @@ Runtime controller-state snapshot fields:
 - `activeConnectionHandle`
 - `fastReconnectActive`
 - `autoReconnectEnabled`
+
+#### `enum class WifiDeliveryMode : uint8_t`
+
+Wi-Fi route delivery mode:
+
+- `RestOnly`
+- `RestAndWebSocket`
+
+#### `struct WifiControlState`
+
+Wi-Fi lifecycle snapshot fields:
+
+- `enabled`
+- `initializing`
+- `ready`
+- `deliveryMode`
+- `wifiLayerStarted`
+- `littleFsMounted`
+- `staticRoutesRegistered`
+- `apiRoutesRegistered`
+- `websocketRoutesRegistered`
 
 ---
 

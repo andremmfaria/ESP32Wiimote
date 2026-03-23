@@ -1,7 +1,11 @@
+#include "../../../src/esp32wiimote/bt_controller.h"
+#include "../../../src/esp32wiimote/hci_callbacks.h"
+#include "../../../src/esp32wiimote/queue/hci_queue.h"
 #include "../../../src/tinywiimote/l2cap/l2cap_signaling.h"
 #include "../../../src/tinywiimote/protocol/wiimote_reports.h"
 #include "../../../src/tinywiimote/protocol/wiimote_state.h"
 #include "../../../src/tinywiimote/utils/hci_utils.h"
+#include "../../mocks/test_mocks.h"
 
 #include <algorithm>
 #include <cstring>
@@ -32,6 +36,23 @@ void setUp(void) {
     gRawPacketLen = 0;
     gSendCount = 0;
     memset(gRawPacket, 0, sizeof(gRawPacket));
+
+    mockDeviceIsInited = false;
+    mockResetDeviceCallCount = 0;
+    mockHandleHciDataCallCount = 0;
+    mockTinyWiimoteInitCallCount = 0;
+    mockBtStartResult = true;
+    mockBtStarted = false;
+    mockQueueCreateCallCount = 0;
+    mockQueueCreateFailOnCall = 0;
+    mockVhciRegisterResult = ESP_OK;
+    mockVhciRegisterCallCount = 0;
+    mockLastVhciCallback = nullptr;
+    gMockVhciSendAvailable = true;
+    gMockVhciSendCount = 0;
+    gMockVhciSentLen = 0;
+    memset(gMockVhciSentData, 0, sizeof(gMockVhciSentData));
+    HciCallbacksHandler::setQueueManager(nullptr);
 }
 
 void tearDown(void) {}
@@ -199,6 +220,134 @@ void testL2capSignalingFlows() {
     TEST_ASSERT_EQUAL(0, gSendCount);
 }
 
+void testHciCallbacksSendAvailableResetsOnlyWhenDeviceNotInited() {
+    mockDeviceIsInited = false;
+    HciCallbacksHandler::notifyHostSendAvailable();
+    TEST_ASSERT_EQUAL(1, mockResetDeviceCallCount);
+
+    mockDeviceIsInited = true;
+    HciCallbacksHandler::notifyHostSendAvailable();
+    TEST_ASSERT_EQUAL(1, mockResetDeviceCallCount);
+}
+
+void testHciCallbacksRecvAndHostSendPacketPaths() {
+    uint8_t data[] = {0x01, 0x02, 0x03};
+
+    HciCallbacksHandler::setQueueManager(nullptr);
+    TEST_ASSERT_EQUAL(ESP_FAIL, HciCallbacksHandler::notifyHostRecv(data, sizeof(data)));
+    HciCallbacksHandler::hciHostSendPacket(data, sizeof(data));
+
+    HciQueueManager queueManager(8, 8);
+    TEST_ASSERT_TRUE(queueManager.createQueues());
+    HciCallbacksHandler::setQueueManager(&queueManager);
+
+    TEST_ASSERT_EQUAL(ESP_OK, HciCallbacksHandler::notifyHostRecv(data, sizeof(data)));
+    TEST_ASSERT_TRUE(queueManager.hasRxPending());
+
+    HciCallbacksHandler::hciHostSendPacket(data, sizeof(data));
+    TEST_ASSERT_TRUE(queueManager.hasTxPending());
+
+    queueManager.processRxQueue();
+    TEST_ASSERT_EQUAL(1, mockHandleHciDataCallCount);
+
+    queueManager.processTxQueue();
+    TEST_ASSERT_EQUAL(1, gMockVhciSendCount);
+}
+
+void testHciQueueManagerFailureAndPendingBranches() {
+    HciQueueManager uninitializedManager;
+    uint8_t payload[] = {0xAA, 0xBB};
+
+    TEST_ASSERT_FALSE(uninitializedManager.sendToTxQueue(payload, sizeof(payload)));
+    TEST_ASSERT_FALSE(uninitializedManager.sendToRxQueue(payload, sizeof(payload)));
+    TEST_ASSERT_FALSE(uninitializedManager.hasTxPending());
+    TEST_ASSERT_FALSE(uninitializedManager.hasRxPending());
+
+    mockQueueCreateCallCount = 0;
+    mockQueueCreateFailOnCall = 1;
+    HciQueueManager txFailManager;
+    TEST_ASSERT_FALSE(txFailManager.createQueues());
+
+    mockQueueCreateCallCount = 0;
+    mockQueueCreateFailOnCall = 2;
+    HciQueueManager rxFailManager;
+    TEST_ASSERT_FALSE(rxFailManager.createQueues());
+
+    mockQueueCreateCallCount = 0;
+    mockQueueCreateFailOnCall = 0;
+    HciQueueManager queueManager;
+    TEST_ASSERT_TRUE(queueManager.createQueues());
+
+    TEST_ASSERT_TRUE(queueManager.sendToTxQueue(nullptr, 0U));
+    TEST_ASSERT_TRUE(queueManager.sendToRxQueue(nullptr, 0U));
+    TEST_ASSERT_FALSE(queueManager.hasTxPending());
+    TEST_ASSERT_FALSE(queueManager.hasRxPending());
+
+    TEST_ASSERT_TRUE(queueManager.sendToTxQueue(payload, sizeof(payload)));
+    TEST_ASSERT_TRUE(queueManager.sendToRxQueue(payload, sizeof(payload)));
+    TEST_ASSERT_TRUE(queueManager.hasTxPending());
+    TEST_ASSERT_TRUE(queueManager.hasRxPending());
+
+    gMockVhciSendAvailable = false;
+    queueManager.processTxQueue();
+    TEST_ASSERT_TRUE(queueManager.hasTxPending());
+    TEST_ASSERT_EQUAL(0, gMockVhciSendCount);
+
+    gMockVhciSendAvailable = true;
+    queueManager.processTxQueue();
+    TEST_ASSERT_FALSE(queueManager.hasTxPending());
+    TEST_ASSERT_EQUAL(1, gMockVhciSendCount);
+
+    queueManager.processRxQueue();
+    TEST_ASSERT_FALSE(queueManager.hasRxPending());
+    TEST_ASSERT_EQUAL(1, mockHandleHciDataCallCount);
+}
+
+void testHciQueueManagerQueueFullReturnsFalse() {
+    HciQueueManager queueManager;
+    uint8_t payload = 0x11;
+    TEST_ASSERT_TRUE(queueManager.createQueues());
+
+    bool enqueueResult = true;
+    for (int i = 0; i < 64; ++i) {
+        TEST_ASSERT_TRUE(queueManager.sendToTxQueue(&payload, sizeof(payload)));
+    }
+
+    enqueueResult = queueManager.sendToTxQueue(&payload, sizeof(payload));
+    TEST_ASSERT_FALSE(enqueueResult);
+}
+
+void testBluetoothControllerInitErrorPathsAndStartedState() {
+    HciCallbacksHandler callbacks;
+    HciQueueManager queueManager(8, 8);
+
+    TEST_ASSERT_FALSE(BluetoothController::init(nullptr, &queueManager));
+    TEST_ASSERT_FALSE(BluetoothController::init(&callbacks, nullptr));
+
+    mockBtStartResult = false;
+    TEST_ASSERT_FALSE(BluetoothController::init(&callbacks, &queueManager));
+
+    mockBtStartResult = true;
+    mockQueueCreateCallCount = 0;
+    mockQueueCreateFailOnCall = 2;
+    TEST_ASSERT_FALSE(BluetoothController::init(&callbacks, &queueManager));
+
+    mockQueueCreateCallCount = 0;
+    mockQueueCreateFailOnCall = 0;
+    mockVhciRegisterResult = ESP_FAIL;
+    TEST_ASSERT_FALSE(BluetoothController::init(&callbacks, &queueManager));
+
+    mockVhciRegisterResult = ESP_OK;
+    TEST_ASSERT_TRUE(BluetoothController::init(&callbacks, &queueManager));
+    TEST_ASSERT_GREATER_THAN(0, mockTinyWiimoteInitCallCount);
+
+    mockBtStarted = false;
+    TEST_ASSERT_FALSE(BluetoothController::isStarted());
+
+    mockBtStarted = true;
+    TEST_ASSERT_TRUE(BluetoothController::isStarted());
+}
+
 #ifdef NATIVE_TEST
 int main(int argc, char **argv) {
     UNITY_BEGIN();
@@ -207,6 +356,11 @@ int main(int argc, char **argv) {
     RUN_TEST(testWiimoteStateTransitionsAndBatteryMapping);
     RUN_TEST(testL2capPacketBuilderAndSender);
     RUN_TEST(testL2capSignalingFlows);
+    RUN_TEST(testHciCallbacksSendAvailableResetsOnlyWhenDeviceNotInited);
+    RUN_TEST(testHciCallbacksRecvAndHostSendPacketPaths);
+    RUN_TEST(testHciQueueManagerFailureAndPendingBranches);
+    RUN_TEST(testHciQueueManagerQueueFullReturnsFalse);
+    RUN_TEST(testBluetoothControllerInitErrorPathsAndStartedState);
 
     return UNITY_END();
 }
@@ -218,6 +372,11 @@ void setup() {
     RUN_TEST(testWiimoteStateTransitionsAndBatteryMapping);
     RUN_TEST(testL2capPacketBuilderAndSender);
     RUN_TEST(testL2capSignalingFlows);
+    RUN_TEST(testHciCallbacksSendAvailableResetsOnlyWhenDeviceNotInited);
+    RUN_TEST(testHciCallbacksRecvAndHostSendPacketPaths);
+    RUN_TEST(testHciQueueManagerFailureAndPendingBranches);
+    RUN_TEST(testHciQueueManagerQueueFullReturnsFalse);
+    RUN_TEST(testBluetoothControllerInitErrorPathsAndStartedState);
 
     UNITY_END();
 }
