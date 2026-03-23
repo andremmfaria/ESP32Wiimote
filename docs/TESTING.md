@@ -104,28 +104,52 @@ Generate native line/branch coverage reports:
 Outputs:
 
 - `coverage/gcovr-summary.txt`
+- `coverage/gcovr-covered-summary.txt`
+- `coverage/gcovr.csv`
 - `coverage/gcovr.xml`
 - `coverage/html-gcovr/index.html`
+- `coverage/src-coverage-status.txt`
 - `coverage/lcov.info`
 - `coverage/html-lcov/index.html`
-```
 
 ## Test Structure
 
 ```text
 test/
-├── native/              # Fast unit tests (PC)
+├── native/                      # Fast unit/component tests (PC)
 │   ├── test_button_state/
-│   ├── test_sensor_state/
 │   ├── test_data_parser/
-│   └── test_protocol/
-├── embedded/            # Hardware integration tests (ESP32)
+│   ├── test_esp32wiimote/
+│   ├── test_hci_codes/
+│   ├── test_hci_stack/
+│   ├── test_protocol/
+│   ├── test_sensor_state/
+│   ├── test_serial/
+│   ├── test_serial_dispatcher/
+│   ├── test_serial_formatter/
+│   ├── test_serial_session/
+│   ├── test_stack_components/
+│   ├── test_tinywiimote_core/
+│   ├── test_utils/
+│   └── test_wiimote_extensions/
+├── embedded/                    # Hardware tests (ESP32)
+│   ├── test_bluetooth/
 │   └── test_integration/
 └── mocks/               # Test infrastructure (native tests only)
     ├── test_mocks.h     # Mock state and inline validation callback
     ├── test_mocks.cpp   # TinyWiimote stubs, L2CAP packet framing
     └── Arduino.h        # Arduino API stub for native builds
 ```
+
+### Native Suite Coverage Map
+
+- `test_button_state/`, `test_sensor_state/`: button/sensor state transition logic
+- `test_data_parser/`: Wiimote report parsing and filter behavior
+- `test_protocol/`, `test_wiimote_extensions/`: protocol and extension handling
+- `test_hci_codes/`, `test_hci_stack/`, `test_stack_components/`: HCI/lower-stack command, event, and packet flows
+- `test_tinywiimote_core/`, `test_utils/`: TinyWiimote core and utility helpers
+- `test_esp32wiimote/`: public API delegation and task-loop integration behavior
+- `test_serial*`: serial parser/dispatcher/formatter/session and end-to-end serial task-loop behavior
 
 ### Test Mock Infrastructure
 
@@ -141,7 +165,10 @@ Native tests use a minimal mock layer in `test/mocks/` to isolate hardware depen
 **`Arduino.h`:**
 
 - Minimal Arduino API stub (Serial, delay, millis) for native compilation
-- Required by `wiimote_protocol.cpp` include (unused but needed for compilation)
+- Includes controllable mock serial input/output buffers for serial task-loop tests
+- Includes controllable mock `millis()` clock for unlock-window expiry tests
+
+Additional mock headers under `test/mocks/` provide compile-time stubs for ESP32/BT platform headers used by production code.
 
 **Key Design:**
 
@@ -150,7 +177,17 @@ Native tests use a minimal mock layer in `test/mocks/` to isolate hardware depen
 - ✅ **Automatic packet validation** - every L2CAP packet checked for correct ACL/L2CAP headers
 - ✅ **Boundary-only mocking** - only hardware input/output boundaries are mocked
 
-## Writing Your First Test
+### Serial-focused native suites
+
+- `test_serial/` validates parser limits and tokenization behavior
+- `test_serial_dispatcher/` validates command mapping, argument parsing, and lock gating
+- `test_serial_formatter/` validates stable response contracts and bounded writes
+- `test_serial_session/` validates unlock-window timing and expiry semantics
+- `test_esp32wiimote/` validates task-loop serial integration (one line per `task()` call)
+
+## Writing Tests
+
+### Native Test Pattern (`test/native/...`)
 
 Create `test/native/test_myfeature/test_myfeature.cpp`:
 
@@ -172,19 +209,40 @@ void test_something(void) {
     TEST_ASSERT_EQUAL(42, instance->getSomething());
 }
 
-void setup() {
+int main(int /*argc*/, char ** /*argv*/) {
     UNITY_BEGIN();
     RUN_TEST(test_something);
-    UNITY_END();
+    return UNITY_END();
 }
-
-void loop() {}
 ```
 
 Run it:
 
 ```bash
-pio test -e native -f test_myfeature
+./build.sh test:native -- -f test_myfeature
+```
+
+### Embedded Test Pattern (`test/embedded/...`)
+
+Embedded tests run with Arduino lifecycle entrypoints and usually require serial output for prompts:
+
+```cpp
+void setup() {
+    Serial.begin(115200);
+    UNITY_BEGIN();
+    RUN_TEST(test_hardware_scenario);
+    UNITY_END();
+}
+
+void loop() {
+    // Optional background processing
+}
+```
+
+Run embedded tests:
+
+```bash
+ESP32_PORT=/dev/ttyUSB0 ./build.sh test:dev -- -f test_integration -v
 ```
 
 ## Continuous Integration
@@ -235,6 +293,12 @@ TEST_IGNORE_MESSAGE("skipped because...");
 4. 🚀 Push changes (CI runs automatically)
 
 ## Troubleshooting
+
+### "No tests were run"
+
+- Check suite name matches the folder under `test/native/` or `test/embedded/`
+- For native: `./build.sh test:native -- -f test_serial_dispatcher`
+- For embedded: `ESP32_PORT=/dev/ttyUSB0 ./build.sh test:dev -- -f test_integration -v`
 
 ### "command not found: pio"
 

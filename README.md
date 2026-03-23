@@ -13,6 +13,8 @@ Due to ESP32 Bluetooth Classic HCI limitations, this project supports one active
 - ✅ Single-controller operation (1 Wiimote per ESP32 radio, due to Bluetooth Classic HCI limits)
 - ✅ Battery level readout (0-100%) via `getBatteryLevel()`
 - ✅ Battery status requests via `requestBatteryUpdate()`
+- ✅ Serial runtime control (`wm ...`) with deterministic responses
+- ✅ Optional time-bounded unlock window for privileged serial commands
 - ✅ Comprehensive 4-level logging system (ERROR/WARN/INFO/DEBUG)
 - ✅ Unit tests with PlatformIO
 - ✅ Hardware integration tests
@@ -192,6 +194,34 @@ Available filters:
 - `FilterButton`
 
 See [API Reference](docs/API.md#filtering) for details.
+
+## Serial Control
+
+The serial control path is line-oriented and handled inside `ESP32Wiimote::task()`.
+
+Protocol basics:
+
+- command prefix: `wm`
+- one command per line
+- response prefix: `@wm:`
+- one complete serial line processed per `task()` call
+
+Example session:
+
+```text
+wm status
+@wm: ok
+
+wm unlock 30
+@wm: ok
+
+wm led 0x01
+@wm: ok
+```
+
+Privileged commands are locked by default and return `@wm: error locked` until an unlock window is active.
+
+See [API Reference](docs/API.md#serial-control-interface) for command details.
 
 ## Testing
 

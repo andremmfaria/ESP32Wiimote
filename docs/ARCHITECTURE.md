@@ -10,6 +10,7 @@ ESP32Wiimote is designed with a layered architecture separating hardware interfa
 - [Data Flow](#data-flow)
 - [Threading Model](#threading-model)
 - [Controller Command State Machine](#controller-command-state-machine)
+- [Serial Command Pipeline](#serial-command-pipeline)
 
 ---
 
@@ -310,6 +311,45 @@ Recommended deterministic rejection mapping:
 - `disconnectActiveController()` while not connected -> reject (`false`)
 - `setScanEnabled(false)` while not started -> reject internally (no-op)
 - reconnect-policy/cache commands while not started -> reject internally (no-op)
+
+---
+
+## Serial Command Pipeline
+
+Serial runtime control is implemented as a bounded pipeline that executes in
+`ESP32Wiimote::task()`.
+
+Components:
+
+- Parser: `src/serial/serial_command_parser.{h,cpp}`
+- Dispatcher: `src/serial/serial_command_dispatcher.{h,cpp}`
+- Response formatter: `src/serial/serial_response_formatter.{h,cpp}`
+- Unlock session: `src/serial/serial_command_session.{h,cpp}`
+
+Execution flow (one line per task call):
+
+1. Read serial bytes into a bounded line buffer
+2. On newline, parse tokens (`wm` prefix)
+3. Dispatch command to public API target
+4. Format deterministic response text and emit via serial
+
+Bounds and behavior:
+
+- Input line length bounded to 128 bytes
+- Token count bounded to 10
+- At most one completed command line is processed per `task()` call
+- Non-command lines are ignored
+- Line overflow returns `@wm: error line_too_long`
+
+Privileged-command gating:
+
+- Write/control serial commands are locked by default
+- `wm unlock <seconds>` opens a time-bounded unlock window
+- Once expired, privileged commands are rejected with `locked`
+
+Integration note:
+
+- Serial command handlers call the same public runtime methods used by firmware code, preserving a single behavior surface.
 
 ---
 

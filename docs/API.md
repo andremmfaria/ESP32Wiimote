@@ -5,6 +5,7 @@ Complete API documentation for the ESP32Wiimote library.
 ## Table of Contents
 
 - [ESP32Wiimote Class](#esp32wiimote-class)
+- [Serial Control Interface](#serial-control-interface)
 - [Button States](#button-states)
 - [Sensor Data Structures](#sensor-data-structures)
 - [Filter Configuration](#filter-configuration)
@@ -98,6 +99,7 @@ void loop() {
 - Handles incoming/outgoing Bluetooth packets
 - Should be called as frequently as possible
 - Non-blocking operation
+- When serial control is enabled, processes at most one complete serial command line per call
 
 ---
 
@@ -470,6 +472,71 @@ Clears cached controller identity used by fast reconnect.
 Returns a snapshot of Bluetooth controller runtime state.
 
 **Returns:** `BluetoothControllerState` with initialization, start, scan, connection, and reconnect flags
+
+---
+
+### Serial Control Interface
+
+#### `void enableSerialControl(bool enabled)`
+
+Enables or disables serial command processing inside `task()`.
+
+**Behavior:**
+
+- Disabled by default
+- When disabled, queued partial serial input is cleared
+- Disabling also clears the active serial unlock session
+
+#### `bool isSerialControlEnabled() const`
+
+Returns whether serial command processing is enabled.
+
+#### Protocol overview
+
+- Prefix: `wm`
+- One command per line (`\n`-terminated)
+- Response prefix: `@wm:`
+- Maximum input line length: 128 bytes (excluding `\0` terminator)
+- Maximum token count: 10
+
+#### Implemented command set
+
+- `wm status`
+- `wm unlock <seconds>`
+- `wm led <mask>`
+- `wm mode <mode> [continuous]`
+- `wm accel <on|off>`
+- `wm request-status`
+- `wm scan <on|off>`
+- `wm discover <start|stop>`
+- `wm disconnect [reason]`
+- `wm reconnect <on|off|clear>`
+
+#### Response contract
+
+Success:
+
+- `@wm: ok`
+- `@wm: ok queued` (reserved for queued flows)
+
+Error examples:
+
+- `@wm: error unknown_command`
+- `@wm: error bad_argument`
+- `@wm: error missing_argument`
+- `@wm: error not_connected`
+- `@wm: error locked`
+- `@wm: error line_too_long`
+
+#### Privileged-command lock model
+
+Serial privileged commands are locked by default.
+
+- `wm unlock <seconds>` starts a time-bounded unlock session
+- while unlocked, privileged commands are accepted (subject to normal state guards)
+- after expiry, privileged commands return `@wm: error locked`
+
+Privileged command set includes write/control operations such as `led`, `mode`, `accel`, `scan`, `discover`, `disconnect`, and `reconnect`.
 
 #### Controller Guard Semantics
 

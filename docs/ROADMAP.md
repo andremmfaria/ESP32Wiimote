@@ -103,10 +103,21 @@ Deliverables:
 - response formatter
 - optional privileged unlock window
 
+Status:
+
+- Completed
+
 Exit criteria:
 
 - primary runtime commands available over Serial
 - status/config endpoints usable from host tools
+
+Current implementation snapshot:
+
+- parser/dispatcher/formatter wired through `ESP32Wiimote::task()`
+- one complete command line processed per `task()` call
+- unlock window for privileged serial commands (`wm unlock <seconds>`)
+- native serial suites cover parser, dispatcher, formatter, session, and integration paths
 
 ### Phase 4: Wi-Fi API
 
