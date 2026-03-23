@@ -339,6 +339,46 @@ void testESP32WiimoteSerialControlUnlockExpiresByTime() {
     TEST_ASSERT_EQUAL_STRING("@wm: ok\n@wm: ok\n@wm: error locked\n", mockSerialGetOutput());
 }
 
+void testESP32WiimoteConfigureWithWifiDisabledRejectsBadCredentials() {
+    ESP32Wiimote device;
+    WiimoteConfig config = {};
+    config.wifiEnabled = false;
+    config.credentials.username = "admin";
+    config.credentials.password = "password";
+    config.credentials.bearerToken = "token";
+
+    mockBtStarted = true;
+    device.configure(config);
+    device.enableSerialControl(true);
+    mockSerialSetInput("wm unlock admin wrong 60\n");
+
+    device.task();
+
+    TEST_ASSERT_EQUAL_STRING("@wm: error bad_credentials\n", mockSerialGetOutput());
+}
+
+void testESP32WiimoteConfigurePropagatesCredentialsToSerialUnlock() {
+    ESP32Wiimote device;
+    WiimoteConfig config = {};
+    config.wifiEnabled = false;
+    config.credentials.username = "admin";
+    config.credentials.password = "password";
+    config.credentials.bearerToken = "token";
+
+    mockBtStarted = true;
+    mockTinyWiimoteConnected = true;
+    mockSetLedsResult = true;
+    device.configure(config);
+    device.enableSerialControl(true);
+    mockSerialSetInput("wm unlock admin password 60\nwm led 0x01\n");
+
+    device.task();
+    device.task();
+
+    TEST_ASSERT_EQUAL(1, mockSetLedsCallCount);
+    TEST_ASSERT_EQUAL_STRING("@wm: ok\n@wm: ok\n", mockSerialGetOutput());
+}
+
 void testESP32WiimoteSerialControlIgnoresNonCommandInput() {
     ESP32Wiimote device;
     mockBtStarted = true;
@@ -390,6 +430,8 @@ int main(int argc, char **argv) {
     RUN_TEST(testESP32WiimoteSerialControlProcessesOneLinePerTaskCall);
     RUN_TEST(testESP32WiimoteSerialControlPrivilegedCommandIsLockedByDefault);
     RUN_TEST(testESP32WiimoteSerialControlUnlockExpiresByTime);
+    RUN_TEST(testESP32WiimoteConfigureWithWifiDisabledRejectsBadCredentials);
+    RUN_TEST(testESP32WiimoteConfigurePropagatesCredentialsToSerialUnlock);
     RUN_TEST(testESP32WiimoteSerialControlIgnoresNonCommandInput);
     RUN_TEST(testESP32WiimoteSerialControlReportsLineTooLong);
 
@@ -413,6 +455,8 @@ void setup() {
     RUN_TEST(testESP32WiimoteSerialControlProcessesOneLinePerTaskCall);
     RUN_TEST(testESP32WiimoteSerialControlPrivilegedCommandIsLockedByDefault);
     RUN_TEST(testESP32WiimoteSerialControlUnlockExpiresByTime);
+    RUN_TEST(testESP32WiimoteConfigureWithWifiDisabledRejectsBadCredentials);
+    RUN_TEST(testESP32WiimoteConfigurePropagatesCredentialsToSerialUnlock);
     RUN_TEST(testESP32WiimoteSerialControlIgnoresNonCommandInput);
     RUN_TEST(testESP32WiimoteSerialControlReportsLineTooLong);
 

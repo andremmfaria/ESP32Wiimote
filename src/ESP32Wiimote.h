@@ -18,6 +18,7 @@
 #include "serial/serial_command_parser.h"
 #include "serial/serial_command_session.h"
 #include "utils/serial_logging.h"
+#include "wiimote_config.h"
 
 /**
  * Action types for filters
@@ -80,6 +81,13 @@ class ESP32Wiimote {
      * Create ESP32Wiimote instance with explicit config
      */
     explicit ESP32Wiimote(const ESP32WiimoteConfig &config);
+
+    /**
+     * Configure runtime credentials and Wi-Fi enablement policy.
+     * This configuration is independent from initialization and can be
+     * applied before init() to define auth behavior.
+     */
+    void configure(const WiimoteConfig &config);
 
     /**
      * Initialize Bluetooth and HCI queues
@@ -256,6 +264,8 @@ class ESP32Wiimote {
 
    private:
     ESP32WiimoteConfig config_;
+    WiimoteCredentials credentials_;
+    bool wifiEnabled_;
 
     // Component managers
     HciCallbacksHandler *hciCallbacks_;

@@ -76,6 +76,8 @@ ESP32Wiimote::ESP32Wiimote() : ESP32Wiimote(ESP32WiimoteConfig()) {}
 
 ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config)
     : config_(config)
+    , credentials_()
+    , wifiEnabled_(false)
     , serialControlEnabled_(false)
     , serialPrivilegedCommandsRequireUnlock_(true)
     , serialInputLine_{0}
@@ -86,6 +88,12 @@ ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config)
     buttonState_ = new ButtonStateManager();
     sensorState_ = new SensorStateManager(config_.nunchukStickThreshold);
     dataParser_ = new WiimoteDataParser(buttonState_, sensorState_);
+}
+
+void ESP32Wiimote::configure(const WiimoteConfig &config) {
+    wifiEnabled_ = config.wifiEnabled;
+    credentials_ = config.credentials;
+    serialCommandSession_.setCredentials(&credentials_);
 }
 
 /**
