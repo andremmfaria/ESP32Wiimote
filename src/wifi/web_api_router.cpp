@@ -1,6 +1,7 @@
 #include "web_api_router.h"
 
 #include "web_auth.h"
+#include "web_event_stream.h"
 #include "web_request_parser.h"
 #include "web_response_serializer.h"
 
@@ -665,6 +666,16 @@ WebApiRouteResult webApiRoute(const WebApiContext *ctx,
             handleGetCommandStatus(ctx, path, responseBuf, responseBufSize);
         if (kCommandStatusResult.httpStatus != 0) {
             return kCommandStatusResult;
+        }
+    }
+
+    // WebSocket upgrade paths (GET only, eventStream must be configured)
+    if (std::strcmp(method, "GET") == 0 && ctx->eventStream != nullptr) {
+        WebEventStreamChannel upgradeChannel = WebEventStreamChannel::Input;
+        if (webEventStreamMatchPath(path, &upgradeChannel)) {
+            WebApiRouteResult wsResult = makeResult(101, "application/json");
+            wsResult.upgradeChannel = upgradeChannel;
+            return wsResult;
         }
     }
 

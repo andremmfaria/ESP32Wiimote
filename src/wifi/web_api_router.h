@@ -3,6 +3,7 @@
 
 #include "../wiimote_config.h"
 #include "web_command_queue.h"
+#include "web_event_stream.h"
 #include "web_response_serializer.h"
 
 #include <cstddef>
@@ -45,6 +46,11 @@ struct WebApiContext {
     // Optional async queue. When set, write commands are enqueued and return HTTP 202.
     WebCommandQueue *commandQueue = nullptr;
 
+    // Optional event stream. When set, GET requests to the two WebSocket upgrade
+    // paths are matched and webApiRoute() returns httpStatus == 101 so the caller
+    // can complete the WebSocket handshake.
+    WebEventStream *eventStream = nullptr;
+
     void *userData = nullptr;
 };
 
@@ -53,6 +59,8 @@ struct WebApiContext {
 struct WebApiRouteResult {
     int httpStatus{200};
     const char *contentType{"application/json"};
+    // When httpStatus == 101, this is populated with the matched channel.
+    WebEventStreamChannel upgradeChannel{WebEventStreamChannel::Input};
 };
 
 // ===== Router Interface =====
