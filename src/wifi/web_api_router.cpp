@@ -129,6 +129,15 @@ const char kStaticOpenApiJson[] =
     "\"401\":{\"description\":\"Unauthorized\"},"
     "\"403\":{\"description\":\"Forbidden\"},"
     "\"409\":{\"description\":\"Command rejected\"}"
+    "}}},"
+    "\"/api/commands/{id}/status\":{\"get\":{"
+    "\"security\":[{\"bearerAuth\":[]},{\"basicAuth\":[]}],"
+    "\"responses\":{"
+    "\"200\":{\"description\":\"Queued command status\"},"
+    "\"400\":{\"description\":\"Bad request\"},"
+    "\"401\":{\"description\":\"Unauthorized\"},"
+    "\"403\":{\"description\":\"Forbidden\"},"
+    "\"404\":{\"description\":\"Command not found\"}"
     "}}}"
     "},"
     "\"components\":{"
@@ -257,6 +266,120 @@ bool enqueueCommandIfConfigured(const WebApiContext *ctx,
 
     *result = acceptedResponse(buf, size, commandId);
     return true;
+}
+
+const char *queueStatusToString(WebCommandQueueStatus status) {
+    switch (status) {
+        case WebCommandQueueStatus::Queued:
+            return "queued";
+        case WebCommandQueueStatus::Running:
+            return "running";
+        case WebCommandQueueStatus::Completed:
+            return "completed";
+        default:
+            return "unknown";
+    }
+}
+
+const char *queueResultToString(WebCommandQueueResult result) {
+    switch (result) {
+        case WebCommandQueueResult::Pending:
+            return "pending";
+        case WebCommandQueueResult::Accepted:
+            return "accepted";
+        case WebCommandQueueResult::Rejected:
+            return "rejected";
+        default:
+            return "unknown";
+    }
+}
+
+bool parseCommandStatusPath(const char *path, uint32_t *commandId, bool *matchedRoute) {
+    static const char kPrefix[] = "/api/commands/";
+    static const char kSuffix[] = "/status";
+
+    if (path == nullptr || commandId == nullptr || matchedRoute == nullptr) {
+        return false;
+    }
+
+    *matchedRoute = false;
+
+    const size_t kPathLen = std::strlen(path);
+    const size_t kPrefixLen = sizeof(kPrefix) - 1U;
+    const size_t kSuffixLen = sizeof(kSuffix) - 1U;
+
+    if (kPathLen < (kPrefixLen + kSuffixLen + 1U)) {
+        return false;
+    }
+
+    if (std::strncmp(path, kPrefix, kPrefixLen) != 0) {
+        return false;
+    }
+
+    if (std::strcmp(path + (kPathLen - kSuffixLen), kSuffix) != 0) {
+        return false;
+    }
+
+    *matchedRoute = true;
+
+    const size_t kIdLen = kPathLen - kPrefixLen - kSuffixLen;
+    if (kIdLen == 0U || kIdLen > 10U) {
+        return false;
+    }
+
+    char idBuf[16] = {0};
+    std::memcpy(idBuf, path + kPrefixLen, kIdLen);
+    idBuf[kIdLen] = '\0';
+
+    for (size_t i = 0U; i < kIdLen; ++i) {
+        if (idBuf[i] < '0' || idBuf[i] > '9') {
+            return false;
+        }
+    }
+
+    char *end = nullptr;
+    const unsigned long kParsed = std::strtoul(idBuf, &end, 10);
+    if (end == idBuf || *end != '\0' || kParsed == 0UL || kParsed > 0xFFFFFFFFUL) {
+        return false;
+    }
+
+    *commandId = static_cast<uint32_t>(kParsed);
+    return true;
+}
+
+WebApiRouteResult handleGetCommandStatus(const WebApiContext *ctx,
+                                         const char *path,
+                                         char *buf,
+                                         size_t size) {
+    bool matchedRoute = false;
+    uint32_t commandId = 0U;
+    const bool kParsed = parseCommandStatusPath(path, &commandId, &matchedRoute);
+    if (!matchedRoute) {
+        return makeResult(0, "application/json");
+    }
+
+    if (!kParsed) {
+        return errorResponse(buf, size, 400, "invalid command id");
+    }
+
+    if (ctx->commandQueue == nullptr) {
+        return errorResponse(buf, size, 404, "not found");
+    }
+
+    WebCommandQueueEntry entry = {};
+    if (!webCommandQueueGet(ctx->commandQueue, commandId, &entry)) {
+        return errorResponse(buf, size, 404, "command not found");
+    }
+
+    const int kWritten =
+        std::snprintf(buf, size, "{\"commandId\":%lu,\"status\":\"%s\",\"result\":\"%s\"}",
+                      static_cast<unsigned long>(entry.id), queueStatusToString(entry.status),
+                      queueResultToString(entry.result));
+    if (kWritten < 0 || static_cast<size_t>(kWritten) >= size) {
+        return errorResponse(buf, size, 500, "response buffer too small");
+    }
+
+    return makeResult(200, "application/json");
 }
 
 // ===== GET Handlers =====
@@ -537,6 +660,14 @@ WebApiRouteResult webApiRoute(const WebApiContext *ctx,
     }
 
     // Step 2: Find and dispatch route
+    if (std::strcmp(method, "GET") == 0) {
+        const WebApiRouteResult kCommandStatusResult =
+            handleGetCommandStatus(ctx, path, responseBuf, responseBufSize);
+        if (kCommandStatusResult.httpStatus != 0) {
+            return kCommandStatusResult;
+        }
+    }
+
     for (const auto &route : kRoutes) {
         if (std::strcmp(route.method, method) != 0) {
             continue;

@@ -526,6 +526,71 @@ void testPostReconnectPolicyMissingEnabledReturns400() {
     TEST_ASSERT_EQUAL(400, r.httpStatus);
 }
 
+// ===== GET /api/commands/<id>/status =====
+
+void testGetCommandStatusReturnsQueuedForEnqueuedCommand() {
+    WebApiContext ctx = makeCtx();
+    ctx.commandQueue = &gCommandQueue;
+
+    WebApiRouteResult enqueue = callRoute(&ctx, "POST", "/api/wiimote/commands/leds", kValidBearer,
+                                          "{\"command\":\"set_leds\",\"mask\":\"15\"}");
+    TEST_ASSERT_EQUAL(202, enqueue.httpStatus);
+
+    WebApiRouteResult status =
+        callRoute(&ctx, "GET", "/api/commands/1/status", kValidBearer, nullptr);
+    TEST_ASSERT_EQUAL(200, status.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "\"commandId\":1"));
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "\"status\":\"queued\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "\"result\":\"pending\""));
+}
+
+void testGetCommandStatusReturnsUpdatedState() {
+    WebApiContext ctx = makeCtx();
+    ctx.commandQueue = &gCommandQueue;
+
+    uint32_t commandId = 0U;
+    TEST_ASSERT_TRUE(webCommandQueueEnqueue(&gCommandQueue, "/api/wiimote/commands/scan",
+                                            "scan_start", &commandId));
+    TEST_ASSERT_TRUE(webCommandQueueUpdate(&gCommandQueue, commandId,
+                                           WebCommandQueueStatus::Completed,
+                                           WebCommandQueueResult::Accepted));
+
+    WebApiRouteResult status =
+        callRoute(&ctx, "GET", "/api/commands/1/status", kValidBearer, nullptr);
+    TEST_ASSERT_EQUAL(200, status.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "\"status\":\"completed\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "\"result\":\"accepted\""));
+}
+
+void testGetCommandStatusInvalidIdReturns400() {
+    WebApiContext ctx = makeCtx();
+    ctx.commandQueue = &gCommandQueue;
+
+    WebApiRouteResult status =
+        callRoute(&ctx, "GET", "/api/commands/not-a-number/status", kValidBearer, nullptr);
+    TEST_ASSERT_EQUAL(400, status.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "invalid command id"));
+}
+
+void testGetCommandStatusUnknownIdReturns404() {
+    WebApiContext ctx = makeCtx();
+    ctx.commandQueue = &gCommandQueue;
+
+    WebApiRouteResult status =
+        callRoute(&ctx, "GET", "/api/commands/99/status", kValidBearer, nullptr);
+    TEST_ASSERT_EQUAL(404, status.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "command not found"));
+}
+
+void testGetCommandStatusWithoutQueueReturns404() {
+    WebApiContext ctx = makeCtx();
+    ctx.commandQueue = nullptr;
+
+    WebApiRouteResult status =
+        callRoute(&ctx, "GET", "/api/commands/1/status", kValidBearer, nullptr);
+    TEST_ASSERT_EQUAL(404, status.httpStatus);
+}
+
 // ===== Body Error Tests =====
 
 void testPostMissingBodyReturns400() {
@@ -612,6 +677,12 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testPostReconnectPolicyEnable);
     RUN_TEST(testPostReconnectPolicyDisable);
     RUN_TEST(testPostReconnectPolicyMissingEnabledReturns400);
+
+    RUN_TEST(testGetCommandStatusReturnsQueuedForEnqueuedCommand);
+    RUN_TEST(testGetCommandStatusReturnsUpdatedState);
+    RUN_TEST(testGetCommandStatusInvalidIdReturns400);
+    RUN_TEST(testGetCommandStatusUnknownIdReturns404);
+    RUN_TEST(testGetCommandStatusWithoutQueueReturns404);
 
     RUN_TEST(testPostMissingBodyReturns400);
     RUN_TEST(testPostMalformedBodyReturns400);
