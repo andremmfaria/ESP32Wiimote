@@ -510,6 +510,12 @@ void testTinyWiimoteDiscoveryStartStopGuards() {
 void testTinyWiimoteDisconnectGuardAndCommand() {
     TwHciInterface hci = {captureTx};
     twReal_tinyWiimoteInit(hci);
+
+    // Not started => reject.
+    gSendCount = 0;
+    TEST_ASSERT_FALSE(twReal_tinyWiimoteDisconnect(0x16));
+    TEST_ASSERT_EQUAL(0, gSendCount);
+
     twReal_tinyWiimoteResetDevice();
 
     // Not connected => reject.
@@ -553,6 +559,21 @@ void testTinyWiimoteDisconnectMissingHandleAndConfigSetters() {
     TwHciInterface hci = {captureTx};
     twReal_tinyWiimoteInit(hci);
 
+    // Reconnect-policy and cache updates should be rejected before controller start.
+    TEST_ASSERT_TRUE(gRuntime.hciEventContext.autoReconnectEnabled);
+    twReal_tinyWiimoteSetAutoReconnectEnabled(false);
+    TEST_ASSERT_TRUE(gRuntime.hciEventContext.autoReconnectEnabled);
+
+    gRuntime.hciEventContext.pendingFastReconnect = true;
+    gRuntime.hciEventContext.hasLastWiimote = true;
+    gRuntime.hciEventContext.lastWiimote.bdAddr.addr[0] = 0xAA;
+    twReal_tinyWiimoteClearReconnectCache();
+    TEST_ASSERT_TRUE(gRuntime.hciEventContext.hasLastWiimote);
+    TEST_ASSERT_TRUE(gRuntime.hciEventContext.pendingFastReconnect);
+    TEST_ASSERT_EQUAL_UINT8(0xAA, gRuntime.hciEventContext.lastWiimote.bdAddr.addr[0]);
+
+    twReal_tinyWiimoteResetDevice();
+
     // Connected with no L2CAP handle should hit disconnect guard.
     gRuntime.wiimoteState.setConnected(true);
     gSendCount = 0;
@@ -575,6 +596,13 @@ void testTinyWiimoteReconnectPolicyAndStateSnapshot() {
     TwHciInterface hci = {captureTx};
     twReal_tinyWiimoteInit(hci);
 
+    // Reconnect policy changes are guarded until controller startup completes.
+    TEST_ASSERT_TRUE(gRuntime.hciEventContext.autoReconnectEnabled);
+    twReal_tinyWiimoteSetAutoReconnectEnabled(false);
+    TEST_ASSERT_TRUE(gRuntime.hciEventContext.autoReconnectEnabled);
+
+    twReal_tinyWiimoteResetDevice();
+
     twReal_tinyWiimoteSetAutoReconnectEnabled(false);
     TEST_ASSERT_FALSE(gRuntime.hciEventContext.autoReconnectEnabled);
 
@@ -588,7 +616,7 @@ void testTinyWiimoteReconnectPolicyAndStateSnapshot() {
     TEST_ASSERT_EQUAL_UINT8(0x00, gRuntime.hciEventContext.lastWiimote.bdAddr.addr[0]);
 
     BluetoothControllerState state = twReal_tinyWiimoteGetControllerState();
-    TEST_ASSERT_FALSE(state.initialized);
+    TEST_ASSERT_TRUE(state.initialized);
     TEST_ASSERT_FALSE(state.connected);
     TEST_ASSERT_FALSE(state.autoReconnectEnabled);
     TEST_ASSERT_EQUAL_UINT16(0x0000, state.activeConnectionHandle);

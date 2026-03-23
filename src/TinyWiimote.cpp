@@ -430,12 +430,19 @@ bool tinyWiimoteStopDiscovery() {
 }
 
 bool tinyWiimoteDisconnect(uint8_t reason) {
+    if (!gRuntime.hciEventContext.deviceInited) {
+        LOG_WARN("TinyWiimote: Reject disconnect - controller not started\n");
+        return false;
+    }
+
     if (!gRuntime.wiimoteState.isConnected()) {
+        LOG_WARN("TinyWiimote: Reject disconnect - controller not connected\n");
         return false;
     }
 
     uint16_t connectionHandle = 0;
     if (gRuntime.l2capConnections.getFirstConnectionHandle(&connectionHandle) != 0) {
+        LOG_WARN("TinyWiimote: Reject disconnect - missing active connection handle\n");
         return false;
     }
 
@@ -446,10 +453,21 @@ bool tinyWiimoteDisconnect(uint8_t reason) {
 }
 
 void tinyWiimoteSetAutoReconnectEnabled(bool enabled) {
+    if (!gRuntime.hciEventContext.deviceInited) {
+        LOG_WARN("TinyWiimote: Reject setAutoReconnectEnabled(%d) - controller not started\n",
+                 enabled);
+        return;
+    }
+
     gRuntime.hciEventContext.autoReconnectEnabled = enabled;
 }
 
 void tinyWiimoteClearReconnectCache() {
+    if (!gRuntime.hciEventContext.deviceInited) {
+        LOG_WARN("TinyWiimote: Reject clearReconnectCache - controller not started\n");
+        return;
+    }
+
     gRuntime.hciEventContext.hasLastWiimote = false;
     memset(&gRuntime.hciEventContext.lastWiimote, 0, sizeof(gRuntime.hciEventContext.lastWiimote));
     gRuntime.hciEventContext.pendingFastReconnect = false;
