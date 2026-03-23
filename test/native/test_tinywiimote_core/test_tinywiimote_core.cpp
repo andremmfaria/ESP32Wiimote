@@ -507,6 +507,48 @@ void testTinyWiimoteDiscoveryStartStopGuards() {
     TEST_ASSERT_EQUAL_UINT8(0x00, gLastTx[3]);
 }
 
+void testTinyWiimoteScanningLifecycleFromCommandsAndConnection() {
+    TwHciInterface hci = {captureTx};
+    twReal_tinyWiimoteInit(hci);
+    twReal_tinyWiimoteResetDevice();
+
+    TEST_ASSERT_FALSE(gRuntime.hciEventContext.scanningEnabled);
+
+    // Command submission path should toggle scanning state immediately.
+    twReal_tinyWiimoteSetScanEnabled(true);
+    TEST_ASSERT_TRUE(gRuntime.hciEventContext.scanningEnabled);
+
+    twReal_tinyWiimoteSetScanEnabled(false);
+    TEST_ASSERT_FALSE(gRuntime.hciEventContext.scanningEnabled);
+
+    TEST_ASSERT_TRUE(twReal_tinyWiimoteStartDiscovery());
+    TEST_ASSERT_TRUE(gRuntime.hciEventContext.scanningEnabled);
+
+    // Establish L2CAP connection and deliver first HID report.
+    uint8_t connResp[12] = {0};
+    connResp[0] = (uint8_t)L2capSignalingCode::ConnectionResponse;
+    connResp[1] = 0x01;
+    connResp[4] = 0x45;
+    connResp[5] = 0x00;
+    connResp[8] = 0x00;
+    connResp[9] = 0x00;
+
+    uint8_t frame[64] = {0};
+    size_t frameLen = 0;
+    buildAclFrame(frame, &frameLen, 0x0040, (uint16_t)L2capCid::SIGNALING, connResp,
+                  sizeof(connResp));
+    twReal_handleHciData(frame, frameLen);
+
+    uint8_t hidReport[4] = {(uint8_t)WiimoteHidPrefix::InputReport,
+                            (uint8_t)WiimoteInputReport::CoreButtons, 0x00, 0x08};
+    buildAclFrame(frame, &frameLen, 0x0040, 0x0045, hidReport, sizeof(hidReport));
+    twReal_handleHciData(frame, frameLen);
+
+    // Connection establishment should force scanning state to false.
+    TEST_ASSERT_TRUE(twReal_tinyWiimoteIsConnected());
+    TEST_ASSERT_FALSE(gRuntime.hciEventContext.scanningEnabled);
+}
+
 void testTinyWiimoteDisconnectGuardAndCommand() {
     TwHciInterface hci = {captureTx};
     twReal_tinyWiimoteInit(hci);
@@ -635,6 +677,7 @@ int main(int argc, char **argv) {
     RUN_TEST(testTinyWiimoteL2capUnhandledAndOutputBridges);
     RUN_TEST(testTinyWiimoteSetScanEnabledSendsExpectedModes);
     RUN_TEST(testTinyWiimoteDiscoveryStartStopGuards);
+    RUN_TEST(testTinyWiimoteScanningLifecycleFromCommandsAndConnection);
     RUN_TEST(testTinyWiimoteDisconnectGuardAndCommand);
     RUN_TEST(testTinyWiimoteDisconnectMissingHandleAndConfigSetters);
     RUN_TEST(testTinyWiimoteReconnectPolicyAndStateSnapshot);
@@ -654,6 +697,7 @@ void setup() {
     RUN_TEST(testTinyWiimoteL2capUnhandledAndOutputBridges);
     RUN_TEST(testTinyWiimoteSetScanEnabledSendsExpectedModes);
     RUN_TEST(testTinyWiimoteDiscoveryStartStopGuards);
+    RUN_TEST(testTinyWiimoteScanningLifecycleFromCommandsAndConnection);
     RUN_TEST(testTinyWiimoteDisconnectGuardAndCommand);
     RUN_TEST(testTinyWiimoteDisconnectMissingHandleAndConfigSetters);
     RUN_TEST(testTinyWiimoteReconnectPolicyAndStateSnapshot);

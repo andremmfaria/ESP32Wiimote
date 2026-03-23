@@ -126,6 +126,7 @@ static void handleL2capData(const L2capFrameHeader &header, uint8_t *data, uint1
                 gRuntime.wiimoteProtocol.requestStatus(kCh);
                 LOG_INFO("Wiimote detected\n");
                 gRuntime.wiimoteState.setConnected(true);
+                gRuntime.hciEventContext.scanningEnabled = false;
                 if (gRuntime.wiimoteState.getUseAccelerometer()) {
                     WiimoteReportingModeCommand reportingModeCommand = {0x31, false};
                     gRuntime.wiimoteProtocol.setReportingMode(kCh, reportingModeCommand);

@@ -394,25 +394,39 @@ Enables or disables Bluetooth scan mode at runtime.
 
 - `enabled` - `true` to enable scan mode, `false` to disable
 
+**Preconditions / guards:**
+
+- Controller runtime must be initialized (`init()` + runtime startup complete)
+- When disconnected, redundant transitions are rejected internally (no command sent)
+
+**Lifecycle behavior:**
+
+- `scanning` is updated immediately from submitted scan commands
+- `scanning` is forced to `false` when the first active controller connection is established
+
 #### `bool startDiscovery()`
 
 Starts inquiry/discovery flow.
 
-**Returns:** `true` when start request is accepted, `false` when already scanning
+**Returns:** `true` when start request is accepted, `false` when rejected by guards
 
 **Preconditions / guards:**
 
+- Controller runtime must be initialized (`init()` + runtime startup complete)
 - Discovery is rejected if scanning is already active
+- Discovery is rejected while already connected
 
 #### `bool stopDiscovery()`
 
 Stops inquiry/discovery flow.
 
-**Returns:** `true` when stop request is accepted, `false` when not scanning
+**Returns:** `true` when stop request is accepted, `false` when rejected by guards
 
 **Preconditions / guards:**
 
+- Controller runtime must be initialized (`init()` + runtime startup complete)
 - Stop request is rejected if scanning is not active
+- Stop request is rejected while connected
 
 #### `bool disconnectActiveController(DisconnectReason reason)`
 
@@ -426,6 +440,7 @@ Requests disconnect of the active controller.
 
 **Preconditions / guards:**
 
+- Controller runtime must be initialized (`init()` + runtime startup complete)
 - Requires an active Wiimote connection and valid connection handle
 
 #### `void setAutoReconnectEnabled(bool enabled)`
@@ -436,9 +451,19 @@ Enables or disables auto-reconnect policy.
 
 - `enabled` - `true` to enable policy, `false` to disable
 
+**Preconditions / guards:**
+
+- Controller runtime must be initialized (`init()` + runtime startup complete)
+- If runtime is not initialized, the request is ignored
+
 #### `void clearReconnectCache()`
 
 Clears cached controller identity used by fast reconnect.
+
+**Preconditions / guards:**
+
+- Controller runtime must be initialized (`init()` + runtime startup complete)
+- If runtime is not initialized, the request is ignored
 
 #### `BluetoothControllerState getBluetoothControllerState()`
 
@@ -451,20 +476,25 @@ Returns a snapshot of Bluetooth controller runtime state.
 Runtime controller operations are validated before HCI command submission. Invalid
 transitions are rejected deterministically.
 
-| From state                           | Allowed commands                                                                        |
-| ------------------------------------ | --------------------------------------------------------------------------------------- |
-| Not started                          | none (all rejected)                                                                     |
-| Started, not connected, not scanning | `setScanEnabled(true)`, `startDiscovery`                                                |
-| Started, scanning                    | `stopDiscovery`, `setScanEnabled(false)`                                                |
-| Started, connecting                  | none (intermediate state; transitions complete from HCI events)                         |
-| Connected                            | `requestStatus`, `setLeds`, `setReportingMode`, `setAccelerometerEnabled`, `disconnect` |
-| Connected                            | `setScanEnabled(...)` is allowed but does not affect the active connection              |
+Scanning-state lifecycle is command-driven: accepted scan-enable commands set
+`scanning=true`, accepted scan-disable commands set `scanning=false`, and
+connection establishment forces `scanning=false`.
+
+| From state                           | Allowed commands                                                                                                           |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| Not started                          | none (all rejected)                                                                                                        |
+| Started, not connected, not scanning | `setScanEnabled(true)`, `startDiscovery`, reconnect-policy/cache operations                                                |
+| Started, scanning                    | `stopDiscovery`, `setScanEnabled(false)`, reconnect-policy/cache operations                                                |
+| Started, connecting                  | none (intermediate state; transitions complete from HCI events)                                                            |
+| Connected                            | `requestStatus`, `setLeds`, `setReportingMode`, `setAccelerometerEnabled`, `disconnect`, reconnect-policy/cache operations |
+| Connected                            | `setScanEnabled(...)` is allowed but does not affect the active connection                                                 |
 
 Deterministic rejection examples:
 
 - `startDiscovery()` while already scanning/discovering -> rejected
 - `stopDiscovery()` while discovery is idle -> rejected
 - `disconnectActiveController(...)` while disconnected -> rejected
+- Any controller operation before runtime initialization -> rejected/no-op (by method contract)
 
 ---
 
