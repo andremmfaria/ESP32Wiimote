@@ -38,6 +38,8 @@ size_t serialFormatDispatchResult(char *out, size_t outSize, SerialDispatchResul
             return serialFormatError(out, outSize, "unknown_command");
         case SerialDispatchResult::BadArgument:
             return serialFormatError(out, outSize, "bad_argument");
+        case SerialDispatchResult::BadCredentials:
+            return serialFormatError(out, outSize, "bad_credentials");
         case SerialDispatchResult::MissingArgument:
             return serialFormatError(out, outSize, "missing_argument");
         case SerialDispatchResult::Rejected:

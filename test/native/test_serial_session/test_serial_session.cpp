@@ -45,6 +45,50 @@ void testWrapAroundElapsedCheckWorks() {
     TEST_ASSERT_FALSE(session.isUnlocked(kNearWrap + 40U));
 }
 
+void testSetCredentialsAndValidateMatching() {
+    SerialCommandSession session;
+    const WiimoteCredentials kCredentials = {"admin", "password", "token"};
+
+    session.setCredentials(&kCredentials);
+
+    TEST_ASSERT_TRUE(session.validateCredentials("admin", "password"));
+}
+
+void testSetCredentialsAndValidateWrongPassword() {
+    SerialCommandSession session;
+    const WiimoteCredentials kCredentials = {"admin", "password", "token"};
+
+    session.setCredentials(&kCredentials);
+
+    TEST_ASSERT_FALSE(session.validateCredentials("admin", "wrong"));
+}
+
+void testSetCredentialsAndValidateWrongUsername() {
+    SerialCommandSession session;
+    const WiimoteCredentials kCredentials = {"admin", "password", "token"};
+
+    session.setCredentials(&kCredentials);
+
+    TEST_ASSERT_FALSE(session.validateCredentials("wrong", "password"));
+}
+
+void testValidateNullInputWhenCredentialsSet() {
+    SerialCommandSession session;
+    const WiimoteCredentials kCredentials = {"admin", "password", "token"};
+
+    session.setCredentials(&kCredentials);
+
+    TEST_ASSERT_FALSE(session.validateCredentials(nullptr, "password"));
+    TEST_ASSERT_FALSE(session.validateCredentials("admin", nullptr));
+}
+
+void testValidateWithNullCredentialsAllowsNoAuthMode() {
+    SerialCommandSession session;
+
+    TEST_ASSERT_TRUE(session.validateCredentials("anything", "anything"));
+    TEST_ASSERT_TRUE(session.validateCredentials(nullptr, nullptr));
+}
+
 int main(int /*argc*/, char ** /*argv*/) {
     UNITY_BEGIN();
 
@@ -53,6 +97,11 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testLockClearsWindow);
     RUN_TEST(testUnlockZeroDurationKeepsLocked);
     RUN_TEST(testWrapAroundElapsedCheckWorks);
+    RUN_TEST(testSetCredentialsAndValidateMatching);
+    RUN_TEST(testSetCredentialsAndValidateWrongPassword);
+    RUN_TEST(testSetCredentialsAndValidateWrongUsername);
+    RUN_TEST(testValidateNullInputWhenCredentialsSet);
+    RUN_TEST(testValidateWithNullCredentialsAllowsNoAuthMode);
 
     return UNITY_END();
 }

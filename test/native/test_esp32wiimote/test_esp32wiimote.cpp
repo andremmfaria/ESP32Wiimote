@@ -285,7 +285,7 @@ void testESP32WiimoteSerialControlProcessesOneLinePerTaskCall() {
     mockSetLedsResult = true;
 
     device.enableSerialControl(true);
-    mockSerialSetInput("wm unlock 60\nwm led 0x01\n");
+    mockSerialSetInput("wm unlock user pass 60\nwm led 0x01\n");
 
     device.task();
     TEST_ASSERT_EQUAL_STRING("@wm: ok\n", mockSerialGetOutput());
@@ -321,7 +321,7 @@ void testESP32WiimoteSerialControlUnlockExpiresByTime() {
     device.enableSerialControl(true);
 
     mockSetMillis(1000UL);
-    mockSerialSetInput("wm unlock 1\nwm led 0x01\n");
+    mockSerialSetInput("wm unlock user pass 1\nwm led 0x01\n");
 
     device.task();
     TEST_ASSERT_EQUAL_STRING("@wm: ok\n", mockSerialGetOutput());

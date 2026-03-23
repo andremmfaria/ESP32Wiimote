@@ -16,6 +16,7 @@ enum class SerialDispatchResult : uint8_t {
     Locked,           // Command requires an active unlock window
     UnknownCommand,   // Verb not recognised
     BadArgument,      // Argument was present but could not be parsed
+    BadCredentials,   // Unlock credentials did not match configured session credentials
     MissingArgument,  // Required argument was absent
     Rejected,         // Command accepted but rejected by implementation (guard)
 };
