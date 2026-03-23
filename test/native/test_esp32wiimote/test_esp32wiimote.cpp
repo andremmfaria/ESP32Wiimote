@@ -1,10 +1,14 @@
 #include "../../../src/ESP32Wiimote.h"
+#include "../../../src/config/runtime_config_store.h"
 #include "../../mocks/test_mocks.h"
 
 #include <type_traits>
 #include <unity.h>
 
 void setUp(void) {
+    RuntimeConfigStore nvsReset;
+    nvsReset.init();
+    nvsReset.clear();
     mockBtStartResult = true;
     mockBtStarted = false;
     mockBtControllerStatus = static_cast<uint8_t>(ESP_BT_CONTROLLER_STATUS_IDLE);
@@ -556,6 +560,73 @@ void testESP32WiimoteSerialControlReportsLineTooLong() {
     TEST_ASSERT_EQUAL_STRING("@wm: error line_too_long\n", mockSerialGetOutput());
 }
 
+void testESP32WiimoteInitPersistsDefaultRuntimeConfigSnapshot() {
+    ESP32WiimoteConfig config;
+    config.fastReconnectTtlMs = 54321U;
+    ESP32Wiimote device(config);
+
+    TEST_ASSERT_TRUE(device.init());
+
+    RuntimeConfigStore store;
+    RuntimeConfigSnapshot snapshot = {};
+    TEST_ASSERT_TRUE(store.init());
+    TEST_ASSERT_TRUE(store.load(&snapshot));
+
+    TEST_ASSERT_FALSE(snapshot.autoReconnectEnabled);
+    TEST_ASSERT_EQUAL_UINT32(54321U, snapshot.fastReconnectTtlMs);
+    TEST_ASSERT_EQUAL_UINT8(0U, snapshot.ledMask);
+    TEST_ASSERT_EQUAL_UINT8(static_cast<uint8_t>(ReportingMode::CoreButtons),
+                            snapshot.reportingMode);
+    TEST_ASSERT_FALSE(snapshot.reportingContinuous);
+}
+
+void testESP32WiimotePersistsRuntimePolicyUpdates() {
+    ESP32Wiimote device;
+
+    TEST_ASSERT_TRUE(device.init());
+
+    mockSetLedsResult = true;
+    TEST_ASSERT_TRUE(device.setLeds(0x0CU));
+
+    mockSetReportingModeResult = true;
+    TEST_ASSERT_TRUE(device.setReportingMode(ReportingMode::CoreButtonsAccel, true));
+
+    device.setAutoReconnectEnabled(true);
+
+    RuntimeConfigStore store;
+    RuntimeConfigSnapshot snapshot = {};
+    TEST_ASSERT_TRUE(store.init());
+    TEST_ASSERT_TRUE(store.load(&snapshot));
+
+    TEST_ASSERT_TRUE(snapshot.autoReconnectEnabled);
+    TEST_ASSERT_EQUAL_UINT32(180000U, snapshot.fastReconnectTtlMs);
+    TEST_ASSERT_EQUAL_UINT8(0x0CU, snapshot.ledMask);
+    TEST_ASSERT_EQUAL_UINT8(static_cast<uint8_t>(ReportingMode::CoreButtonsAccel),
+                            snapshot.reportingMode);
+    TEST_ASSERT_TRUE(snapshot.reportingContinuous);
+}
+
+void testESP32WiimoteRejectedOutputCommandsDoNotPersist() {
+    ESP32Wiimote device;
+    TEST_ASSERT_TRUE(device.init());
+
+    mockSetLedsResult = false;
+    TEST_ASSERT_FALSE(device.setLeds(0x07U));
+
+    mockSetReportingModeResult = false;
+    TEST_ASSERT_FALSE(device.setReportingMode(ReportingMode::CoreButtonsAccelExt, true));
+
+    RuntimeConfigStore store;
+    RuntimeConfigSnapshot snapshot = {};
+    TEST_ASSERT_TRUE(store.init());
+    TEST_ASSERT_TRUE(store.load(&snapshot));
+
+    TEST_ASSERT_EQUAL_UINT8(0U, snapshot.ledMask);
+    TEST_ASSERT_EQUAL_UINT8(static_cast<uint8_t>(ReportingMode::CoreButtons),
+                            snapshot.reportingMode);
+    TEST_ASSERT_FALSE(snapshot.reportingContinuous);
+}
+
 #ifdef NATIVE_TEST
 int main(int argc, char **argv) {
     UNITY_BEGIN();
@@ -584,6 +655,9 @@ int main(int argc, char **argv) {
     RUN_TEST(testESP32WiimoteWifiControlFailsWhenJoinFails);
     RUN_TEST(testESP32WiimoteSerialControlIgnoresNonCommandInput);
     RUN_TEST(testESP32WiimoteSerialControlReportsLineTooLong);
+    RUN_TEST(testESP32WiimoteInitPersistsDefaultRuntimeConfigSnapshot);
+    RUN_TEST(testESP32WiimotePersistsRuntimePolicyUpdates);
+    RUN_TEST(testESP32WiimoteRejectedOutputCommandsDoNotPersist);
 
     return UNITY_END();
 }
@@ -615,6 +689,9 @@ void setup() {
     RUN_TEST(testESP32WiimoteWifiControlFailsWhenJoinFails);
     RUN_TEST(testESP32WiimoteSerialControlIgnoresNonCommandInput);
     RUN_TEST(testESP32WiimoteSerialControlReportsLineTooLong);
+    RUN_TEST(testESP32WiimoteInitPersistsDefaultRuntimeConfigSnapshot);
+    RUN_TEST(testESP32WiimotePersistsRuntimePolicyUpdates);
+    RUN_TEST(testESP32WiimoteRejectedOutputCommandsDoNotPersist);
 
     UNITY_END();
 }

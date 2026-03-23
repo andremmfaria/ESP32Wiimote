@@ -9,6 +9,7 @@
 #define ESP32_WIIMOTE_ES_P32_WIIMOTE_H
 
 #include "TinyWiimote.h"
+#include "config/runtime_config_store.h"
 #include "esp32wiimote/bt_controller.h"
 #include "esp32wiimote/data_parser.h"
 #include "esp32wiimote/hci_callbacks.h"
@@ -310,6 +311,9 @@ class ESP32Wiimote {
     WiimoteCredentials credentials_;
     WiimoteNetworkCredentials networkCredentials_;
     bool wifiEnabled_;
+    RuntimeConfigStore runtimeConfigStore_;
+    bool runtimeConfigStoreReady_;
+    RuntimeConfigSnapshot runtimeConfigSnapshot_;
 
     // Component managers
     HciCallbacksHandler *hciCallbacks_;
@@ -344,6 +348,7 @@ class ESP32Wiimote {
     void processSerialCommandLine(const char *line);
     void processWifiControl();
     void resetWifiLifecycleState();
+    void persistRuntimeConfigSnapshot();
 };
 
 #endif  // ESP32_WIIMOTE_ES_P32_WIIMOTE_H

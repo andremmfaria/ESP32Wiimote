@@ -89,6 +89,8 @@ ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config)
     , credentials_()
     , networkCredentials_()
     , wifiEnabled_(false)
+    , runtimeConfigStoreReady_(false)
+    , runtimeConfigSnapshot_()
     , serialControlEnabled_(false)
     , serialPrivilegedCommandsRequireUnlock_(true)
     , serialInputLine_{0}
@@ -113,6 +115,12 @@ ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config)
     buttonState_ = new ButtonStateManager();
     sensorState_ = new SensorStateManager(config_.nunchukStickThreshold);
     dataParser_ = new WiimoteDataParser(buttonState_, sensorState_);
+
+    runtimeConfigSnapshot_.autoReconnectEnabled = false;
+    runtimeConfigSnapshot_.fastReconnectTtlMs = config_.fastReconnectTtlMs;
+    runtimeConfigSnapshot_.ledMask = 0U;
+    runtimeConfigSnapshot_.reportingMode = static_cast<uint8_t>(ReportingMode::CoreButtons);
+    runtimeConfigSnapshot_.reportingContinuous = false;
 }
 
 void ESP32Wiimote::configure(const WiimoteConfig &config) {
@@ -191,6 +199,12 @@ bool ESP32Wiimote::init() {
 
     tinyWiimoteSetFastReconnectTtlMs(config_.fastReconnectTtlMs);
 
+    runtimeConfigSnapshot_.fastReconnectTtlMs = config_.fastReconnectTtlMs;
+    runtimeConfigStoreReady_ = runtimeConfigStore_.init();
+    if (runtimeConfigStoreReady_) {
+        runtimeConfigStoreReady_ = runtimeConfigStore_.save(runtimeConfigSnapshot_);
+    }
+
     LOG_INFO("ESP32Wiimote: Initialization complete!\n");
     return true;
 }
@@ -267,11 +281,22 @@ void ESP32Wiimote::requestBatteryUpdate() {
 }
 
 bool ESP32Wiimote::setLeds(uint8_t ledMask) {
-    return tinyWiimoteSetLeds(ledMask);
+    const bool kAccepted = tinyWiimoteSetLeds(ledMask);
+    if (kAccepted) {
+        runtimeConfigSnapshot_.ledMask = ledMask;
+        persistRuntimeConfigSnapshot();
+    }
+    return kAccepted;
 }
 
 bool ESP32Wiimote::setReportingMode(ReportingMode mode, bool continuous) {
-    return tinyWiimoteSetReportingMode(static_cast<uint8_t>(mode), continuous);
+    const bool kAccepted = tinyWiimoteSetReportingMode(static_cast<uint8_t>(mode), continuous);
+    if (kAccepted) {
+        runtimeConfigSnapshot_.reportingMode = static_cast<uint8_t>(mode);
+        runtimeConfigSnapshot_.reportingContinuous = continuous;
+        persistRuntimeConfigSnapshot();
+    }
+    return kAccepted;
 }
 
 bool ESP32Wiimote::setAccelerometerEnabled(bool enabled) {
@@ -312,6 +337,8 @@ bool ESP32Wiimote::disconnectActiveController(DisconnectReason reason) {
 
 void ESP32Wiimote::setAutoReconnectEnabled(bool enabled) {
     tinyWiimoteSetAutoReconnectEnabled(enabled);
+    runtimeConfigSnapshot_.autoReconnectEnabled = enabled;
+    persistRuntimeConfigSnapshot();
 }
 
 void ESP32Wiimote::clearReconnectCache() {
@@ -515,4 +542,14 @@ void ESP32Wiimote::resetWifiLifecycleState() {
     staticRoutesRegistered_ = false;
     apiRoutesRegistered_ = false;
     websocketRoutesRegistered_ = false;
+}
+
+void ESP32Wiimote::persistRuntimeConfigSnapshot() {
+    if (!runtimeConfigStoreReady_) {
+        return;
+    }
+
+    if (!runtimeConfigStore_.save(runtimeConfigSnapshot_)) {
+        runtimeConfigStoreReady_ = false;
+    }
 }
