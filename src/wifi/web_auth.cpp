@@ -2,12 +2,6 @@
 
 #include <cstring>
 
-// ===== Phase 4 Hardcoded Credentials =====
-
-static constexpr const char *kHardcodedBearerToken = "esp32wiimote_bearer_token_v1";
-static constexpr const char *kHardcodedBasicUsername = "admin";
-static constexpr const char *kHardcodedBasicPassword = "password";
-
 // ===== Helper: Base64 Decode =====
 
 /**
@@ -103,9 +97,12 @@ static bool startsWithCaseInsensitive(const char *str, const char *prefix) {
 
 // ===== Bearer Token Validation =====
 
-WebAuthResult webAuthValidateBearer(const char *authHeaderValue) {
+WebAuthResult webAuthValidateBearer(const char *authHeaderValue, const WiimoteCredentials *creds) {
     if (authHeaderValue == nullptr) {
         return WebAuthResult::MissingHeader;
+    }
+    if (creds == nullptr || creds->bearerToken == nullptr) {
+        return WebAuthResult::InvalidCredentials;
     }
 
     // Trim leading whitespace
@@ -120,8 +117,7 @@ WebAuthResult webAuthValidateBearer(const char *authHeaderValue) {
     const char *token = authHeaderValue + 7;  // strlen("Bearer ") == 7
     token = trimLeading(token);
 
-    // Validate against hardcoded token
-    if (std::strcmp(token, kHardcodedBearerToken) != 0) {
+    if (std::strcmp(token, creds->bearerToken) != 0) {
         return WebAuthResult::InvalidCredentials;
     }
 
@@ -130,9 +126,12 @@ WebAuthResult webAuthValidateBearer(const char *authHeaderValue) {
 
 // ===== Basic Auth Validation =====
 
-WebAuthResult webAuthValidateBasic(const char *authHeaderValue) {
+WebAuthResult webAuthValidateBasic(const char *authHeaderValue, const WiimoteCredentials *creds) {
     if (authHeaderValue == nullptr) {
         return WebAuthResult::MissingHeader;
+    }
+    if (creds == nullptr || creds->username == nullptr || creds->password == nullptr) {
+        return WebAuthResult::InvalidCredentials;
     }
 
     // Trim leading whitespace
@@ -165,20 +164,19 @@ WebAuthResult webAuthValidateBasic(const char *authHeaderValue) {
     const char *password = colonPtr + 1;
 
     // Validate username and password lengths
-    size_t expectedUsernameLen = std::strlen(kHardcodedBasicUsername);
-    size_t expectedPasswordLen = std::strlen(kHardcodedBasicPassword);
+    size_t expectedUsernameLen = std::strlen(creds->username);
 
     if (usernameLen != expectedUsernameLen) {
         return WebAuthResult::InvalidCredentials;
     }
 
     // Compare username (case-sensitive)
-    if (std::strncmp(decoded, kHardcodedBasicUsername, usernameLen) != 0) {
+    if (std::strncmp(decoded, creds->username, usernameLen) != 0) {
         return WebAuthResult::InvalidCredentials;
     }
 
     // Compare password (case-sensitive)
-    if (std::strcmp(password, kHardcodedBasicPassword) != 0) {
+    if (std::strcmp(password, creds->password) != 0) {
         return WebAuthResult::InvalidCredentials;
     }
 
@@ -187,7 +185,7 @@ WebAuthResult webAuthValidateBasic(const char *authHeaderValue) {
 
 // ===== Combined Auth Entrypoint =====
 
-WebAuthResult webAuthValidate(const char *authHeaderValue) {
+WebAuthResult webAuthValidate(const char *authHeaderValue, const WiimoteCredentials *creds) {
     if (authHeaderValue == nullptr) {
         return WebAuthResult::MissingHeader;
     }
@@ -199,13 +197,13 @@ WebAuthResult webAuthValidate(const char *authHeaderValue) {
     }
 
     // Try Bearer first
-    WebAuthResult bearerResult = webAuthValidateBearer(authHeaderValue);
+    WebAuthResult bearerResult = webAuthValidateBearer(authHeaderValue, creds);
     if (bearerResult == WebAuthResult::Ok) {
         return WebAuthResult::Ok;
     }
 
     // Try Basic second
-    WebAuthResult basicResult = webAuthValidateBasic(authHeaderValue);
+    WebAuthResult basicResult = webAuthValidateBasic(authHeaderValue, creds);
     if (basicResult == WebAuthResult::Ok) {
         return WebAuthResult::Ok;
     }

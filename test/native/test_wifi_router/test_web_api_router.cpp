@@ -7,6 +7,11 @@
 
 static const char *kValidBearer = "Bearer esp32wiimote_bearer_token_v1";
 static const char *kValidBasic = "Basic YWRtaW46cGFzc3dvcmQ=";  // admin:password
+static const WiimoteCredentials kTestCredentials = {
+    "admin",
+    "password",
+    "esp32wiimote_bearer_token_v1",
+};
 
 // ===== Mock State =====
 
@@ -82,6 +87,7 @@ static void mockSetAutoReconnect(bool enabled, void * /*userData*/) {
 
 static WebApiContext makeCtx() {
     WebApiContext ctx;
+    ctx.credentials = &kTestCredentials;
     ctx.getWiimoteStatus = mockGetStatus;
     ctx.getConfig = mockGetConfig;
     ctx.setLeds = mockSetLeds;
@@ -164,6 +170,14 @@ void testValidBasicAuthPasses() {
     WebApiContext ctx = makeCtx();
     WebApiRouteResult r = callRoute(&ctx, "GET", "/api/wiimote/status", kValidBasic, nullptr);
     TEST_ASSERT_NOT_EQUAL(401, r.httpStatus);
+}
+
+void testNullCredentialsInCtxReturns401WithValidToken() {
+    WebApiContext ctx = makeCtx();
+    ctx.credentials = nullptr;
+    WebApiRouteResult r = callRoute(&ctx, "GET", "/api/wiimote/status", kValidBearer, nullptr);
+    TEST_ASSERT_EQUAL(401, r.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "unauthorized"));
 }
 
 // ===== Routing Tests =====
@@ -503,6 +517,7 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testInvalidAuthReturns401);
     RUN_TEST(testValidBearerAuthPasses);
     RUN_TEST(testValidBasicAuthPasses);
+    RUN_TEST(testNullCredentialsInCtxReturns401WithValidToken);
 
     RUN_TEST(testUnknownPathReturns404);
     RUN_TEST(testMethodMismatchReturns404);

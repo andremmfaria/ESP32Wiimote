@@ -1,6 +1,8 @@
 #ifndef WEB_AUTH_H_
 #define WEB_AUTH_H_
 
+#include "../wiimote_config.h"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -8,8 +10,6 @@
  * Web Authentication Module
  *
  * Provides Bearer token and Basic auth validation for REST API routes.
- * Hardcoded credentials for Phase 4 bring-up; intended for runtime
- * configuration in later phases.
  */
 
 // ===== Auth Result Enum =====
@@ -30,9 +30,10 @@ enum class WebAuthResult {
  * Expects: Authorization: Bearer <token>
  *
  * @param authHeaderValue Full value of Authorization header (e.g., "Bearer abc123")
+ * @param creds Runtime credentials to validate against
  * @return WebAuthResult indicating success or failure reason
  */
-WebAuthResult webAuthValidateBearer(const char *authHeaderValue);
+WebAuthResult webAuthValidateBearer(const char *authHeaderValue, const WiimoteCredentials *creds);
 
 // ===== Basic Auth =====
 
@@ -43,9 +44,10 @@ WebAuthResult webAuthValidateBearer(const char *authHeaderValue);
  * The base64 payload decodes to "username:password".
  *
  * @param authHeaderValue Full value of Authorization header (e.g., "Basic dXNlcjpwYXNz")
+ * @param creds Runtime credentials to validate against
  * @return WebAuthResult indicating success or failure reason
  */
-WebAuthResult webAuthValidateBasic(const char *authHeaderValue);
+WebAuthResult webAuthValidateBasic(const char *authHeaderValue, const WiimoteCredentials *creds);
 
 // ===== Combined Auth Entrypoint =====
 
@@ -54,8 +56,9 @@ WebAuthResult webAuthValidateBasic(const char *authHeaderValue);
  *
  * @param authHeaderValue Full value of Authorization header
  *                        (e.g., "Bearer token123" or "Basic dXNlcjpwYXNz")
+ * @param creds Runtime credentials to validate against
  * @return WebAuthResult; Ok if either scheme succeeds, error otherwise
  */
-WebAuthResult webAuthValidate(const char *authHeaderValue);
+WebAuthResult webAuthValidate(const char *authHeaderValue, const WiimoteCredentials *creds);
 
 #endif  // WEB_AUTH_H_

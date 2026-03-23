@@ -1,6 +1,7 @@
 #ifndef WEB_API_ROUTER_H
 #define WEB_API_ROUTER_H
 
+#include "../wiimote_config.h"
 #include "web_response_serializer.h"
 
 #include <cstddef>
@@ -23,6 +24,8 @@
  * All callbacks default to nullptr; populate every member before calling webApiRoute.
  */
 struct WebApiContext {
+    const WiimoteCredentials *credentials = nullptr;
+
     // Read callbacks
     WebWiimoteStatusSnapshot (*getWiimoteStatus)(void *userData) = nullptr;
     WebConfigSnapshot (*getConfig)(void *userData) = nullptr;

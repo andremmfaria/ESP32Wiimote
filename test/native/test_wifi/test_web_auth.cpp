@@ -1,180 +1,203 @@
 #include "../../../src/wifi/web_auth.h"
+#include "../../../src/wiimote_config.h"
 
 #include <unity.h>
 
-// ===== Bearer Token Tests =====
+static const WiimoteCredentials kTestCreds = {
+    "admin",
+    "password",
+    "esp32wiimote_bearer_token_v1",
+};
+
+static const WiimoteCredentials kOtherCreds = {
+    "root",
+    "secret",
+    "other_token",
+};
 
 void testBearerValidTokenMatches() {
-    WebAuthResult result = webAuthValidateBearer("Bearer esp32wiimote_bearer_token_v1");
+    WebAuthResult result =
+        webAuthValidateBearer("Bearer esp32wiimote_bearer_token_v1", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::Ok, result);
 }
 
 void testBearerInvalidToken() {
-    WebAuthResult result = webAuthValidateBearer("Bearer wrong_token");
+    WebAuthResult result = webAuthValidateBearer("Bearer wrong_token", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::InvalidCredentials, result);
 }
 
 void testBearerEmptyToken() {
-    WebAuthResult result = webAuthValidateBearer("Bearer ");
+    WebAuthResult result = webAuthValidateBearer("Bearer ", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::InvalidCredentials, result);
 }
 
 void testBearerMissingSpace() {
-    WebAuthResult result = webAuthValidateBearer("Beareresp32wiimote_bearer_token_v1");
+    WebAuthResult result = webAuthValidateBearer("Beareresp32wiimote_bearer_token_v1", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::UnsupportedScheme, result);
 }
 
 void testBearerCaseInsensitiveScheme() {
-    WebAuthResult result = webAuthValidateBearer("bearer esp32wiimote_bearer_token_v1");
+    WebAuthResult result =
+        webAuthValidateBearer("bearer esp32wiimote_bearer_token_v1", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::Ok, result);
 }
 
 void testBearerMixedCaseScheme() {
-    WebAuthResult result = webAuthValidateBearer("BEARER esp32wiimote_bearer_token_v1");
+    WebAuthResult result =
+        webAuthValidateBearer("BEARER esp32wiimote_bearer_token_v1", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::Ok, result);
 }
 
 void testBearerLeadingWhitespace() {
-    WebAuthResult result = webAuthValidateBearer("  Bearer esp32wiimote_bearer_token_v1");
+    WebAuthResult result =
+        webAuthValidateBearer("  Bearer esp32wiimote_bearer_token_v1", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::Ok, result);
 }
 
 void testBearerWhitespaceAfterScheme() {
-    WebAuthResult result = webAuthValidateBearer("Bearer   esp32wiimote_bearer_token_v1");
+    WebAuthResult result =
+        webAuthValidateBearer("Bearer   esp32wiimote_bearer_token_v1", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::Ok, result);
 }
 
 void testBearerNull() {
-    WebAuthResult result = webAuthValidateBearer(nullptr);
+    WebAuthResult result = webAuthValidateBearer(nullptr, &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::MissingHeader, result);
 }
 
 void testBearerWrongScheme() {
-    WebAuthResult result = webAuthValidateBearer("Basic dXNlcjpwYXNzd29yZA==");
+    WebAuthResult result = webAuthValidateBearer("Basic dXNlcjpwYXNzd29yZA==", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::UnsupportedScheme, result);
 }
 
-// ===== Basic Auth Tests (with built-in base64 decoding) =====
+void testBearerNullCredentialsReturnsInvalidCredentials() {
+    WebAuthResult result = webAuthValidateBearer("Bearer esp32wiimote_bearer_token_v1", nullptr);
+    TEST_ASSERT_EQUAL(WebAuthResult::InvalidCredentials, result);
+}
+
+void testBearerCustomCredentialsMatch() {
+    WebAuthResult result = webAuthValidateBearer("Bearer other_token", &kOtherCreds);
+    TEST_ASSERT_EQUAL(WebAuthResult::Ok, result);
+}
 
 void testBasicValidCredentials() {
-    // admin:password in base64 is "YWRtaW46cGFzc3dvcmQ="
-    WebAuthResult result = webAuthValidateBasic("Basic YWRtaW46cGFzc3dvcmQ=");
+    WebAuthResult result = webAuthValidateBasic("Basic YWRtaW46cGFzc3dvcmQ=", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::Ok, result);
 }
 
 void testBasicInvalidPassword() {
-    // admin:wrongpass
-    WebAuthResult result = webAuthValidateBasic("Basic YWRtaW46d3JvbmdwYXNz");
+    WebAuthResult result = webAuthValidateBasic("Basic YWRtaW46d3JvbmdwYXNz", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::InvalidCredentials, result);
 }
 
 void testBasicInvalidUsername() {
-    // wronguser:password
-    WebAuthResult result = webAuthValidateBasic("Basic d3Jvbmd1c2VyOnBhc3N3b3Jk");
+    WebAuthResult result = webAuthValidateBasic("Basic d3Jvbmd1c2VyOnBhc3N3b3Jk", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::InvalidCredentials, result);
 }
 
 void testBasicMissingColon() {
-    // adminpassword (no colon)
-    // base64: YWRtaW5wYXNzd29yZA==
-    WebAuthResult result = webAuthValidateBasic("Basic YWRtaW5wYXNzd29yZA==");
+    WebAuthResult result = webAuthValidateBasic("Basic YWRtaW5wYXNzd29yZA==", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::MalformedHeader, result);
 }
 
 void testBasicCaseInsensitiveScheme() {
-    WebAuthResult result = webAuthValidateBasic("basic YWRtaW46cGFzc3dvcmQ=");
+    WebAuthResult result = webAuthValidateBasic("basic YWRtaW46cGFzc3dvcmQ=", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::Ok, result);
 }
 
 void testBasicMixedCaseScheme() {
-    WebAuthResult result = webAuthValidateBasic("BaSiC YWRtaW46cGFzc3dvcmQ=");
+    WebAuthResult result = webAuthValidateBasic("BaSiC YWRtaW46cGFzc3dvcmQ=", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::Ok, result);
 }
 
 void testBasicLeadingWhitespace() {
-    WebAuthResult result = webAuthValidateBasic("  Basic YWRtaW46cGFzc3dvcmQ=");
+    WebAuthResult result = webAuthValidateBasic("  Basic YWRtaW46cGFzc3dvcmQ=", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::Ok, result);
 }
 
 void testBasicWhitespaceAfterScheme() {
-    WebAuthResult result = webAuthValidateBasic("Basic   YWRtaW46cGFzc3dvcmQ=");
+    WebAuthResult result = webAuthValidateBasic("Basic   YWRtaW46cGFzc3dvcmQ=", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::Ok, result);
 }
 
 void testBasicNull() {
-    WebAuthResult result = webAuthValidateBasic(nullptr);
+    WebAuthResult result = webAuthValidateBasic(nullptr, &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::MissingHeader, result);
 }
 
 void testBasicWrongScheme() {
-    WebAuthResult result = webAuthValidateBasic("Bearer esp32wiimote_bearer_token_v1");
+    WebAuthResult result = webAuthValidateBasic("Bearer esp32wiimote_bearer_token_v1", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::UnsupportedScheme, result);
 }
 
 void testBasicEmptyBase64() {
-    WebAuthResult result = webAuthValidateBasic("Basic ");
+    WebAuthResult result = webAuthValidateBasic("Basic ", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::MalformedHeader, result);
 }
 
-// ===== Combined Auth Tests =====
+void testBasicNullCredentialsReturnsInvalidCredentials() {
+    WebAuthResult result = webAuthValidateBasic("Basic YWRtaW46cGFzc3dvcmQ=", nullptr);
+    TEST_ASSERT_EQUAL(WebAuthResult::InvalidCredentials, result);
+}
+
+void testBasicCustomCredentialsMatch() {
+    WebAuthResult result = webAuthValidateBasic("Basic cm9vdDpzZWNyZXQ=", &kOtherCreds);
+    TEST_ASSERT_EQUAL(WebAuthResult::Ok, result);
+}
 
 void testCombinedValidBearer() {
-    WebAuthResult result = webAuthValidate("Bearer esp32wiimote_bearer_token_v1");
+    WebAuthResult result = webAuthValidate("Bearer esp32wiimote_bearer_token_v1", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::Ok, result);
 }
 
 void testCombinedValidBasic() {
-    WebAuthResult result = webAuthValidate("Basic YWRtaW46cGFzc3dvcmQ=");
+    WebAuthResult result = webAuthValidate("Basic YWRtaW46cGFzc3dvcmQ=", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::Ok, result);
 }
 
 void testCombinedInvalidBearer() {
-    WebAuthResult result = webAuthValidate("Bearer wrong_token");
+    WebAuthResult result = webAuthValidate("Bearer wrong_token", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::InvalidCredentials, result);
 }
 
 void testCombinedInvalidBasic() {
-    // admin:wrongpass in base64 is YWRtaW46d3JvbmdwYXNz
-    WebAuthResult result = webAuthValidate("Basic YWRtaW46d3JvbmdwYXNz");
+    WebAuthResult result = webAuthValidate("Basic YWRtaW46d3JvbmdwYXNz", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::InvalidCredentials, result);
 }
 
 void testCombinedUnsupportedScheme() {
-    WebAuthResult result = webAuthValidate("Digest abc123");
+    WebAuthResult result = webAuthValidate("Digest abc123", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::UnsupportedScheme, result);
 }
 
 void testCombinedNull() {
-    WebAuthResult result = webAuthValidate(nullptr);
+    WebAuthResult result = webAuthValidate(nullptr, &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::MissingHeader, result);
 }
 
 void testCombinedEmpty() {
-    WebAuthResult result = webAuthValidate("");
+    WebAuthResult result = webAuthValidate("", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::MissingHeader, result);
 }
 
-// ===== Edge Cases =====
+void testCombinedNullCredentialsReturnsInvalidCredentials() {
+    WebAuthResult result = webAuthValidate("Bearer esp32wiimote_bearer_token_v1", nullptr);
+    TEST_ASSERT_EQUAL(WebAuthResult::InvalidCredentials, result);
+}
 
 void testBearerTokenWithLeadingTrailingWhitespace() {
-    // Token itself contains whitespace (invalid)
-    WebAuthResult result = webAuthValidate("Bearer  esp32wiimote_bearer_token_v1  ");
-    // The extra spaces after token should make it not match
+    WebAuthResult result = webAuthValidate("Bearer  esp32wiimote_bearer_token_v1  ", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::InvalidCredentials, result);
 }
 
 void testBasicCredentialsWithLeadingSpaceInBase64() {
-    // Space before base64 should be trimmed
-    WebAuthResult result = webAuthValidate("Basic   YWRtaW46cGFzc3dvcmQ=");
+    WebAuthResult result = webAuthValidate("Basic   YWRtaW46cGFzc3dvcmQ=", &kTestCreds);
     TEST_ASSERT_EQUAL(WebAuthResult::Ok, result);
 }
-
-// ===== Main =====
 
 int main(int /*argc*/, char ** /*argv*/) {
     UNITY_BEGIN();
 
-    // Bearer tests
     RUN_TEST(testBearerValidTokenMatches);
     RUN_TEST(testBearerInvalidToken);
     RUN_TEST(testBearerEmptyToken);
@@ -185,8 +208,9 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testBearerWhitespaceAfterScheme);
     RUN_TEST(testBearerNull);
     RUN_TEST(testBearerWrongScheme);
+    RUN_TEST(testBearerNullCredentialsReturnsInvalidCredentials);
+    RUN_TEST(testBearerCustomCredentialsMatch);
 
-    // Basic tests
     RUN_TEST(testBasicValidCredentials);
     RUN_TEST(testBasicInvalidPassword);
     RUN_TEST(testBasicInvalidUsername);
@@ -198,8 +222,9 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testBasicNull);
     RUN_TEST(testBasicWrongScheme);
     RUN_TEST(testBasicEmptyBase64);
+    RUN_TEST(testBasicNullCredentialsReturnsInvalidCredentials);
+    RUN_TEST(testBasicCustomCredentialsMatch);
 
-    // Combined tests
     RUN_TEST(testCombinedValidBearer);
     RUN_TEST(testCombinedValidBasic);
     RUN_TEST(testCombinedInvalidBearer);
@@ -207,8 +232,8 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testCombinedUnsupportedScheme);
     RUN_TEST(testCombinedNull);
     RUN_TEST(testCombinedEmpty);
+    RUN_TEST(testCombinedNullCredentialsReturnsInvalidCredentials);
 
-    // Edge cases
     RUN_TEST(testBearerTokenWithLeadingTrailingWhitespace);
     RUN_TEST(testBasicCredentialsWithLeadingSpaceInBase64);
 
