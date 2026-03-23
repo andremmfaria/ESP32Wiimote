@@ -1,4 +1,5 @@
 #include "../../../src/wifi/web_api_router.h"
+#include "../../../src/wifi/web_command_queue.h"
 
 #include <cstring>
 #include <unity.h>
@@ -39,6 +40,7 @@ static bool gDisconnectResult;
 static uint8_t gLastDisconnectReason;
 
 static bool gLastAutoReconnect;
+static WebCommandQueue gCommandQueue;
 
 static char gBuf[512];
 
@@ -133,6 +135,7 @@ void setUp() {
     gDisconnectResult = true;
     gLastDisconnectReason = 0;
     gLastAutoReconnect = false;
+    webCommandQueueInit(&gCommandQueue);
     std::memset(gBuf, 0, sizeof(gBuf));
 }
 
@@ -301,6 +304,36 @@ void testPostLedsRejectedReturns409() {
     WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/leds", kValidBearer,
                                     "{\"command\":\"set_leds\",\"mask\":\"3\"}");
     TEST_ASSERT_EQUAL(409, r.httpStatus);
+}
+
+void testPostLedsQueuedWhenQueueConfiguredReturns202() {
+    WebApiContext ctx = makeCtx();
+    ctx.commandQueue = &gCommandQueue;
+    gSetLedsResult = false;
+
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/leds", kValidBearer,
+                                    "{\"command\":\"set_leds\",\"mask\":\"15\"}");
+    TEST_ASSERT_EQUAL(202, r.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "\"status\":\"accepted\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "\"commandId\":"));
+    TEST_ASSERT_EQUAL_UINT32(1U, webCommandQueueCount(&gCommandQueue));
+    TEST_ASSERT_EQUAL_UINT8(0U, gLastLedsMask);
+}
+
+void testPostLedsQueueFullReturns503() {
+    WebApiContext ctx = makeCtx();
+    ctx.commandQueue = &gCommandQueue;
+
+    for (size_t i = 0U; i < kWebCommandQueueCapacity; ++i) {
+        uint32_t commandId = 0U;
+        TEST_ASSERT_TRUE(webCommandQueueEnqueue(&gCommandQueue, "/api/wiimote/commands/scan",
+                                                "scan_start", &commandId));
+    }
+
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/leds", kValidBearer,
+                                    "{\"command\":\"set_leds\",\"mask\":\"7\"}");
+    TEST_ASSERT_EQUAL(503, r.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "command queue full"));
 }
 
 // ===== POST /api/wiimote/commands/reporting-mode =====
@@ -547,6 +580,8 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testPostLedsMissingMaskReturns400);
     RUN_TEST(testPostLedsInvalidMaskReturns400);
     RUN_TEST(testPostLedsRejectedReturns409);
+    RUN_TEST(testPostLedsQueuedWhenQueueConfiguredReturns202);
+    RUN_TEST(testPostLedsQueueFullReturns503);
 
     RUN_TEST(testPostReportingModeSuccess);
     RUN_TEST(testPostReportingModeWithContinuous);

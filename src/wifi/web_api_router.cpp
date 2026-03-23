@@ -229,6 +229,36 @@ WebApiRouteResult errorResponse(char *buf, size_t size, int status, const char *
     return makeResult(status, "application/json");
 }
 
+WebApiRouteResult acceptedResponse(char *buf, size_t size, uint32_t commandId) {
+    int written = std::snprintf(buf, size, "{\"status\":\"accepted\",\"commandId\":%lu}",
+                                static_cast<unsigned long>(commandId));
+    if (written < 0 || static_cast<size_t>(written) >= size) {
+        return errorResponse(buf, size, 500, "response buffer too small");
+    }
+    return makeResult(202, "application/json");
+}
+
+bool enqueueCommandIfConfigured(const WebApiContext *ctx,
+                                const char *path,
+                                const WebParsedCommand *cmd,
+                                char *buf,
+                                size_t size,
+                                WebApiRouteResult *result) {
+    if (ctx->commandQueue == nullptr) {
+        return false;
+    }
+
+    uint32_t commandId = 0U;
+    const char *verb = (cmd != nullptr) ? cmd->verb : "";
+    if (!webCommandQueueEnqueue(ctx->commandQueue, path, verb, &commandId)) {
+        *result = errorResponse(buf, size, 503, "command queue full");
+        return true;
+    }
+
+    *result = acceptedResponse(buf, size, commandId);
+    return true;
+}
+
 // ===== GET Handlers =====
 
 WebApiRouteResult handleGetStatus(const WebApiContext *ctx,
@@ -267,6 +297,13 @@ WebApiRouteResult handlePostLeds(const WebApiContext *ctx,
     if (!parseU8(maskVal, &mask)) {
         return errorResponse(buf, size, 400, "invalid field: mask");
     }
+
+    WebApiRouteResult queueResult;
+    if (enqueueCommandIfConfigured(ctx, "/api/wiimote/commands/leds", cmd, buf, size,
+                                   &queueResult)) {
+        return queueResult;
+    }
+
     if (!ctx->setLeds(mask, ctx->userData)) {
         return errorResponse(buf, size, 409, "command rejected");
     }
@@ -288,6 +325,13 @@ WebApiRouteResult handlePostReportingMode(const WebApiContext *ctx,
     }
     const char *contVal = findField(*cmd, "continuous");
     bool continuous = (contVal != nullptr) && parseBool(contVal);
+
+    WebApiRouteResult queueResult;
+    if (enqueueCommandIfConfigured(ctx, "/api/wiimote/commands/reporting-mode", cmd, buf, size,
+                                   &queueResult)) {
+        return queueResult;
+    }
+
     if (!ctx->setReportingMode(mode, continuous, ctx->userData)) {
         return errorResponse(buf, size, 409, "command rejected");
     }
@@ -304,6 +348,13 @@ WebApiRouteResult handlePostAccelerometer(const WebApiContext *ctx,
         return errorResponse(buf, size, 400, "missing field: enabled");
     }
     bool enabled = parseBool(enabledVal);
+
+    WebApiRouteResult queueResult;
+    if (enqueueCommandIfConfigured(ctx, "/api/wiimote/commands/accelerometer", cmd, buf, size,
+                                   &queueResult)) {
+        return queueResult;
+    }
+
     if (!ctx->setAccelEnabled(enabled, ctx->userData)) {
         return errorResponse(buf, size, 409, "command rejected");
     }
@@ -315,6 +366,12 @@ WebApiRouteResult handlePostRequestStatus(const WebApiContext *ctx,
                                           const WebParsedCommand * /*cmd*/,
                                           char *buf,
                                           size_t size) {
+    WebApiRouteResult queueResult;
+    if (enqueueCommandIfConfigured(ctx, "/api/wiimote/commands/request-status", nullptr, buf, size,
+                                   &queueResult)) {
+        return queueResult;
+    }
+
     if (!ctx->requestStatus(ctx->userData)) {
         return errorResponse(buf, size, 409, "command rejected");
     }
@@ -326,12 +383,22 @@ WebApiRouteResult handlePostScan(const WebApiContext *ctx,
                                  const WebParsedCommand *cmd,
                                  char *buf,
                                  size_t size) {
+    WebApiRouteResult queueResult;
+
     if (std::strcmp(cmd->verb, "scan_start") == 0) {
+        if (enqueueCommandIfConfigured(ctx, "/api/wiimote/commands/scan", cmd, buf, size,
+                                       &queueResult)) {
+            return queueResult;
+        }
         ctx->setScanEnabled(true, ctx->userData);
         serializeOk(buf, size);
         return makeResult(200, "application/json");
     }
     if (std::strcmp(cmd->verb, "scan_stop") == 0) {
+        if (enqueueCommandIfConfigured(ctx, "/api/wiimote/commands/scan", cmd, buf, size,
+                                       &queueResult)) {
+            return queueResult;
+        }
         ctx->setScanEnabled(false, ctx->userData);
         serializeOk(buf, size);
         return makeResult(200, "application/json");
@@ -343,7 +410,13 @@ WebApiRouteResult handlePostDiscovery(const WebApiContext *ctx,
                                       const WebParsedCommand *cmd,
                                       char *buf,
                                       size_t size) {
+    WebApiRouteResult queueResult;
+
     if (std::strcmp(cmd->verb, "discovery_start") == 0) {
+        if (enqueueCommandIfConfigured(ctx, "/api/wiimote/commands/discovery", cmd, buf, size,
+                                       &queueResult)) {
+            return queueResult;
+        }
         if (!ctx->startDiscovery(ctx->userData)) {
             return errorResponse(buf, size, 409, "command rejected");
         }
@@ -351,6 +424,10 @@ WebApiRouteResult handlePostDiscovery(const WebApiContext *ctx,
         return makeResult(200, "application/json");
     }
     if (std::strcmp(cmd->verb, "discovery_stop") == 0) {
+        if (enqueueCommandIfConfigured(ctx, "/api/wiimote/commands/discovery", cmd, buf, size,
+                                       &queueResult)) {
+            return queueResult;
+        }
         if (!ctx->stopDiscovery(ctx->userData)) {
             return errorResponse(buf, size, 409, "command rejected");
         }
@@ -371,6 +448,13 @@ WebApiRouteResult handlePostDisconnect(const WebApiContext *ctx,
             return errorResponse(buf, size, 400, "invalid field: reason");
         }
     }
+
+    WebApiRouteResult queueResult;
+    if (enqueueCommandIfConfigured(ctx, "/api/wiimote/commands/disconnect", cmd, buf, size,
+                                   &queueResult)) {
+        return queueResult;
+    }
+
     if (!ctx->disconnect(reason, ctx->userData)) {
         return errorResponse(buf, size, 409, "command rejected");
     }
@@ -387,6 +471,13 @@ WebApiRouteResult handlePostReconnectPolicy(const WebApiContext *ctx,
         return errorResponse(buf, size, 400, "missing field: enabled");
     }
     bool enabled = parseBool(enabledVal);
+
+    WebApiRouteResult queueResult;
+    if (enqueueCommandIfConfigured(ctx, "/api/wiimote/commands/reconnect-policy", cmd, buf, size,
+                                   &queueResult)) {
+        return queueResult;
+    }
+
     ctx->setAutoReconnect(enabled, ctx->userData);
     serializeOk(buf, size);
     return makeResult(200, "application/json");

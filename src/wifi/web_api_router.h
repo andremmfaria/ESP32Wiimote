@@ -2,6 +2,7 @@
 #define WEB_API_ROUTER_H
 
 #include "../wiimote_config.h"
+#include "web_command_queue.h"
 #include "web_response_serializer.h"
 
 #include <cstddef>
@@ -40,6 +41,9 @@ struct WebApiContext {
     bool (*stopDiscovery)(void *userData) = nullptr;
     bool (*disconnect)(uint8_t reason, void *userData) = nullptr;
     void (*setAutoReconnect)(bool enabled, void *userData) = nullptr;  // always succeeds
+
+    // Optional async queue. When set, write commands are enqueued and return HTTP 202.
+    WebCommandQueue *commandQueue = nullptr;
 
     void *userData = nullptr;
 };
