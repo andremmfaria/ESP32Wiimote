@@ -59,6 +59,7 @@ void setUp(void) {
     mockLastVhciCallback = nullptr;
     mockQueueCreateCallCount = 0;
     mockQueueCreateFailOnCall = 0;
+    mockSetMillis(0UL);
     mockSerialClearInput();
     mockSerialClearOutput();
     HciCallbacksHandler::setQueueManager(nullptr);
@@ -284,17 +285,58 @@ void testESP32WiimoteSerialControlProcessesOneLinePerTaskCall() {
     mockSetLedsResult = true;
 
     device.enableSerialControl(true);
-    mockSerialSetInput("wm led 0x01\nwm led 0x02\n");
+    mockSerialSetInput("wm unlock 60\nwm led 0x01\n");
+
+    device.task();
+    TEST_ASSERT_EQUAL_STRING("@wm: ok\n", mockSerialGetOutput());
+    TEST_ASSERT_EQUAL(0, mockSetLedsCallCount);
 
     device.task();
     TEST_ASSERT_EQUAL(1, mockSetLedsCallCount);
     TEST_ASSERT_EQUAL_UINT8(0x01, mockLastLedsMask);
-    TEST_ASSERT_EQUAL_STRING("@wm: ok\n", mockSerialGetOutput());
+    TEST_ASSERT_EQUAL_STRING("@wm: ok\n@wm: ok\n", mockSerialGetOutput());
+}
+
+void testESP32WiimoteSerialControlPrivilegedCommandIsLockedByDefault() {
+    ESP32Wiimote device;
+    mockBtStarted = true;
+    mockTinyWiimoteConnected = true;
+    mockSetLedsResult = true;
+
+    device.enableSerialControl(true);
+    mockSerialSetInput("wm led 0x01\n");
 
     device.task();
-    TEST_ASSERT_EQUAL(2, mockSetLedsCallCount);
-    TEST_ASSERT_EQUAL_UINT8(0x02, mockLastLedsMask);
+
+    TEST_ASSERT_EQUAL(0, mockSetLedsCallCount);
+    TEST_ASSERT_EQUAL_STRING("@wm: error locked\n", mockSerialGetOutput());
+}
+
+void testESP32WiimoteSerialControlUnlockExpiresByTime() {
+    ESP32Wiimote device;
+    mockBtStarted = true;
+    mockTinyWiimoteConnected = true;
+    mockSetLedsResult = true;
+
+    device.enableSerialControl(true);
+
+    mockSetMillis(1000UL);
+    mockSerialSetInput("wm unlock 1\nwm led 0x01\n");
+
+    device.task();
+    TEST_ASSERT_EQUAL_STRING("@wm: ok\n", mockSerialGetOutput());
+
+    mockSetMillis(1500UL);
+    device.task();
+    TEST_ASSERT_EQUAL(1, mockSetLedsCallCount);
     TEST_ASSERT_EQUAL_STRING("@wm: ok\n@wm: ok\n", mockSerialGetOutput());
+
+    mockSetMillis(2500UL);
+    mockSerialSetInput("wm led 0x02\n");
+    device.task();
+
+    TEST_ASSERT_EQUAL(1, mockSetLedsCallCount);
+    TEST_ASSERT_EQUAL_STRING("@wm: ok\n@wm: ok\n@wm: error locked\n", mockSerialGetOutput());
 }
 
 void testESP32WiimoteSerialControlIgnoresNonCommandInput() {
@@ -346,6 +388,8 @@ int main(int argc, char **argv) {
     RUN_TEST(testESP32WiimoteControllerMethodsDelegateAndMapState);
     RUN_TEST(testESP32WiimoteSerialControlDisabledByDefaultAndOptIn);
     RUN_TEST(testESP32WiimoteSerialControlProcessesOneLinePerTaskCall);
+    RUN_TEST(testESP32WiimoteSerialControlPrivilegedCommandIsLockedByDefault);
+    RUN_TEST(testESP32WiimoteSerialControlUnlockExpiresByTime);
     RUN_TEST(testESP32WiimoteSerialControlIgnoresNonCommandInput);
     RUN_TEST(testESP32WiimoteSerialControlReportsLineTooLong);
 
@@ -367,6 +411,8 @@ void setup() {
     RUN_TEST(testESP32WiimoteControllerMethodsDelegateAndMapState);
     RUN_TEST(testESP32WiimoteSerialControlDisabledByDefaultAndOptIn);
     RUN_TEST(testESP32WiimoteSerialControlProcessesOneLinePerTaskCall);
+    RUN_TEST(testESP32WiimoteSerialControlPrivilegedCommandIsLockedByDefault);
+    RUN_TEST(testESP32WiimoteSerialControlUnlockExpiresByTime);
     RUN_TEST(testESP32WiimoteSerialControlIgnoresNonCommandInput);
     RUN_TEST(testESP32WiimoteSerialControlReportsLineTooLong);
 

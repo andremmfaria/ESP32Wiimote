@@ -16,6 +16,7 @@
 #include "esp32wiimote/state/button_state.h"
 #include "esp32wiimote/state/sensor_state.h"
 #include "serial/serial_command_parser.h"
+#include "serial/serial_command_session.h"
 #include "utils/serial_logging.h"
 
 /**
@@ -264,6 +265,8 @@ class ESP32Wiimote {
     WiimoteDataParser *dataParser_;
 
     bool serialControlEnabled_;
+    bool serialPrivilegedCommandsRequireUnlock_;
+    SerialCommandSession serialCommandSession_;
     char serialInputLine_[kSerialMaxLineLength + 1U];
     uint8_t serialInputLen_;
     bool serialInputOverflow_;

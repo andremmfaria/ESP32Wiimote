@@ -77,6 +77,7 @@ bool mockBtStartResult = true;
 bool mockBtStarted = false;
 uint8_t mockBtControllerStatus = static_cast<uint8_t>(ESP_BT_CONTROLLER_STATUS_IDLE);
 size_t mockEspFreeHeap = 0;
+unsigned long mockMillis = 0UL;
 MockEspClass ESP;
 
 char mockSerialInputBuffer[kMockSerialInputBufferSize] = {0};

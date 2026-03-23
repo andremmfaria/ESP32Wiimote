@@ -11,6 +11,10 @@ typedef uint8_t byte;
 typedef bool boolean;
 
 extern size_t mockEspFreeHeap;
+extern unsigned long mockMillis;
+inline void mockSetMillis(unsigned long nowMs) {
+    mockMillis = nowMs;
+}
 
 static constexpr size_t kMockSerialInputBufferSize = 512U;
 static constexpr size_t kMockSerialOutputBufferSize = 4096U;
@@ -124,7 +128,7 @@ inline void delay(unsigned long ms) {
 }
 
 inline unsigned long millis() {
-    return 0UL;
+    return mockMillis;
 }
 
 class MockEspClass {

@@ -77,6 +77,7 @@ ESP32Wiimote::ESP32Wiimote() : ESP32Wiimote(ESP32WiimoteConfig()) {}
 ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config)
     : config_(config)
     , serialControlEnabled_(false)
+    , serialPrivilegedCommandsRequireUnlock_(true)
     , serialInputLine_{0}
     , serialInputLen_(0)
     , serialInputOverflow_(false) {
@@ -230,6 +231,13 @@ void ESP32Wiimote::clearReconnectCache() {
 
 void ESP32Wiimote::enableSerialControl(bool enabled) {
     serialControlEnabled_ = enabled;
+
+    if (!enabled) {
+        serialCommandSession_.lock();
+        serialInputLen_ = 0U;
+        serialInputOverflow_ = false;
+        serialInputLine_[0] = '\0';
+    }
 }
 
 bool ESP32Wiimote::isSerialControlEnabled() const {
@@ -330,7 +338,12 @@ void ESP32Wiimote::processSerialCommandLine(const char *line) {
     }
 
     Esp32SerialCommandTarget target(this);
-    const SerialDispatchResult kDispatchResult = serialCommandDispatch(parsed, &target);
+    SerialDispatchOptions options = {};
+    options.session = &serialCommandSession_;
+    options.privilegedCommandsRequireUnlock = serialPrivilegedCommandsRequireUnlock_;
+    options.nowMs = static_cast<uint32_t>(millis());
+
+    const SerialDispatchResult kDispatchResult = serialCommandDispatch(parsed, &target, options);
     serialFormatDispatchResult(response, sizeof(response), kDispatchResult);
     Serial.println(response);
 }

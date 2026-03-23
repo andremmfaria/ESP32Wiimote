@@ -73,9 +73,8 @@ size_t serialFormatStatus(char *out,
                           uint8_t batteryLevel) {
     return serialNormalizeWrite(
         snprintf(out, outSize, "@wm: status connected=%u scan=%u mode=0x%02X accel=%u battery=%u",
-                 connected ? 1U : 0U, scanning ? 1U : 0U,
-                 static_cast<unsigned int>(reportingMode), accelerometerEnabled ? 1U : 0U,
-                 static_cast<unsigned int>(batteryLevel)),
+                 connected ? 1U : 0U, scanning ? 1U : 0U, static_cast<unsigned int>(reportingMode),
+                 accelerometerEnabled ? 1U : 0U, static_cast<unsigned int>(batteryLevel)),
         out, outSize);
 }
 
