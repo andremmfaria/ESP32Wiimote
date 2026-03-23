@@ -1,0 +1,693 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "ESP32Wiimote Wi-Fi API",
+        "version": "0.4.0",
+        "description": "Authenticated REST API for runtime Wiimote and controller commands."
+    },
+    "servers": [
+        {
+            "url": "/",
+            "description": "On-device HTTP server"
+        }
+    ],
+    "paths": {
+        "/api/wiimote/status": {
+            "get": {
+                "summary": "Get Wiimote status snapshot",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Current status snapshot",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/WiimoteStatus"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    }
+                }
+            }
+        },
+        "/api/wiimote/config": {
+            "get": {
+                "summary": "Get runtime configuration snapshot",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Current config snapshot",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/WiimoteConfig"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    }
+                }
+            }
+        },
+        "/api/wiimote/commands/leds": {
+            "post": {
+                "summary": "Set LED mask",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SetLedsCommand"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Ok"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/CommandRejected"
+                    }
+                }
+            }
+        },
+        "/api/wiimote/commands/reporting-mode": {
+            "post": {
+                "summary": "Set reporting mode",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SetReportingModeCommand"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Ok"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/CommandRejected"
+                    }
+                }
+            }
+        },
+        "/api/wiimote/commands/accelerometer": {
+            "post": {
+                "summary": "Enable or disable accelerometer parsing",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SetAccelerometerCommand"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Ok"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/CommandRejected"
+                    }
+                }
+            }
+        },
+        "/api/wiimote/commands/request-status": {
+            "post": {
+                "summary": "Request status report from controller",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RequestStatusCommand"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Ok"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/CommandRejected"
+                    }
+                }
+            }
+        },
+        "/api/wiimote/commands/scan": {
+            "post": {
+                "summary": "Start or stop scan",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ScanCommand"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Ok"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/CommandRejected"
+                    }
+                }
+            }
+        },
+        "/api/wiimote/commands/discovery": {
+            "post": {
+                "summary": "Start or stop discovery",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DiscoveryCommand"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Ok"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/CommandRejected"
+                    }
+                }
+            }
+        },
+        "/api/wiimote/commands/disconnect": {
+            "post": {
+                "summary": "Disconnect active controller",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DisconnectCommand"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Ok"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/CommandRejected"
+                    }
+                }
+            }
+        },
+        "/api/wiimote/commands/reconnect-policy": {
+            "post": {
+                "summary": "Set reconnect policy",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReconnectPolicyCommand"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Ok"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/CommandRejected"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "Opaque"
+            },
+            "basicAuth": {
+                "type": "http",
+                "scheme": "basic"
+            }
+        },
+        "responses": {
+            "Ok": {
+                "description": "Command accepted",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/OkResponse"
+                        }
+                    }
+                }
+            },
+            "BadRequest": {
+                "description": "Malformed request body or missing required fields",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "Unauthorized": {
+                "description": "Missing or invalid credentials",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "Forbidden": {
+                "description": "Authenticated but forbidden by policy",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "CommandRejected": {
+                "description": "Command rejected by runtime state guards",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "schemas": {
+            "WiimoteStatus": {
+                "type": "object",
+                "required": [
+                    "connected",
+                    "batteryLevel"
+                ],
+                "properties": {
+                    "connected": {
+                        "type": "boolean"
+                    },
+                    "batteryLevel": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100
+                    }
+                }
+            },
+            "WiimoteConfig": {
+                "type": "object",
+                "required": [
+                    "nunchukStickThreshold",
+                    "txQueueSize",
+                    "rxQueueSize",
+                    "fastReconnectTtlMs"
+                ],
+                "properties": {
+                    "nunchukStickThreshold": {
+                        "type": "integer"
+                    },
+                    "txQueueSize": {
+                        "type": "integer"
+                    },
+                    "rxQueueSize": {
+                        "type": "integer"
+                    },
+                    "fastReconnectTtlMs": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "OkResponse": {
+                "type": "object",
+                "required": [
+                    "ok"
+                ],
+                "properties": {
+                    "ok": {
+                        "type": "boolean",
+                        "enum": [
+                            true
+                        ]
+                    }
+                }
+            },
+            "ErrorResponse": {
+                "type": "object",
+                "required": [
+                    "error"
+                ],
+                "properties": {
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "SetLedsCommand": {
+                "type": "object",
+                "required": [
+                    "command",
+                    "mask"
+                ],
+                "properties": {
+                    "command": {
+                        "type": "string",
+                        "enum": [
+                            "set_leds"
+                        ]
+                    },
+                    "mask": {
+                        "type": "string",
+                        "description": "Decimal uint8 as string"
+                    }
+                }
+            },
+            "SetReportingModeCommand": {
+                "type": "object",
+                "required": [
+                    "command",
+                    "mode"
+                ],
+                "properties": {
+                    "command": {
+                        "type": "string",
+                        "enum": [
+                            "set_mode"
+                        ]
+                    },
+                    "mode": {
+                        "type": "string",
+                        "description": "Decimal uint8 as string"
+                    },
+                    "continuous": {
+                        "type": "string",
+                        "enum": [
+                            "true",
+                            "false",
+                            "1",
+                            "0"
+                        ]
+                    }
+                }
+            },
+            "SetAccelerometerCommand": {
+                "type": "object",
+                "required": [
+                    "command",
+                    "enabled"
+                ],
+                "properties": {
+                    "command": {
+                        "type": "string",
+                        "enum": [
+                            "set_accel"
+                        ]
+                    },
+                    "enabled": {
+                        "type": "string",
+                        "enum": [
+                            "true",
+                            "false",
+                            "1",
+                            "0"
+                        ]
+                    }
+                }
+            },
+            "RequestStatusCommand": {
+                "type": "object",
+                "required": [
+                    "command"
+                ],
+                "properties": {
+                    "command": {
+                        "type": "string",
+                        "enum": [
+                            "request_status"
+                        ]
+                    }
+                }
+            },
+            "ScanCommand": {
+                "type": "object",
+                "required": [
+                    "command"
+                ],
+                "properties": {
+                    "command": {
+                        "type": "string",
+                        "enum": [
+                            "scan_start",
+                            "scan_stop"
+                        ]
+                    }
+                }
+            },
+            "DiscoveryCommand": {
+                "type": "object",
+                "required": [
+                    "command"
+                ],
+                "properties": {
+                    "command": {
+                        "type": "string",
+                        "enum": [
+                            "discovery_start",
+                            "discovery_stop"
+                        ]
+                    }
+                }
+            },
+            "DisconnectCommand": {
+                "type": "object",
+                "required": [
+                    "command"
+                ],
+                "properties": {
+                    "command": {
+                        "type": "string",
+                        "enum": [
+                            "disconnect"
+                        ]
+                    },
+                    "reason": {
+                        "type": "string",
+                        "description": "Optional decimal uint8 disconnect reason"
+                    }
+                }
+            },
+            "ReconnectPolicyCommand": {
+                "type": "object",
+                "required": [
+                    "command",
+                    "enabled"
+                ],
+                "properties": {
+                    "command": {
+                        "type": "string",
+                        "enum": [
+                            "set_reconnect"
+                        ]
+                    },
+                    "enabled": {
+                        "type": "string",
+                        "enum": [
+                            "true",
+                            "false",
+                            "1",
+                            "0"
+                        ]
+                    }
+                }
+            }
+        }
+    }
+}

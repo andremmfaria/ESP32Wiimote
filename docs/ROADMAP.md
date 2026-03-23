@@ -58,7 +58,7 @@ REST-first authenticated API over Wi-Fi.
 
 Baseline characteristics:
 
-- read endpoints for snapshots (`/api/wiimote/input`, `/api/wiimote/status`, `/api/controller/status`)
+- read endpoints for snapshots (`/api/wiimote/status`, `/api/wiimote/config`)
 - write endpoints for runtime commands
 - static OpenAPI document at `/openapi.json`
 - minimal on-device web UI at `/`
@@ -116,7 +116,7 @@ Current implementation snapshot:
 
 - parser/dispatcher/formatter wired through `ESP32Wiimote::task()`
 - one complete command line processed per `task()` call
-- unlock window for privileged serial commands (`wm unlock <seconds>`)
+- unlock window for privileged serial commands (`wm unlock <username> <password> [seconds]`)
 - native serial suites cover parser, dispatcher, formatter, session, and integration paths
 
 ### Phase 4: Wi-Fi API

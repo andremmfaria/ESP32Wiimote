@@ -6,6 +6,7 @@ Complete API documentation for the ESP32Wiimote library.
 
 - [ESP32Wiimote Class](#esp32wiimote-class)
 - [Serial Control Interface](#serial-control-interface)
+- [Wi-Fi Control API](#wi-fi-control-api)
 - [Button States](#button-states)
 - [Sensor Data Structures](#sensor-data-structures)
 - [Filter Configuration](#filter-configuration)
@@ -502,7 +503,7 @@ Returns whether serial command processing is enabled.
 #### Implemented command set
 
 - `wm status`
-- `wm unlock <seconds>`
+- `wm unlock <username> <password> [seconds]`
 - `wm led <mask>`
 - `wm mode <mode> [continuous]`
 - `wm accel <on|off>`
@@ -532,7 +533,9 @@ Error examples:
 
 Serial privileged commands are locked by default.
 
-- `wm unlock <seconds>` starts a time-bounded unlock session
+- `wm unlock <username> <password> [seconds]` starts a credential-validated, time-bounded unlock session
+- default unlock duration is 60 seconds when `[seconds]` is omitted
+- invalid credentials return `@wm: error bad_credentials`
 - while unlocked, privileged commands are accepted (subject to normal state guards)
 - after expiry, privileged commands return `@wm: error locked`
 
@@ -562,6 +565,48 @@ Deterministic rejection examples:
 - `stopDiscovery()` while discovery is idle -> rejected
 - `disconnectActiveController(...)` while disconnected -> rejected
 - Any controller operation before runtime initialization -> rejected/no-op (by method contract)
+
+---
+
+### Wi-Fi Control API
+
+Wi-Fi control is exposed as an authenticated REST API with a static OpenAPI document.
+
+#### Auth model
+
+- API routes require either `Authorization: Bearer <token>` or `Authorization: Basic <base64(user:pass)>`
+- missing or invalid credentials return HTTP `401`
+
+#### Static routes
+
+- `GET /` -> control page (`text/html`)
+- `GET /app.js` -> browser client script (`application/javascript`)
+- `GET /styles.css` -> stylesheet (`text/css`)
+- `GET /openapi.json` -> OpenAPI 3.0 contract (`application/json`)
+
+#### REST read endpoints
+
+- `GET /api/wiimote/status`
+- `GET /api/wiimote/config`
+
+#### REST write endpoints
+
+- `POST /api/wiimote/commands/leds`
+- `POST /api/wiimote/commands/reporting-mode`
+- `POST /api/wiimote/commands/accelerometer`
+- `POST /api/wiimote/commands/request-status`
+- `POST /api/wiimote/commands/scan`
+- `POST /api/wiimote/commands/discovery`
+- `POST /api/wiimote/commands/disconnect`
+- `POST /api/wiimote/commands/reconnect-policy`
+
+#### HTTP result mapping
+
+- `200` command/read accepted
+- `400` malformed or missing request body fields
+- `401` auth failed
+- `403` reserved for future policy restrictions
+- `409` command rejected by runtime guards
 
 ---
 

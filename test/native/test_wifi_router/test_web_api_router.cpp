@@ -220,6 +220,18 @@ void testStaticStylesRouteReturns200WithoutAuth() {
     TEST_ASSERT_NOT_NULL(std::strstr(gBuf, ":root"));
 }
 
+void testOpenApiRouteReturns200WithoutAuth() {
+    WebApiContext ctx = makeCtx();
+    static char kOpenApiBuf[8192];
+    std::memset(kOpenApiBuf, 0, sizeof(kOpenApiBuf));
+    WebApiRouteResult r = webApiRoute(&ctx, "GET", "/openapi.json", nullptr, nullptr, 0U,
+                                      kOpenApiBuf, sizeof(kOpenApiBuf));
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+    TEST_ASSERT_EQUAL_STRING("application/json", r.contentType);
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"openapi\":\"3.0.3\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"bearerAuth\""));
+}
+
 // ===== GET /api/wiimote/status =====
 
 void testGetStatusReturns200() {
@@ -524,6 +536,7 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testStaticIndexRouteReturns200WithoutAuth);
     RUN_TEST(testStaticAppJsRouteReturns200WithoutAuth);
     RUN_TEST(testStaticStylesRouteReturns200WithoutAuth);
+    RUN_TEST(testOpenApiRouteReturns200WithoutAuth);
 
     RUN_TEST(testGetStatusReturns200);
     RUN_TEST(testGetStatusJsonShape);

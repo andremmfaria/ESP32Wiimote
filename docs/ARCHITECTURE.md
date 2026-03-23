@@ -11,6 +11,7 @@ ESP32Wiimote is designed with a layered architecture separating hardware interfa
 - [Threading Model](#threading-model)
 - [Controller Command State Machine](#controller-command-state-machine)
 - [Serial Command Pipeline](#serial-command-pipeline)
+- [Wi-Fi API Pipeline](#wi-fi-api-pipeline)
 
 ---
 
@@ -344,12 +345,49 @@ Bounds and behavior:
 Privileged-command gating:
 
 - Write/control serial commands are locked by default
-- `wm unlock <seconds>` opens a time-bounded unlock window
+- `wm unlock <username> <password> [seconds]` opens a credential-validated unlock window
 - Once expired, privileged commands are rejected with `locked`
 
 Integration note:
 
 - Serial command handlers call the same public runtime methods used by firmware code, preserving a single behavior surface.
+
+---
+
+## Wi-Fi API Pipeline
+
+Wi-Fi runtime control is exposed through a static-plus-REST router in `src/wifi/web_api_router.cpp`.
+
+Components:
+
+- Auth validator: `src/wifi/web_auth.{h,cpp}`
+- Request parser: `src/wifi/web_request_parser.{h,cpp}`
+- Response serializer: `src/wifi/web_response_serializer.{h,cpp}`
+- Router and static assets: `src/wifi/web_api_router.{h,cpp}`, `src/wifi/web/`
+
+Request flow:
+
+1. Static route short-circuit (`/`, `/app.js`, `/styles.css`, `/openapi.json`)
+2. Auth enforcement (Bearer or Basic)
+3. Route lookup by method + path
+4. Body parse for `POST` routes
+5. Public API callback dispatch
+6. Deterministic status mapping and JSON serialization
+
+HTTP mapping:
+
+- `200`: read success or command accepted
+- `400`: malformed body, missing required fields, invalid argument
+- `401`: missing/invalid credentials
+- `403`: reserved for future policy-based restrictions
+- `404`: unknown route
+- `409`: runtime/state guard rejected command
+
+Lifecycle integration:
+
+- Wi-Fi startup is staged asynchronously in `ESP32Wiimote::task()`
+- startup order is Wi-Fi layer -> filesystem mount -> static routes -> API routes -> ready flag
+- `RestOnly` mode enables REST routes only; `RestAndWebSocket` includes websocket route stage
 
 ---
 
