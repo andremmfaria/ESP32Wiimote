@@ -45,6 +45,7 @@ struct WebApiContext {
 
 struct WebApiRouteResult {
     int httpStatus{200};
+    const char *contentType{"application/json"};
 };
 
 // ===== Router Interface =====

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ESP32 Wiimote Control</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <p class="eyebrow">ESP32 WIIMOTE</p>
+      <h1>Control Bridge</h1>
+      <p class="sub">Monitor status and send runtime commands from your browser.</p>
+    </header>
+
+    <section class="panel" aria-label="Connection status">
+      <h2>Status</h2>
+      <div class="status-grid">
+        <div>
+          <span class="label">Connected</span>
+          <strong id="status-connected">-</strong>
+        </div>
+        <div>
+          <span class="label">Battery</span>
+          <strong id="status-battery">-</strong>
+        </div>
+      </div>
+      <button id="refresh-status" class="btn primary">Refresh Status</button>
+    </section>
+
+    <section class="panel" aria-label="Controller actions">
+      <h2>Actions</h2>
+      <div class="actions">
+        <button id="scan-start" class="btn">Start Scan</button>
+        <button id="scan-stop" class="btn">Stop Scan</button>
+        <button id="request-status" class="btn">Request Status</button>
+        <button id="disconnect" class="btn danger">Disconnect</button>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Authentication">
+      <h2>Auth</h2>
+      <p class="small">Use <code>Bearer &lt;token&gt;</code> or <code>Basic &lt;base64&gt;</code>.</p>
+      <input id="auth-input" class="input" type="text" placeholder="Authorization header value">
+    </section>
+
+    <pre id="log" class="log" aria-live="polite"></pre>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

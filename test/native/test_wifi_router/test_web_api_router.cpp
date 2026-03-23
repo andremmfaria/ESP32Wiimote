@@ -182,12 +182,37 @@ void testMethodMismatchReturns404() {
     TEST_ASSERT_EQUAL(404, r.httpStatus);
 }
 
+void testStaticIndexRouteReturns200WithoutAuth() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "GET", "/", nullptr, nullptr);
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+    TEST_ASSERT_EQUAL_STRING("text/html", r.contentType);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "ESP32 Wiimote Control"));
+}
+
+void testStaticAppJsRouteReturns200WithoutAuth() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "GET", "/app.js", nullptr, nullptr);
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+    TEST_ASSERT_EQUAL_STRING("application/javascript", r.contentType);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "fetchWithAuth"));
+}
+
+void testStaticStylesRouteReturns200WithoutAuth() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "GET", "/styles.css", nullptr, nullptr);
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+    TEST_ASSERT_EQUAL_STRING("text/css", r.contentType);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, ":root"));
+}
+
 // ===== GET /api/wiimote/status =====
 
 void testGetStatusReturns200() {
     WebApiContext ctx = makeCtx();
     WebApiRouteResult r = callRoute(&ctx, "GET", "/api/wiimote/status", kValidBearer, nullptr);
     TEST_ASSERT_EQUAL(200, r.httpStatus);
+    TEST_ASSERT_EQUAL_STRING("application/json", r.contentType);
 }
 
 void testGetStatusJsonShape() {
@@ -481,6 +506,9 @@ int main(int /*argc*/, char ** /*argv*/) {
 
     RUN_TEST(testUnknownPathReturns404);
     RUN_TEST(testMethodMismatchReturns404);
+    RUN_TEST(testStaticIndexRouteReturns200WithoutAuth);
+    RUN_TEST(testStaticAppJsRouteReturns200WithoutAuth);
+    RUN_TEST(testStaticStylesRouteReturns200WithoutAuth);
 
     RUN_TEST(testGetStatusReturns200);
     RUN_TEST(testGetStatusJsonShape);
