@@ -359,6 +359,22 @@ void tinyWiimoteSetFastReconnectTtlMs(uint32_t ttlMs) {
 }
 
 void tinyWiimoteSetScanEnabled(bool enabled) {
+    if (!gRuntime.hciEventContext.deviceInited) {
+        LOG_WARN("TinyWiimote: Reject setScanEnabled(%d) - controller not started\n", enabled);
+        return;
+    }
+
+    if (!gRuntime.wiimoteState.isConnected()) {
+        if (enabled && gRuntime.hciEventContext.scanningEnabled) {
+            LOG_WARN("TinyWiimote: Reject setScanEnabled(true) - scanning already enabled\n");
+            return;
+        }
+        if (!enabled && !gRuntime.hciEventContext.scanningEnabled) {
+            LOG_WARN("TinyWiimote: Reject setScanEnabled(false) - scanning already disabled\n");
+            return;
+        }
+    }
+
     uint8_t tx[8] = {0};
     const uint8_t kMode = enabled ? 0x02 : 0x00;
     const uint16_t kTxLen = makeCmdWriteScanEnable(tx, kMode);
@@ -367,7 +383,18 @@ void tinyWiimoteSetScanEnabled(bool enabled) {
 }
 
 bool tinyWiimoteStartDiscovery() {
+    if (!gRuntime.hciEventContext.deviceInited) {
+        LOG_WARN("TinyWiimote: Reject startDiscovery - controller not started\n");
+        return false;
+    }
+
+    if (gRuntime.wiimoteState.isConnected()) {
+        LOG_WARN("TinyWiimote: Reject startDiscovery - controller already connected\n");
+        return false;
+    }
+
     if (gRuntime.hciEventContext.scanningEnabled) {
+        LOG_WARN("TinyWiimote: Reject startDiscovery - scanning already enabled\n");
         return false;
     }
 
@@ -380,7 +407,18 @@ bool tinyWiimoteStartDiscovery() {
 }
 
 bool tinyWiimoteStopDiscovery() {
+    if (!gRuntime.hciEventContext.deviceInited) {
+        LOG_WARN("TinyWiimote: Reject stopDiscovery - controller not started\n");
+        return false;
+    }
+
+    if (gRuntime.wiimoteState.isConnected()) {
+        LOG_WARN("TinyWiimote: Reject stopDiscovery - controller is connected\n");
+        return false;
+    }
+
     if (!gRuntime.hciEventContext.scanningEnabled) {
+        LOG_WARN("TinyWiimote: Reject stopDiscovery - discovery not active\n");
         return false;
     }
 

@@ -428,6 +428,13 @@ void testTinyWiimoteSetScanEnabledSendsExpectedModes() {
     TwHciInterface hci = {captureTx};
     twReal_tinyWiimoteInit(hci);
 
+    // Not started: setScanEnabled should be rejected (no HCI command sent).
+    gSendCount = 0;
+    twReal_tinyWiimoteSetScanEnabled(true);
+    TEST_ASSERT_EQUAL(0, gSendCount);
+
+    twReal_tinyWiimoteResetDevice();
+
     gSendCount = 0;
     twReal_tinyWiimoteSetScanEnabled(true);
     TEST_ASSERT_EQUAL(1, gSendCount);
@@ -437,15 +444,34 @@ void testTinyWiimoteSetScanEnabledSendsExpectedModes() {
     TEST_ASSERT_EQUAL_UINT8(0x01, gLastTx[3]);
     TEST_ASSERT_EQUAL_UINT8(0x02, gLastTx[4]);
 
+    // Re-applying the same state is rejected while disconnected.
+    gSendCount = 0;
+    twReal_tinyWiimoteSetScanEnabled(true);
+    TEST_ASSERT_EQUAL(0, gSendCount);
+
     gSendCount = 0;
     twReal_tinyWiimoteSetScanEnabled(false);
     TEST_ASSERT_EQUAL(1, gSendCount);
     TEST_ASSERT_EQUAL_UINT8(0x00, gLastTx[4]);
+
+    // Re-applying disabled state is rejected while disconnected.
+    gSendCount = 0;
+    twReal_tinyWiimoteSetScanEnabled(false);
+    TEST_ASSERT_EQUAL(0, gSendCount);
 }
 
 void testTinyWiimoteDiscoveryStartStopGuards() {
     TwHciInterface hci = {captureTx};
     twReal_tinyWiimoteInit(hci);
+
+    // Not started: both operations should be rejected.
+    gSendCount = 0;
+    TEST_ASSERT_FALSE(twReal_tinyWiimoteStartDiscovery());
+    TEST_ASSERT_EQUAL(0, gSendCount);
+    TEST_ASSERT_FALSE(twReal_tinyWiimoteStopDiscovery());
+    TEST_ASSERT_EQUAL(0, gSendCount);
+
+    twReal_tinyWiimoteResetDevice();
 
     // Stop while not scanning should be rejected.
     gSendCount = 0;
