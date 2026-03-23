@@ -379,6 +379,91 @@ void testESP32WiimoteConfigurePropagatesCredentialsToSerialUnlock() {
     TEST_ASSERT_EQUAL_STRING("@wm: ok\n@wm: ok\n", mockSerialGetOutput());
 }
 
+void testESP32WiimoteWifiControlDisabledByDefault() {
+    ESP32Wiimote device;
+
+    TEST_ASSERT_FALSE(device.isWifiControlEnabled());
+    TEST_ASSERT_FALSE(device.isWifiControlReady());
+
+    const ESP32Wiimote::WifiControlState kState = device.getWifiControlState();
+    TEST_ASSERT_FALSE(kState.enabled);
+    TEST_ASSERT_FALSE(kState.ready);
+    TEST_ASSERT_FALSE(kState.wifiLayerStarted);
+}
+
+void testESP32WiimoteWifiControlNotEnabledWhenConfigDisablesWifi() {
+    ESP32Wiimote device;
+    WiimoteConfig config = {};
+    config.wifiEnabled = false;
+    config.credentials.username = "admin";
+    config.credentials.password = "password";
+    config.credentials.bearerToken = "token";
+
+    device.configure(config);
+    device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
+
+    TEST_ASSERT_FALSE(device.isWifiControlEnabled());
+    TEST_ASSERT_FALSE(device.isWifiControlReady());
+}
+
+void testESP32WiimoteWifiControlAsyncLifecycleRestOnly() {
+    ESP32Wiimote device;
+    WiimoteConfig config = {};
+    config.wifiEnabled = true;
+    config.credentials.username = "admin";
+    config.credentials.password = "password";
+    config.credentials.bearerToken = "token";
+
+    device.configure(config);
+    device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
+
+    TEST_ASSERT_TRUE(device.isWifiControlEnabled());
+    TEST_ASSERT_FALSE(device.isWifiControlReady());
+
+    device.task();
+    TEST_ASSERT_TRUE(device.getWifiControlState().wifiLayerStarted);
+    TEST_ASSERT_FALSE(device.getWifiControlState().littleFsMounted);
+
+    device.task();
+    TEST_ASSERT_TRUE(device.getWifiControlState().littleFsMounted);
+    TEST_ASSERT_FALSE(device.getWifiControlState().staticRoutesRegistered);
+
+    device.task();
+    TEST_ASSERT_TRUE(device.getWifiControlState().staticRoutesRegistered);
+    TEST_ASSERT_FALSE(device.getWifiControlState().apiRoutesRegistered);
+
+    device.task();
+    TEST_ASSERT_TRUE(device.getWifiControlState().apiRoutesRegistered);
+    TEST_ASSERT_FALSE(device.getWifiControlState().websocketRoutesRegistered);
+    TEST_ASSERT_FALSE(device.isWifiControlReady());
+
+    device.task();
+    TEST_ASSERT_TRUE(device.isWifiControlReady());
+    TEST_ASSERT_FALSE(device.getWifiControlState().websocketRoutesRegistered);
+}
+
+void testESP32WiimoteWifiControlRestAndWebSocketAddsWebSocketStage() {
+    ESP32Wiimote device;
+    WiimoteConfig config = {};
+    config.wifiEnabled = true;
+    config.credentials.username = "admin";
+    config.credentials.password = "password";
+    config.credentials.bearerToken = "token";
+
+    device.configure(config);
+    device.enableWifiControl(true, WifiDeliveryMode::RestAndWebSocket);
+
+    for (int i = 0; i < 5; ++i) {
+        device.task();
+    }
+
+    TEST_ASSERT_TRUE(device.getWifiControlState().websocketRoutesRegistered);
+    TEST_ASSERT_FALSE(device.isWifiControlReady());
+
+    device.task();
+    TEST_ASSERT_TRUE(device.isWifiControlReady());
+}
+
 void testESP32WiimoteSerialControlIgnoresNonCommandInput() {
     ESP32Wiimote device;
     mockBtStarted = true;
@@ -432,6 +517,10 @@ int main(int argc, char **argv) {
     RUN_TEST(testESP32WiimoteSerialControlUnlockExpiresByTime);
     RUN_TEST(testESP32WiimoteConfigureWithWifiDisabledRejectsBadCredentials);
     RUN_TEST(testESP32WiimoteConfigurePropagatesCredentialsToSerialUnlock);
+    RUN_TEST(testESP32WiimoteWifiControlDisabledByDefault);
+    RUN_TEST(testESP32WiimoteWifiControlNotEnabledWhenConfigDisablesWifi);
+    RUN_TEST(testESP32WiimoteWifiControlAsyncLifecycleRestOnly);
+    RUN_TEST(testESP32WiimoteWifiControlRestAndWebSocketAddsWebSocketStage);
     RUN_TEST(testESP32WiimoteSerialControlIgnoresNonCommandInput);
     RUN_TEST(testESP32WiimoteSerialControlReportsLineTooLong);
 
@@ -457,6 +546,10 @@ void setup() {
     RUN_TEST(testESP32WiimoteSerialControlUnlockExpiresByTime);
     RUN_TEST(testESP32WiimoteConfigureWithWifiDisabledRejectsBadCredentials);
     RUN_TEST(testESP32WiimoteConfigurePropagatesCredentialsToSerialUnlock);
+    RUN_TEST(testESP32WiimoteWifiControlDisabledByDefault);
+    RUN_TEST(testESP32WiimoteWifiControlNotEnabledWhenConfigDisablesWifi);
+    RUN_TEST(testESP32WiimoteWifiControlAsyncLifecycleRestOnly);
+    RUN_TEST(testESP32WiimoteWifiControlRestAndWebSocketAddsWebSocketStage);
     RUN_TEST(testESP32WiimoteSerialControlIgnoresNonCommandInput);
     RUN_TEST(testESP32WiimoteSerialControlReportsLineTooLong);
 

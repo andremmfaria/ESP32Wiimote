@@ -26,6 +26,15 @@ namespace {
 
 constexpr size_t kSerialResponseBufSize = 192U;
 
+enum WifiInitStage : uint8_t {
+    KWifiInitStageStartWifi = 0U,
+    KWifiInitStageMountLittleFs = 1U,
+    KWifiInitStageRegisterStaticRoutes = 2U,
+    KWifiInitStageRegisterApiRoutes = 3U,
+    KWifiInitStageRegisterWebSocketRoutes = 4U,
+    KWifiInitStageReady = 5U,
+};
+
 class Esp32SerialCommandTarget : public SerialCommandTarget {
    public:
     explicit Esp32SerialCommandTarget(ESP32Wiimote *device) : device_(device) {}
@@ -82,7 +91,17 @@ ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config)
     , serialPrivilegedCommandsRequireUnlock_(true)
     , serialInputLine_{0}
     , serialInputLen_(0)
-    , serialInputOverflow_(false) {
+    , serialInputOverflow_(false)
+    , wifiControlEnabled_(false)
+    , wifiControlInitializing_(false)
+    , wifiControlReady_(false)
+    , wifiDeliveryMode_(WifiDeliveryMode::RestOnly)
+    , wifiInitStage_(KWifiInitStageStartWifi)
+    , wifiLayerStarted_(false)
+    , littleFsMounted_(false)
+    , staticRoutesRegistered_(false)
+    , apiRoutesRegistered_(false)
+    , websocketRoutesRegistered_(false) {
     hciCallbacks_ = new HciCallbacksHandler();
     queueManager_ = new HciQueueManager(config_.txQueueSize, config_.rxQueueSize);
     buttonState_ = new ButtonStateManager();
@@ -94,6 +113,50 @@ void ESP32Wiimote::configure(const WiimoteConfig &config) {
     wifiEnabled_ = config.wifiEnabled;
     credentials_ = config.credentials;
     serialCommandSession_.setCredentials(&credentials_);
+
+    if (!wifiEnabled_) {
+        enableWifiControl(false, wifiDeliveryMode_);
+    }
+}
+
+void ESP32Wiimote::enableWifiControl(bool enabled, WifiDeliveryMode deliveryMode) {
+    wifiDeliveryMode_ = deliveryMode;
+
+    if (!enabled || !wifiEnabled_) {
+        wifiControlEnabled_ = false;
+        resetWifiLifecycleState();
+        return;
+    }
+
+    if (wifiControlEnabled_ && wifiControlReady_ && wifiDeliveryMode_ == deliveryMode) {
+        return;
+    }
+
+    wifiControlEnabled_ = true;
+    resetWifiLifecycleState();
+    wifiControlInitializing_ = true;
+}
+
+bool ESP32Wiimote::isWifiControlEnabled() const {
+    return wifiControlEnabled_;
+}
+
+bool ESP32Wiimote::isWifiControlReady() const {
+    return wifiControlReady_;
+}
+
+ESP32Wiimote::WifiControlState ESP32Wiimote::getWifiControlState() const {
+    WifiControlState state = {};
+    state.enabled = wifiControlEnabled_;
+    state.initializing = wifiControlInitializing_;
+    state.ready = wifiControlReady_;
+    state.deliveryMode = wifiDeliveryMode_;
+    state.wifiLayerStarted = wifiLayerStarted_;
+    state.littleFsMounted = littleFsMounted_;
+    state.staticRoutesRegistered = staticRoutesRegistered_;
+    state.apiRoutesRegistered = apiRoutesRegistered_;
+    state.websocketRoutesRegistered = websocketRoutesRegistered_;
+    return state;
 }
 
 /**
@@ -123,6 +186,7 @@ bool ESP32Wiimote::init() {
  */
 void ESP32Wiimote::task() {
     if (!BluetoothController::isStarted()) {
+        processWifiControl();
         return;
     }
 
@@ -133,6 +197,8 @@ void ESP32Wiimote::task() {
     if (serialControlEnabled_) {
         processSerialControl();
     }
+
+    processWifiControl();
 }
 
 /**
@@ -354,4 +420,64 @@ void ESP32Wiimote::processSerialCommandLine(const char *line) {
     const SerialDispatchResult kDispatchResult = serialCommandDispatch(parsed, &target, options);
     serialFormatDispatchResult(response, sizeof(response), kDispatchResult);
     Serial.println(response);
+}
+
+void ESP32Wiimote::processWifiControl() {
+    if (!wifiControlEnabled_ || !wifiEnabled_) {
+        return;
+    }
+
+    if (wifiControlReady_) {
+        return;
+    }
+
+    if (!wifiControlInitializing_) {
+        wifiControlInitializing_ = true;
+    }
+
+    switch (wifiInitStage_) {
+        case KWifiInitStageStartWifi:
+            wifiLayerStarted_ = true;
+            wifiInitStage_ = KWifiInitStageMountLittleFs;
+            break;
+        case KWifiInitStageMountLittleFs:
+            littleFsMounted_ = true;
+            wifiInitStage_ = KWifiInitStageRegisterStaticRoutes;
+            break;
+        case KWifiInitStageRegisterStaticRoutes:
+            staticRoutesRegistered_ = true;
+            wifiInitStage_ = KWifiInitStageRegisterApiRoutes;
+            break;
+        case KWifiInitStageRegisterApiRoutes:
+            apiRoutesRegistered_ = true;
+            if (wifiDeliveryMode_ == WifiDeliveryMode::RestAndWebSocket) {
+                wifiInitStage_ = KWifiInitStageRegisterWebSocketRoutes;
+            } else {
+                wifiInitStage_ = KWifiInitStageReady;
+            }
+            break;
+        case KWifiInitStageRegisterWebSocketRoutes:
+            websocketRoutesRegistered_ = true;
+            wifiInitStage_ = KWifiInitStageReady;
+            break;
+        case KWifiInitStageReady:
+            wifiControlInitializing_ = false;
+            wifiControlReady_ = true;
+            break;
+        default:
+            wifiControlEnabled_ = false;
+            resetWifiLifecycleState();
+            break;
+    }
+}
+
+void ESP32Wiimote::resetWifiLifecycleState() {
+    wifiControlInitializing_ = false;
+    wifiControlReady_ = false;
+    wifiInitStage_ = KWifiInitStageStartWifi;
+    wifiLayerStarted_ = false;
+    littleFsMounted_ = false;
+    staticRoutesRegistered_ = false;
+    apiRoutesRegistered_ = false;
+    websocketRoutesRegistered_ = false;
 }

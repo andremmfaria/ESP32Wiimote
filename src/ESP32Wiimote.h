@@ -41,6 +41,11 @@ enum class ReportingMode : uint8_t {
     CoreButtonsAccelExt = 0x35,
 };
 
+enum class WifiDeliveryMode : uint8_t {
+    RestOnly = 0,
+    RestAndWebSocket = 1,
+};
+
 /**
  * ESP32Wiimote - Main Wiimote controller interface for ESP32
  * Provides high-level API for Wiimote button, sensor, and nunchuk data
@@ -72,6 +77,18 @@ class ESP32Wiimote {
         bool autoReconnectEnabled;
     };
 
+    struct WifiControlState {
+        bool enabled;
+        bool initializing;
+        bool ready;
+        WifiDeliveryMode deliveryMode;
+        bool wifiLayerStarted;
+        bool littleFsMounted;
+        bool staticRoutesRegistered;
+        bool apiRoutesRegistered;
+        bool websocketRoutesRegistered;
+    };
+
     /**
      * Create ESP32Wiimote instance with default configuration
      */
@@ -88,6 +105,27 @@ class ESP32Wiimote {
      * applied before init() to define auth behavior.
      */
     void configure(const WiimoteConfig &config);
+
+    /**
+     * Enable or disable Wi-Fi control lifecycle.
+     * Lifecycle startup is asynchronous and progresses during task() calls.
+     */
+    void enableWifiControl(bool enabled, WifiDeliveryMode deliveryMode = WifiDeliveryMode::RestOnly);
+
+    /**
+     * Returns true when Wi-Fi control lifecycle is enabled.
+     */
+    bool isWifiControlEnabled() const;
+
+    /**
+     * Returns true when Wi-Fi lifecycle completed all startup stages.
+     */
+    bool isWifiControlReady() const;
+
+    /**
+     * Returns a snapshot of Wi-Fi control lifecycle state.
+     */
+    WifiControlState getWifiControlState() const;
 
     /**
      * Initialize Bluetooth and HCI queues
@@ -281,8 +319,21 @@ class ESP32Wiimote {
     uint8_t serialInputLen_;
     bool serialInputOverflow_;
 
+    bool wifiControlEnabled_;
+    bool wifiControlInitializing_;
+    bool wifiControlReady_;
+    WifiDeliveryMode wifiDeliveryMode_;
+    uint8_t wifiInitStage_;
+    bool wifiLayerStarted_;
+    bool littleFsMounted_;
+    bool staticRoutesRegistered_;
+    bool apiRoutesRegistered_;
+    bool websocketRoutesRegistered_;
+
     void processSerialControl();
     void processSerialCommandLine(const char *line);
+    void processWifiControl();
+    void resetWifiLifecycleState();
 };
 
 #endif  // ESP32_WIIMOTE_ES_P32_WIIMOTE_H
