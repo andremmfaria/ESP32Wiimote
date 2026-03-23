@@ -36,6 +36,8 @@ enum class WebEventStreamChannel : uint8_t {
 };
 
 static const size_t kWebEventStreamChannelCount = 2U;
+static const size_t kWebEventStreamBufferCapacity = 16U;
+static const size_t kWebEventStreamMaxFrameLen = 224U;
 
 // ===== Send Callback =====
 
@@ -56,8 +58,30 @@ struct WebEventStreamClient {
     void *userData;
 };
 
+struct WebEventStreamFrame {
+    bool used;
+    uint32_t seq;
+    char frame[kWebEventStreamMaxFrameLen];
+    size_t frameLen;
+};
+
+struct WebEventStreamChannelState {
+    WebEventStreamClient client;
+    uint32_t nextSeq;
+    size_t head;
+    size_t count;
+    WebEventStreamFrame buffer[kWebEventStreamBufferCapacity];
+};
+
 struct WebEventStream {
-    WebEventStreamClient channels[kWebEventStreamChannelCount];
+    WebEventStreamChannelState channels[kWebEventStreamChannelCount];
+};
+
+struct WebEventStreamReplayResult {
+    size_t replayedCount;
+    uint32_t latestSeq;
+    uint32_t nextSeq;
+    bool requiresSnapshotRecovery;
 };
 
 // ===== API =====
@@ -102,6 +126,11 @@ void webEventStreamDisconnect(WebEventStream *stream, WebEventStreamChannel chan
 bool webEventStreamHasClient(const WebEventStream *stream, WebEventStreamChannel channel);
 
 /**
+ * Return latest sequence for a channel, or 0 when no event has been published.
+ */
+uint32_t webEventStreamLatestSeq(const WebEventStream *stream, WebEventStreamChannel channel);
+
+/**
  * Publish an input-event frame to the input channel.
  * No-op when no client is connected.
  *
@@ -128,5 +157,19 @@ void webEventStreamPublishStatus(WebEventStream *stream,
                                  const WebWiimoteStatusSnapshot &snapshot,
                                  char *buf,
                                  size_t bufSize);
+
+/**
+ * Replay events with seq > afterSeq to the provided callback.
+ *
+ * If afterSeq is older than the oldest buffered event, no frames are replayed
+ * and requiresSnapshotRecovery is set true so caller can recover via REST
+ * snapshot and then continue from nextSeq.
+ */
+bool webEventStreamReplaySince(const WebEventStream *stream,
+                               WebEventStreamChannel channel,
+                               uint32_t afterSeq,
+                               web_event_stream_send_fn sendFn,
+                               void *userData,
+                               WebEventStreamReplayResult *result);
 
 #endif  // WEB_EVENT_STREAM_H
