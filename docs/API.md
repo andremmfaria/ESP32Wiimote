@@ -383,6 +383,9 @@ Reads data from Wiimote EEPROM or control-register address space.
 
 ### Bluetooth Controller Runtime Control
 
+Controller runtime methods are guarded by a deterministic transition model documented in
+`docs/ARCHITECTURE.md` under "Controller Command State Machine".
+
 #### `void setScanEnabled(bool enabled)`
 
 Enables or disables Bluetooth scan mode at runtime.
@@ -443,9 +446,29 @@ Returns a snapshot of Bluetooth controller runtime state.
 
 **Returns:** `BluetoothControllerState` with initialization, start, scan, connection, and reconnect flags
 
+#### Controller Guard Semantics
+
+Runtime controller operations are validated before HCI command submission. Invalid
+transitions are rejected deterministically.
+
+| From state                           | Allowed commands                                                                        |
+| ------------------------------------ | --------------------------------------------------------------------------------------- |
+| Not started                          | none (all rejected)                                                                     |
+| Started, not connected, not scanning | `setScanEnabled(true)`, `startDiscovery`                                                |
+| Started, scanning                    | `stopDiscovery`, `setScanEnabled(false)`                                                |
+| Started, connecting                  | none (intermediate state; transitions complete from HCI events)                         |
+| Connected                            | `requestStatus`, `setLeds`, `setReportingMode`, `setAccelerometerEnabled`, `disconnect` |
+| Connected                            | `setScanEnabled(...)` is allowed but does not affect the active connection              |
+
+Deterministic rejection examples:
+
+- `startDiscovery()` while already scanning/discovering -> rejected
+- `stopDiscovery()` while discovery is idle -> rejected
+- `disconnectActiveController(...)` while disconnected -> rejected
+
 ---
 
-### Phase 1 Public Types
+### Public Types
 
 #### `enum class ReportingMode : uint8_t`
 

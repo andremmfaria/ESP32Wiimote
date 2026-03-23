@@ -23,7 +23,11 @@ Due to ESP32 Bluetooth Classic HCI limitations, this project supports one active
 - 🔧 **[Testing Guide](docs/TESTING.md)** - Run unit tests and integration tests
 - 📊 **[Logging System](docs/LOGGING.md)** - Configure debug output (4 levels)
 - 🏗️ **[Architecture](docs/ARCHITECTURE.md)** - System design and data flow
+- 🗺️ **[Roadmap](docs/ROADMAP.md)** - Delivery plan and control-surface scope
 - 🔍 **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+
+Canonical behavior documentation is maintained under `docs/`.
+Files under `plans/` are working execution notes and are not the source of truth.
 
 ## Requirements
 

@@ -9,6 +9,7 @@ ESP32Wiimote is designed with a layered architecture separating hardware interfa
 - [Component Responsibilities](#component-responsibilities)
 - [Data Flow](#data-flow)
 - [Threading Model](#threading-model)
+- [Controller Command State Machine](#controller-command-state-machine)
 
 ---
 
@@ -277,6 +278,35 @@ void mockL2capRawSendCallback(uint8_t* data, size_t len);
 7. CREATE_CONNECTION (0x05 0x04)
 8. CONNECTION_COMPLETE
 ```
+
+---
+
+## Controller Command State Machine
+
+Controller runtime commands use deterministic guards so transitions are explicitly
+accepted or rejected before command submission.
+
+| From state                           | Allowed commands                                                                        |
+| ------------------------------------ | --------------------------------------------------------------------------------------- |
+| Not started                          | none (all rejected)                                                                     |
+| Started, not connected, not scanning | `setScanEnabled(true)`, `startDiscovery`                                                |
+| Started, scanning                    | `stopDiscovery`, `setScanEnabled(false)`                                                |
+| Started, connecting                  | none (intermediate state; transitions complete from HCI events)                         |
+| Connected                            | `requestStatus`, `setLeds`, `setReportingMode`, `setAccelerometerEnabled`, `disconnect` |
+| Connected                            | `setScanEnabled(...)` is allowed but does not affect the active connection              |
+
+Guard behavior requirements:
+
+- Invalid transitions are rejected deterministically.
+- Rejected transitions are logged at warning level with the rejection reason.
+- Guards are evaluated before HCI command submission.
+
+Recommended deterministic rejection mapping:
+
+- `startDiscovery()` while scanning/discovering -> reject (`false`)
+- `stopDiscovery()` while idle -> reject (`false`)
+- `disconnectActiveController()` while not connected -> reject (`false`)
+- `setScanEnabled(false)` while not started -> reject (`false`)
 
 ---
 
