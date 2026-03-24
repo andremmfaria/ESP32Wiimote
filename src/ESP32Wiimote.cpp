@@ -131,6 +131,23 @@ class Esp32SerialCommandTarget : public SerialCommandTarget {
 
     uint8_t getBatteryLevel() const override { return ESP32Wiimote::getBatteryLevel(); }
 
+    bool isControllerInitialized() const override {
+        return device_->getBluetoothControllerState().started;
+    }
+
+    bool isControllerScanning() const override {
+        return device_->getBluetoothControllerState().scanning;
+    }
+
+    bool isDiscoveryActive() const override {
+        const auto kState = device_->getBluetoothControllerState();
+        return kState.started && kState.scanning;
+    }
+
+    uint16_t getActiveConnectionHandle() const override {
+        return device_->getBluetoothControllerState().activeConnectionHandle;
+    }
+
    private:
     ESP32Wiimote *device_;
 };
@@ -140,6 +157,21 @@ WebWiimoteStatusSnapshot webGetWiimoteStatus(void *userData) {
     WebWiimoteStatusSnapshot snapshot = {};
     snapshot.connected = ESP32Wiimote::isConnected();
     snapshot.batteryLevel = ESP32Wiimote::getBatteryLevel();
+    return snapshot;
+}
+
+WebControllerStatusSnapshot webGetControllerStatus(void *userData) {
+    ESP32Wiimote *device = static_cast<ESP32Wiimote *>(userData);
+    const ESP32Wiimote::BluetoothControllerState kState = device->getBluetoothControllerState();
+
+    WebControllerStatusSnapshot snapshot = {};
+    snapshot.initialized = kState.initialized;
+    snapshot.started = kState.started;
+    snapshot.scanning = kState.scanning;
+    snapshot.connected = kState.connected;
+    snapshot.activeConnectionHandle = kState.activeConnectionHandle;
+    snapshot.fastReconnectActive = kState.fastReconnectActive;
+    snapshot.autoReconnectEnabled = kState.autoReconnectEnabled;
     return snapshot;
 }
 
@@ -248,6 +280,7 @@ WebApiContext makeWebApiContext(ESP32Wiimote *device) {
     WebApiContext context = {};
     context.wifiApiToken = device->getConfig().auth.wifiApiToken;
     context.getWiimoteStatus = webGetWiimoteStatus;
+    context.getControllerStatus = webGetControllerStatus;
     context.getConfig = webGetConfig;
     context.getWifiControlState = webGetWifiControlState;
     context.setLeds = webSetLeds;

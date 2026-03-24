@@ -1,26 +1,13 @@
 #ifndef ESP32_WIIMOTE_SERIAL_COMMAND_DISPATCHER_H
 #define ESP32_WIIMOTE_SERIAL_COMMAND_DISPATCHER_H
 
+#include "../utils/command_dispatch_reason.h"
 #include "serial_command_parser.h"
 #include "serial_command_session.h"
 
 #include <stdint.h>
 
-// ---------------------------------------------------------------------------
-// Dispatch result
-// ---------------------------------------------------------------------------
-
-enum class SerialDispatchResult : uint8_t {
-    Ok,               // Command accepted / queued
-    NotConnected,     // Command requires a Wiimote connection
-    Locked,           // Command requires an active unlock window
-    UnknownCommand,   // Verb not recognised
-    BadArgument,      // Argument was present but could not be parsed
-    BadCredentials,   // Unlock credentials did not match configured session credentials
-    MissingArgument,  // Required argument was absent
-    Rejected,         // Command accepted but rejected by implementation (guard)
-    PolicyBlocked,    // Command blocked by runtime policy
-};
+using SerialDispatchResult = CommandDispatchReason;
 
 struct SerialDispatchOptions {
     SerialCommandSession *session;
@@ -60,6 +47,10 @@ struct SerialCommandTarget {
     // Query
     virtual bool isConnected() const = 0;
     virtual uint8_t getBatteryLevel() const = 0;
+    virtual bool isControllerInitialized() const = 0;
+    virtual bool isControllerScanning() const = 0;
+    virtual bool isDiscoveryActive() const = 0;
+    virtual uint16_t getActiveConnectionHandle() const = 0;
 
     virtual ~SerialCommandTarget() = default;
 };

@@ -57,6 +57,10 @@ struct MockTarget : SerialCommandTarget {
     // Controllable state
     bool connected{true};
     uint8_t battery{75};
+    bool controllerInitialized{true};
+    bool controllerScanning{false};
+    bool discoveryActive{false};
+    uint16_t activeConnectionHandle{1};
 
     // Return values for bool-returning methods
     bool retSetLeds{true};
@@ -142,6 +146,10 @@ struct MockTarget : SerialCommandTarget {
     bool isWifiApiTokenMutationAllowed() const override { return wifiApiTokenMutationAllowed; }
     bool isConnected() const override { return connected; }
     uint8_t getBatteryLevel() const override { return battery; }
+    bool isControllerInitialized() const override { return controllerInitialized; }
+    bool isControllerScanning() const override { return controllerScanning; }
+    bool isDiscoveryActive() const override { return discoveryActive; }
+    uint16_t getActiveConnectionHandle() const override { return activeConnectionHandle; }
 };
 
 // ---------------------------------------------------------------------------
@@ -444,9 +452,9 @@ void testDiscoverStopCallsStopDiscovery() {
     TEST_ASSERT_TRUE(t.stopDiscoveryCalled);
 }
 
-void testDiscoverUnknownSubcommandIsBadArgument() {
+void testDiscoverUnknownSubcommandIsInvalidVerb() {
     MockTarget t;
-    TEST_ASSERT_EQUAL(SerialDispatchResult::BadArgument, dispatch("wm discover pause", &t));
+    TEST_ASSERT_EQUAL(SerialDispatchResult::InvalidVerb, dispatch("wm discover pause", &t));
 }
 
 void testDiscoverMissingArgument() {
@@ -725,7 +733,7 @@ int main(int /*argc*/, char ** /*argv*/) {
 
     RUN_TEST(testDiscoverStartCallsStartDiscovery);
     RUN_TEST(testDiscoverStopCallsStopDiscovery);
-    RUN_TEST(testDiscoverUnknownSubcommandIsBadArgument);
+    RUN_TEST(testDiscoverUnknownSubcommandIsInvalidVerb);
     RUN_TEST(testDiscoverMissingArgument);
     RUN_TEST(testDiscoverStartRejectedByImpl);
 

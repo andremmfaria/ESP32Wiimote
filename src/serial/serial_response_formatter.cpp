@@ -27,28 +27,14 @@ size_t serialFormatError(char *out, size_t outSize, const char *code) {
 }
 
 size_t serialFormatDispatchResult(char *out, size_t outSize, SerialDispatchResult result) {
-    switch (result) {
-        case SerialDispatchResult::Ok:
-            return serialFormatOk(out, outSize);
-        case SerialDispatchResult::NotConnected:
-            return serialFormatError(out, outSize, "not_connected");
-        case SerialDispatchResult::Locked:
-            return serialFormatError(out, outSize, "locked");
-        case SerialDispatchResult::UnknownCommand:
-            return serialFormatError(out, outSize, "unknown_command");
-        case SerialDispatchResult::BadArgument:
-            return serialFormatError(out, outSize, "bad_argument");
-        case SerialDispatchResult::BadCredentials:
-            return serialFormatError(out, outSize, "bad_credentials");
-        case SerialDispatchResult::MissingArgument:
-            return serialFormatError(out, outSize, "missing_argument");
-        case SerialDispatchResult::Rejected:
-            return serialFormatError(out, outSize, "rejected");
-        case SerialDispatchResult::PolicyBlocked:
-            return serialFormatError(out, outSize, "policy_blocked");
-        default:
-            return serialFormatError(out, outSize, "internal");
+    if (result == SerialDispatchResult::Ok) {
+        return serialFormatOk(out, outSize);
     }
+    if (result == SerialDispatchResult::Queued) {
+        return serialFormatOkQueued(out, outSize);
+    }
+
+    return serialFormatError(out, outSize, commandDispatchReasonToSerialCode(result));
 }
 
 size_t serialFormatParseResult(char *out, size_t outSize, SerialParseResult result) {

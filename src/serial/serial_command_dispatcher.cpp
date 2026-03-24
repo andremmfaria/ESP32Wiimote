@@ -66,6 +66,60 @@ static bool serialParseWifiDeliveryMode(const char *token, uint8_t *out) {
 }
 
 // ---------------------------------------------------------------------------
+// State-aware rejection helpers
+// ---------------------------------------------------------------------------
+
+// Determine the specific reason a Wiimote command was rejected based on controller state.
+static SerialDispatchResult wiimoteCommandRejectReason(SerialCommandTarget *target) {
+    if (!target->isConnected()) {
+        return SerialDispatchResult::NotConnected;
+    }
+    if (target->getActiveConnectionHandle() == 0U) {
+        return SerialDispatchResult::NoActiveConnection;
+    }
+    return SerialDispatchResult::Rejected;
+}
+
+// Determine the specific reason discovery start was rejected based on controller state.
+static SerialDispatchResult discoveryStartRejectReason(SerialCommandTarget *target) {
+    if (!target->isControllerInitialized()) {
+        return SerialDispatchResult::ControllerNotInitialized;
+    }
+    if (target->isConnected()) {
+        return SerialDispatchResult::Rejected;
+    }
+    if (target->isDiscoveryActive()) {
+        return SerialDispatchResult::DiscoveryAlreadyActive;
+    }
+    return SerialDispatchResult::Rejected;
+}
+
+// Determine the specific reason discovery stop was rejected based on controller state.
+static SerialDispatchResult discoveryStopRejectReason(SerialCommandTarget *target) {
+    if (!target->isControllerInitialized()) {
+        return SerialDispatchResult::ControllerNotInitialized;
+    }
+    if (!target->isDiscoveryActive()) {
+        return SerialDispatchResult::DiscoveryNotActive;
+    }
+    return SerialDispatchResult::Rejected;
+}
+
+// Determine the specific reason disconnect was rejected based on controller state.
+static SerialDispatchResult disconnectRejectReason(SerialCommandTarget *target) {
+    if (!target->isControllerInitialized()) {
+        return SerialDispatchResult::ControllerNotInitialized;
+    }
+    if (!target->isConnected()) {
+        return SerialDispatchResult::NotConnected;
+    }
+    if (target->getActiveConnectionHandle() == 0U) {
+        return SerialDispatchResult::NoActiveConnection;
+    }
+    return SerialDispatchResult::Rejected;
+}
+
+// ---------------------------------------------------------------------------
 // Command handlers
 // ---------------------------------------------------------------------------
 
@@ -88,7 +142,7 @@ static SerialDispatchResult handleLed(const SerialParsedCommand &cmd, SerialComm
     if (!target->isConnected()) {
         return SerialDispatchResult::NotConnected;
     }
-    return target->setLeds(mask) ? SerialDispatchResult::Ok : SerialDispatchResult::Rejected;
+    return target->setLeds(mask) ? SerialDispatchResult::Ok : wiimoteCommandRejectReason(target);
 }
 
 // wm mode <value> [continuous]
@@ -111,7 +165,7 @@ static SerialDispatchResult handleMode(const SerialParsedCommand &cmd,
         return SerialDispatchResult::NotConnected;
     }
     return target->setReportingMode(mode, continuous) ? SerialDispatchResult::Ok
-                                                      : SerialDispatchResult::Rejected;
+                                                      : wiimoteCommandRejectReason(target);
 }
 
 // wm accel <on|off>
@@ -125,7 +179,7 @@ static SerialDispatchResult handleAccel(const SerialParsedCommand &cmd,
         return SerialDispatchResult::BadArgument;
     }
     return target->setAccelerometerEnabled(enabled) ? SerialDispatchResult::Ok
-                                                    : SerialDispatchResult::Rejected;
+                                                    : wiimoteCommandRejectReason(target);
 }
 
 // wm request-status
@@ -134,7 +188,7 @@ static SerialDispatchResult handleRequestStatus(const SerialParsedCommand & /*cm
     if (!target->isConnected()) {
         return SerialDispatchResult::NotConnected;
     }
-    return target->requestStatus() ? SerialDispatchResult::Ok : SerialDispatchResult::Rejected;
+    return target->requestStatus() ? SerialDispatchResult::Ok : wiimoteCommandRejectReason(target);
 }
 
 // wm scan <on|off>
@@ -158,12 +212,14 @@ static SerialDispatchResult handleDiscover(const SerialParsedCommand &cmd,
         return SerialDispatchResult::MissingArgument;
     }
     if (strcmp(cmd.tokens[2], "start") == 0) {
-        return target->startDiscovery() ? SerialDispatchResult::Ok : SerialDispatchResult::Rejected;
+        return target->startDiscovery() ? SerialDispatchResult::Ok
+                                        : discoveryStartRejectReason(target);
     }
     if (strcmp(cmd.tokens[2], "stop") == 0) {
-        return target->stopDiscovery() ? SerialDispatchResult::Ok : SerialDispatchResult::Rejected;
+        return target->stopDiscovery() ? SerialDispatchResult::Ok
+                                       : discoveryStopRejectReason(target);
     }
-    return SerialDispatchResult::BadArgument;
+    return SerialDispatchResult::InvalidVerb;
 }
 
 // wm disconnect [reason]
@@ -179,7 +235,7 @@ static SerialDispatchResult handleDisconnect(const SerialParsedCommand &cmd,
         return SerialDispatchResult::NotConnected;
     }
     return target->disconnectActiveController(reason) ? SerialDispatchResult::Ok
-                                                      : SerialDispatchResult::Rejected;
+                                                      : disconnectRejectReason(target);
 }
 
 // wm reconnect <on|off|clear>
@@ -246,7 +302,8 @@ static SerialDispatchResult handleWifiSetNetwork(const SerialParsedCommand &cmd,
 // wm wifi-restart
 static SerialDispatchResult handleWifiRestart(const SerialParsedCommand & /*cmd*/,
                                               SerialCommandTarget *target) {
-    return target->restartWifiControl() ? SerialDispatchResult::Ok : SerialDispatchResult::Rejected;
+    return target->restartWifiControl() ? SerialDispatchResult::Ok
+                                        : SerialDispatchResult::WifiControlDisabled;
 }
 
 // wm wifi-set-token <token>

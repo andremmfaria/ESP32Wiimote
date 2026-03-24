@@ -1,5 +1,7 @@
 #include "web_api_router.h"
 
+#include "../utils/command_dispatch_message_formatter.h"
+#include "../utils/command_dispatch_reason.h"
 #include "web/web_assets.h"
 #include "web_auth.h"
 #include "web_event_stream.h"
@@ -99,40 +101,68 @@ constexpr size_t arraySize(const T (&kItems)[N]) {
 }
 
 const RouteResponseEntry kReadResponses[] = {
-    {200, "OK"},
-    {400, "Bad request"},
-    {401, "Unauthorized"},
-    {403, "Forbidden"},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::Ok),
+     commandDispatchReasonToOpenApiDescription(CommandDispatchReason::Ok)},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::BadArgument),
+     commandDispatchReasonToOpenApiDescription(CommandDispatchReason::BadArgument)},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::Unauthorized),
+     commandDispatchReasonToOpenApiDescription(CommandDispatchReason::Unauthorized)},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::PolicyBlocked),
+     commandDispatchReasonToOpenApiDescription(CommandDispatchReason::Locked)},
 };
 
 const RouteResponseEntry kCommandResponses[] = {
-    {200, "OK"},        {400, "Bad request"},      {401, "Unauthorized"},
-    {403, "Forbidden"}, {409, "Command rejected"},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::Ok),
+     commandDispatchReasonToOpenApiDescription(CommandDispatchReason::Ok)},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::BadArgument),
+     commandDispatchReasonToOpenApiDescription(CommandDispatchReason::BadArgument)},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::Unauthorized),
+     commandDispatchReasonToOpenApiDescription(CommandDispatchReason::Unauthorized)},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::PolicyBlocked),
+     commandDispatchReasonToOpenApiDescription(CommandDispatchReason::Locked)},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::Rejected),
+     commandDispatchReasonToOpenApiDescription(CommandDispatchReason::Rejected)},
 };
 
 const RouteResponseEntry kWifiStateResponses[] = {
-    {200, "Wi-Fi control lifecycle state"},
-    {401, "Unauthorized"},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::Ok), "Wi-Fi control lifecycle state"},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::Unauthorized),
+     commandDispatchReasonToOpenApiDescription(CommandDispatchReason::Unauthorized)},
 };
 
 const RouteResponseEntry kWifiCommandResponses[] = {
-    {200, "OK"},
-    {400, "Bad request"},
-    {401, "Unauthorized"},
-    {409, "Command rejected"},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::Ok),
+     commandDispatchReasonToOpenApiDescription(CommandDispatchReason::Ok)},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::BadArgument),
+     commandDispatchReasonToOpenApiDescription(CommandDispatchReason::BadArgument)},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::Unauthorized),
+     commandDispatchReasonToOpenApiDescription(CommandDispatchReason::Unauthorized)},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::Rejected),
+     commandDispatchReasonToOpenApiDescription(CommandDispatchReason::Rejected)},
 };
 
 const RouteResponseEntry kWifiTokenResponses[] = {
-    {200, "OK"},
-    {400, "Bad request"},
-    {401, "Unauthorized"},
-    {403, "Policy blocked"},
-    {409, "Command rejected"},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::Ok),
+     commandDispatchReasonToOpenApiDescription(CommandDispatchReason::Ok)},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::BadArgument),
+     commandDispatchReasonToOpenApiDescription(CommandDispatchReason::BadArgument)},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::Unauthorized),
+     commandDispatchReasonToOpenApiDescription(CommandDispatchReason::Unauthorized)},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::PolicyBlocked),
+     commandDispatchReasonToOpenApiDescription(CommandDispatchReason::PolicyBlocked)},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::Rejected),
+     commandDispatchReasonToOpenApiDescription(CommandDispatchReason::Rejected)},
 };
 
 const RouteResponseEntry kCommandStatusResponses[] = {
-    {200, "Queued command status"}, {400, "Bad request"}, {401, "Unauthorized"}, {403, "Forbidden"},
-    {404, "Command not found"},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::Queued), "Queued command status"},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::BadArgument),
+     commandDispatchReasonToOpenApiDescription(CommandDispatchReason::BadArgument)},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::Unauthorized),
+     commandDispatchReasonToOpenApiDescription(CommandDispatchReason::Unauthorized)},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::PolicyBlocked),
+     commandDispatchReasonToOpenApiDescription(CommandDispatchReason::Locked)},
+    {commandDispatchReasonToHttpStatus(CommandDispatchReason::NotFound), "Command not found"},
 };
 
 const OpenApiExtraRoute kOpenApiExtraRoutes[] = {
@@ -240,6 +270,10 @@ void appendOpenApiPaths(JsonWriter &writer,
 }
 
 size_t buildOpenApiJson(char *buf, size_t size);
+WebApiRouteResult reasonResponse(char *buf,
+                                 size_t size,
+                                 CommandDispatchReason reason,
+                                 const char *messageOverride = nullptr);
 
 // ===== Internal Helpers =====
 
@@ -283,8 +317,9 @@ WebApiRouteResult writeStaticResponse(const char *body,
     }
 
     if (bodyLen + 1U > size) {
-        serializeError(buf, size, "response buffer too small");
-        return makeResult(500, "application/json");
+        return reasonResponse(
+            buf, size, CommandDispatchReason::InternalError,
+            commandDispatchMessageText(CommandDispatchMessageTemplate::ResponseBufferTooSmall));
     }
 
     std::memcpy(buf, body, bodyLen);
@@ -329,13 +364,66 @@ WebApiRouteResult errorResponse(char *buf, size_t size, int status, const char *
     return makeResult(status, "application/json");
 }
 
+WebApiRouteResult reasonResponse(char *buf,
+                                 size_t size,
+                                 CommandDispatchReason reason,
+                                 const char *messageOverride) {
+    const char *kMessage =
+        (messageOverride != nullptr) ? messageOverride : commandDispatchReasonToWebMessage(reason);
+    return errorResponse(buf, size, commandDispatchReasonToHttpStatus(reason), kMessage);
+}
+
+WebApiRouteResult missingFieldResponse(char *buf, size_t size, const char *field) {
+    char message[64] = {0};
+    if (!commandDispatchFormatMessage(CommandDispatchMessageTemplate::MissingField, field, message,
+                                      sizeof(message))) {
+        return reasonResponse(
+            buf, size, CommandDispatchReason::MissingArgument,
+            commandDispatchMessageText(CommandDispatchMessageTemplate::MissingRequiredField));
+    }
+    return reasonResponse(buf, size, CommandDispatchReason::MissingArgument, message);
+}
+
+WebApiRouteResult invalidFieldResponse(char *buf, size_t size, const char *field) {
+    char message[64] = {0};
+    if (!commandDispatchFormatMessage(CommandDispatchMessageTemplate::InvalidField, field, message,
+                                      sizeof(message))) {
+        return reasonResponse(
+            buf, size, CommandDispatchReason::BadArgument,
+            commandDispatchMessageText(CommandDispatchMessageTemplate::InvalidRequestField));
+    }
+    return reasonResponse(buf, size, CommandDispatchReason::BadArgument, message);
+}
+
+WebApiRouteResult emptyFieldResponse(char *buf, size_t size, const char *field) {
+    char message[96] = {0};
+    if (!commandDispatchFormatMessage(CommandDispatchMessageTemplate::EmptyField, field, message,
+                                      sizeof(message))) {
+        return reasonResponse(
+            buf, size, CommandDispatchReason::BadArgument,
+            commandDispatchMessageText(CommandDispatchMessageTemplate::FieldMustNotBeEmpty));
+    }
+    return reasonResponse(buf, size, CommandDispatchReason::BadArgument, message);
+}
+
+WebApiRouteResult internalSerializeFailureResponse(char *buf, size_t size, const char *message) {
+    return reasonResponse(buf, size, CommandDispatchReason::InternalError, message);
+}
+
+WebApiRouteResult invalidVerbResponse(char *buf, size_t size, const char *message) {
+    return reasonResponse(buf, size, CommandDispatchReason::InvalidVerb, message);
+}
+
 WebApiRouteResult acceptedResponse(char *buf, size_t size, uint32_t commandId) {
     int written = std::snprintf(buf, size, "{\"status\":\"accepted\",\"commandId\":%lu}",
                                 static_cast<unsigned long>(commandId));
     if (written < 0 || static_cast<size_t>(written) >= size) {
-        return errorResponse(buf, size, 500, "response buffer too small");
+        return reasonResponse(
+            buf, size, CommandDispatchReason::InternalError,
+            commandDispatchMessageText(CommandDispatchMessageTemplate::ResponseBufferTooSmall));
     }
-    return makeResult(202, "application/json");
+    return makeResult(commandDispatchReasonToHttpStatus(CommandDispatchReason::Queued),
+                      "application/json");
 }
 
 bool enqueueCommandIfConfigured(const WebApiContext *ctx,
@@ -351,7 +439,7 @@ bool enqueueCommandIfConfigured(const WebApiContext *ctx,
     uint32_t commandId = 0U;
     const char *verb = (cmd != nullptr) ? cmd->verb : "";
     if (!webCommandQueueEnqueue(ctx->commandQueue, path, verb, &commandId)) {
-        *result = errorResponse(buf, size, 503, "command queue full");
+        *result = reasonResponse(buf, size, CommandDispatchReason::QueueFull);
         return true;
     }
 
@@ -450,16 +538,20 @@ WebApiRouteResult handleGetCommandStatus(const WebApiContext *ctx,
     }
 
     if (!kParsed) {
-        return errorResponse(buf, size, 400, "invalid command id");
+        return reasonResponse(
+            buf, size, CommandDispatchReason::BadArgument,
+            commandDispatchMessageText(CommandDispatchMessageTemplate::InvalidCommandId));
     }
 
     if (ctx->commandQueue == nullptr) {
-        return errorResponse(buf, size, 404, "not found");
+        return reasonResponse(buf, size, CommandDispatchReason::NotFound);
     }
 
     WebCommandQueueEntry entry = {};
     if (!webCommandQueueGet(ctx->commandQueue, commandId, &entry)) {
-        return errorResponse(buf, size, 404, "command not found");
+        return reasonResponse(
+            buf, size, CommandDispatchReason::NotFound,
+            commandDispatchMessageText(CommandDispatchMessageTemplate::CommandNotFound));
     }
 
     const int kWritten =
@@ -467,10 +559,68 @@ WebApiRouteResult handleGetCommandStatus(const WebApiContext *ctx,
                       static_cast<unsigned long>(entry.id), queueStatusToString(entry.status),
                       queueResultToString(entry.result));
     if (kWritten < 0 || static_cast<size_t>(kWritten) >= size) {
-        return errorResponse(buf, size, 500, "response buffer too small");
+        return reasonResponse(
+            buf, size, CommandDispatchReason::InternalError,
+            commandDispatchMessageText(CommandDispatchMessageTemplate::ResponseBufferTooSmall));
     }
 
     return makeResult(200, "application/json");
+}
+
+CommandDispatchReason wiimoteCommandRejectReason(const WebApiContext *ctx) {
+    const WebWiimoteStatusSnapshot kWiimoteStatus = ctx->getWiimoteStatus(ctx->userData);
+    if (!kWiimoteStatus.connected) {
+        return CommandDispatchReason::NotConnected;
+    }
+
+    const WebControllerStatusSnapshot kControllerStatus = ctx->getControllerStatus(ctx->userData);
+    if (kControllerStatus.activeConnectionHandle == 0U) {
+        return CommandDispatchReason::NoActiveConnection;
+    }
+
+    return CommandDispatchReason::Rejected;
+}
+
+CommandDispatchReason discoveryStartRejectReason(const WebApiContext *ctx) {
+    const WebControllerStatusSnapshot kControllerStatus = ctx->getControllerStatus(ctx->userData);
+    if (!kControllerStatus.started) {
+        return CommandDispatchReason::ControllerNotInitialized;
+    }
+    if (kControllerStatus.connected) {
+        return CommandDispatchReason::Rejected;
+    }
+    if (kControllerStatus.scanning) {
+        return CommandDispatchReason::DiscoveryAlreadyActive;
+    }
+
+    return CommandDispatchReason::Rejected;
+}
+
+CommandDispatchReason discoveryStopRejectReason(const WebApiContext *ctx) {
+    const WebControllerStatusSnapshot kControllerStatus = ctx->getControllerStatus(ctx->userData);
+    if (!kControllerStatus.started) {
+        return CommandDispatchReason::ControllerNotInitialized;
+    }
+    if (!kControllerStatus.scanning) {
+        return CommandDispatchReason::DiscoveryNotActive;
+    }
+
+    return CommandDispatchReason::Rejected;
+}
+
+CommandDispatchReason disconnectRejectReason(const WebApiContext *ctx) {
+    const WebControllerStatusSnapshot kControllerStatus = ctx->getControllerStatus(ctx->userData);
+    if (!kControllerStatus.started) {
+        return CommandDispatchReason::ControllerNotInitialized;
+    }
+    if (!kControllerStatus.connected) {
+        return CommandDispatchReason::NotConnected;
+    }
+    if (kControllerStatus.activeConnectionHandle == 0U) {
+        return CommandDispatchReason::NoActiveConnection;
+    }
+
+    return CommandDispatchReason::Rejected;
 }
 
 // ===== GET Handlers =====
@@ -481,7 +631,10 @@ WebApiRouteResult handleGetStatus(const WebApiContext *ctx,
                                   size_t size) {
     WebWiimoteStatusSnapshot st = ctx->getWiimoteStatus(ctx->userData);
     if (serializeWiimoteStatus(buf, size, st) != WebSerializeResult::Ok) {
-        return errorResponse(buf, size, 500, "internal error");
+        return internalSerializeFailureResponse(
+            buf, size,
+            commandDispatchMessageText(
+                CommandDispatchMessageTemplate::FailedSerializeWiimoteStatus));
     }
     return makeResult(200, "application/json");
 }
@@ -492,7 +645,10 @@ WebApiRouteResult handleGetConfig(const WebApiContext *ctx,
                                   size_t size) {
     WebConfigSnapshot cfg = ctx->getConfig(ctx->userData);
     if (serializeConfig(buf, size, cfg) != WebSerializeResult::Ok) {
-        return errorResponse(buf, size, 500, "internal error");
+        return internalSerializeFailureResponse(
+            buf, size,
+            commandDispatchMessageText(
+                CommandDispatchMessageTemplate::FailedSerializeRuntimeConfig));
     }
     return makeResult(200, "application/json");
 }
@@ -501,13 +657,12 @@ WebApiRouteResult handleGetWifiControl(const WebApiContext *ctx,
                                        const WebParsedCommand * /*cmd*/,
                                        char *buf,
                                        size_t size) {
-    if (ctx->getWifiControlState == nullptr) {
-        return errorResponse(buf, size, 500, "internal error");
-    }
-
     const WebWifiControlStateSnapshot kState = ctx->getWifiControlState(ctx->userData);
     if (serializeWifiControlState(buf, size, kState) != WebSerializeResult::Ok) {
-        return errorResponse(buf, size, 500, "internal error");
+        return internalSerializeFailureResponse(
+            buf, size,
+            commandDispatchMessageText(
+                CommandDispatchMessageTemplate::FailedSerializeWifiControlState));
     }
     return makeResult(200, "application/json");
 }
@@ -520,11 +675,11 @@ WebApiRouteResult handlePostLeds(const WebApiContext *ctx,
                                  size_t size) {
     const char *maskVal = findField(*cmd, "mask");
     if (maskVal == nullptr) {
-        return errorResponse(buf, size, 400, "missing field: mask");
+        return missingFieldResponse(buf, size, "mask");
     }
     uint8_t mask = 0;
     if (!parseU8(maskVal, &mask)) {
-        return errorResponse(buf, size, 400, "invalid field: mask");
+        return invalidFieldResponse(buf, size, "mask");
     }
 
     WebApiRouteResult queueResult;
@@ -534,7 +689,7 @@ WebApiRouteResult handlePostLeds(const WebApiContext *ctx,
     }
 
     if (!ctx->setLeds(mask, ctx->userData)) {
-        return errorResponse(buf, size, 409, "command rejected");
+        return reasonResponse(buf, size, wiimoteCommandRejectReason(ctx));
     }
     serializeOk(buf, size);
     return makeResult(200, "application/json");
@@ -546,11 +701,11 @@ WebApiRouteResult handlePostReportingMode(const WebApiContext *ctx,
                                           size_t size) {
     const char *modeVal = findField(*cmd, "mode");
     if (modeVal == nullptr) {
-        return errorResponse(buf, size, 400, "missing field: mode");
+        return missingFieldResponse(buf, size, "mode");
     }
     uint8_t mode = 0;
     if (!parseU8(modeVal, &mode)) {
-        return errorResponse(buf, size, 400, "invalid field: mode");
+        return invalidFieldResponse(buf, size, "mode");
     }
     const char *contVal = findField(*cmd, "continuous");
     bool continuous = (contVal != nullptr) && parseBool(contVal);
@@ -562,7 +717,7 @@ WebApiRouteResult handlePostReportingMode(const WebApiContext *ctx,
     }
 
     if (!ctx->setReportingMode(mode, continuous, ctx->userData)) {
-        return errorResponse(buf, size, 409, "command rejected");
+        return reasonResponse(buf, size, wiimoteCommandRejectReason(ctx));
     }
     serializeOk(buf, size);
     return makeResult(200, "application/json");
@@ -574,7 +729,7 @@ WebApiRouteResult handlePostAccelerometer(const WebApiContext *ctx,
                                           size_t size) {
     const char *enabledVal = findField(*cmd, "enabled");
     if (enabledVal == nullptr) {
-        return errorResponse(buf, size, 400, "missing field: enabled");
+        return missingFieldResponse(buf, size, "enabled");
     }
     bool enabled = parseBool(enabledVal);
 
@@ -585,7 +740,7 @@ WebApiRouteResult handlePostAccelerometer(const WebApiContext *ctx,
     }
 
     if (!ctx->setAccelEnabled(enabled, ctx->userData)) {
-        return errorResponse(buf, size, 409, "command rejected");
+        return reasonResponse(buf, size, wiimoteCommandRejectReason(ctx));
     }
     serializeOk(buf, size);
     return makeResult(200, "application/json");
@@ -602,11 +757,7 @@ WebApiRouteResult handlePostRequestStatus(const WebApiContext *ctx,
     }
 
     if (!ctx->requestStatus(ctx->userData)) {
-        const WebWiimoteStatusSnapshot status = ctx->getWiimoteStatus(ctx->userData);
-        if (!status.connected) {
-            return errorResponse(buf, size, 409, "wiimote not connected");
-        }
-        return errorResponse(buf, size, 409, "command rejected");
+        return reasonResponse(buf, size, wiimoteCommandRejectReason(ctx));
     }
     serializeOk(buf, size);
     return makeResult(200, "application/json");
@@ -636,7 +787,8 @@ WebApiRouteResult handlePostScan(const WebApiContext *ctx,
         serializeOk(buf, size);
         return makeResult(200, "application/json");
     }
-    return errorResponse(buf, size, 400, "unknown command verb");
+    return invalidVerbResponse(
+        buf, size, commandDispatchMessageText(CommandDispatchMessageTemplate::UnknownScanVerb));
 }
 
 WebApiRouteResult handlePostDiscovery(const WebApiContext *ctx,
@@ -651,7 +803,7 @@ WebApiRouteResult handlePostDiscovery(const WebApiContext *ctx,
             return queueResult;
         }
         if (!ctx->startDiscovery(ctx->userData)) {
-            return errorResponse(buf, size, 409, "command rejected");
+            return reasonResponse(buf, size, discoveryStartRejectReason(ctx));
         }
         serializeOk(buf, size);
         return makeResult(200, "application/json");
@@ -662,12 +814,14 @@ WebApiRouteResult handlePostDiscovery(const WebApiContext *ctx,
             return queueResult;
         }
         if (!ctx->stopDiscovery(ctx->userData)) {
-            return errorResponse(buf, size, 409, "command rejected");
+            return reasonResponse(buf, size, discoveryStopRejectReason(ctx));
         }
         serializeOk(buf, size);
         return makeResult(200, "application/json");
     }
-    return errorResponse(buf, size, 400, "unknown command verb");
+    return invalidVerbResponse(
+        buf, size,
+        commandDispatchMessageText(CommandDispatchMessageTemplate::UnknownDiscoveryVerb));
 }
 
 WebApiRouteResult handlePostDisconnect(const WebApiContext *ctx,
@@ -678,7 +832,7 @@ WebApiRouteResult handlePostDisconnect(const WebApiContext *ctx,
     uint8_t reason = 0x16U;  // Default: LocalHostTerminated
     if (reasonVal != nullptr) {
         if (!parseU8(reasonVal, &reason)) {
-            return errorResponse(buf, size, 400, "invalid field: reason");
+            return invalidFieldResponse(buf, size, "reason");
         }
     }
 
@@ -689,7 +843,7 @@ WebApiRouteResult handlePostDisconnect(const WebApiContext *ctx,
     }
 
     if (!ctx->disconnect(reason, ctx->userData)) {
-        return errorResponse(buf, size, 409, "command rejected");
+        return reasonResponse(buf, size, disconnectRejectReason(ctx));
     }
     serializeOk(buf, size);
     return makeResult(200, "application/json");
@@ -701,7 +855,7 @@ WebApiRouteResult handlePostReconnectPolicy(const WebApiContext *ctx,
                                             size_t size) {
     const char *enabledVal = findField(*cmd, "enabled");
     if (enabledVal == nullptr) {
-        return errorResponse(buf, size, 400, "missing field: enabled");
+        return missingFieldResponse(buf, size, "enabled");
     }
     bool enabled = parseBool(enabledVal);
 
@@ -720,18 +874,14 @@ WebApiRouteResult handlePostWifiControl(const WebApiContext *ctx,
                                         const WebParsedCommand *cmd,
                                         char *buf,
                                         size_t size) {
-    if (ctx->setWifiControlEnabled == nullptr) {
-        return errorResponse(buf, size, 500, "internal error");
-    }
-
     const char *enabledVal = findField(*cmd, "enabled");
     if (enabledVal == nullptr) {
-        return errorResponse(buf, size, 400, "missing field: enabled");
+        return missingFieldResponse(buf, size, "enabled");
     }
     const bool kEnabled = parseBool(enabledVal);
 
     if (!ctx->setWifiControlEnabled(kEnabled, ctx->userData)) {
-        return errorResponse(buf, size, 409, "command rejected");
+        return reasonResponse(buf, size, CommandDispatchReason::Rejected);
     }
     serializeOk(buf, size);
     return makeResult(200, "application/json");
@@ -741,13 +891,9 @@ WebApiRouteResult handlePostWifiMode(const WebApiContext *ctx,
                                      const WebParsedCommand *cmd,
                                      char *buf,
                                      size_t size) {
-    if (ctx->setWifiDeliveryMode == nullptr) {
-        return errorResponse(buf, size, 500, "internal error");
-    }
-
     const char *modeVal = findField(*cmd, "mode");
     if (modeVal == nullptr) {
-        return errorResponse(buf, size, 400, "missing field: mode");
+        return missingFieldResponse(buf, size, "mode");
     }
 
     bool restAndWebSocket = false;
@@ -757,11 +903,13 @@ WebApiRouteResult handlePostWifiMode(const WebApiContext *ctx,
                std::strcmp(modeVal, "rest-websocket") == 0) {
         restAndWebSocket = true;
     } else {
-        return errorResponse(buf, size, 400, "invalid field: mode");
+        return reasonResponse(
+            buf, size, CommandDispatchReason::BadArgument,
+            commandDispatchMessageText(CommandDispatchMessageTemplate::InvalidWifiMode));
     }
 
     if (!ctx->setWifiDeliveryMode(restAndWebSocket, ctx->userData)) {
-        return errorResponse(buf, size, 409, "command rejected");
+        return reasonResponse(buf, size, CommandDispatchReason::Rejected);
     }
     serializeOk(buf, size);
     return makeResult(200, "application/json");
@@ -771,21 +919,24 @@ WebApiRouteResult handlePostWifiNetwork(const WebApiContext *ctx,
                                         const WebParsedCommand *cmd,
                                         char *buf,
                                         size_t size) {
-    if (ctx->setWifiNetwork == nullptr) {
-        return errorResponse(buf, size, 500, "internal error");
-    }
-
     const char *ssid = findField(*cmd, "ssid");
     const char *password = findField(*cmd, "password");
     if (ssid == nullptr) {
-        return errorResponse(buf, size, 400, "missing field: ssid");
+        return missingFieldResponse(buf, size, "ssid");
     }
     if (password == nullptr) {
-        return errorResponse(buf, size, 400, "missing field: password");
+        return missingFieldResponse(buf, size, "password");
+    }
+
+    if (ssid[0] == '\0') {
+        return emptyFieldResponse(buf, size, "ssid");
+    }
+    if (password[0] == '\0') {
+        return emptyFieldResponse(buf, size, "password");
     }
 
     if (!ctx->setWifiNetwork(ssid, password, ctx->userData)) {
-        return errorResponse(buf, size, 409, "command rejected");
+        return reasonResponse(buf, size, CommandDispatchReason::Rejected);
     }
     serializeOk(buf, size);
     return makeResult(200, "application/json");
@@ -795,12 +946,8 @@ WebApiRouteResult handlePostWifiRestart(const WebApiContext *ctx,
                                         const WebParsedCommand * /*cmd*/,
                                         char *buf,
                                         size_t size) {
-    if (ctx->restartWifiControl == nullptr) {
-        return errorResponse(buf, size, 500, "internal error");
-    }
-
     if (!ctx->restartWifiControl(ctx->userData)) {
-        return errorResponse(buf, size, 409, "command rejected");
+        return reasonResponse(buf, size, CommandDispatchReason::WifiControlDisabled);
     }
     serializeOk(buf, size);
     return makeResult(200, "application/json");
@@ -811,19 +958,23 @@ WebApiRouteResult handlePostWifiToken(const WebApiContext *ctx,
                                       char *buf,
                                       size_t size) {
     if (!ctx->allowWifiApiTokenMutation) {
-        return errorResponse(buf, size, 403, "policy blocked");
-    }
-    if (ctx->setWifiApiToken == nullptr) {
-        return errorResponse(buf, size, 500, "internal error");
+        return reasonResponse(
+            buf, size, CommandDispatchReason::PolicyBlocked,
+            commandDispatchMessageText(
+                CommandDispatchMessageTemplate::WifiApiTokenMutationDisabledByPolicy));
     }
 
     const char *token = findField(*cmd, "token");
     if (token == nullptr) {
-        return errorResponse(buf, size, 400, "missing field: token");
+        return missingFieldResponse(buf, size, "token");
+    }
+
+    if (token[0] == '\0') {
+        return emptyFieldResponse(buf, size, "token");
     }
 
     if (!ctx->setWifiApiToken(token, ctx->userData)) {
-        return errorResponse(buf, size, 409, "command rejected");
+        return reasonResponse(buf, size, CommandDispatchReason::Rejected);
     }
     serializeOk(buf, size);
     return makeResult(200, "application/json");
@@ -915,8 +1066,7 @@ WebApiRouteResult webApiRoute(const WebApiContext *ctx,
 
     // Step 1: Authenticate
     if (webAuthValidate(authHeader, ctx->wifiApiToken) != WebAuthResult::Ok) {
-        serializeError(responseBuf, responseBufSize, "unauthorized");
-        return makeResult(401, "application/json");
+        return reasonResponse(responseBuf, responseBufSize, CommandDispatchReason::Unauthorized);
     }
 
     // Step 2: Find and dispatch route
@@ -949,18 +1099,23 @@ WebApiRouteResult webApiRoute(const WebApiContext *ctx,
         // Step 3: Parse body for POST routes
         if (route.requiresBody) {
             if (body == nullptr || bodyLen == 0U) {
-                serializeError(responseBuf, responseBufSize, "missing request body");
-                return makeResult(400, "application/json");
+                return reasonResponse(
+                    responseBuf, responseBufSize, CommandDispatchReason::MissingArgument,
+                    commandDispatchMessageText(CommandDispatchMessageTemplate::MissingRequestBody));
             }
             WebParsedCommand cmd;
             WebRequestParseResult pr = webRequestParse(body, bodyLen, &cmd);
             if (pr == WebRequestParseResult::BodyTooLarge) {
-                serializeError(responseBuf, responseBufSize, "request body too large");
-                return makeResult(400, "application/json");
+                return reasonResponse(responseBuf, responseBufSize,
+                                      CommandDispatchReason::BadArgument,
+                                      commandDispatchMessageText(
+                                          CommandDispatchMessageTemplate::RequestBodyTooLarge));
             }
             if (pr != WebRequestParseResult::Ok) {
-                serializeError(responseBuf, responseBufSize, "malformed request body");
-                return makeResult(400, "application/json");
+                return reasonResponse(responseBuf, responseBufSize,
+                                      CommandDispatchReason::BadArgument,
+                                      commandDispatchMessageText(
+                                          CommandDispatchMessageTemplate::MalformedRequestBody));
             }
             return route.handler(ctx, &cmd, responseBuf, responseBufSize);
         }
@@ -969,6 +1124,5 @@ WebApiRouteResult webApiRoute(const WebApiContext *ctx,
     }
 
     // Not found
-    serializeError(responseBuf, responseBufSize, "not found");
-    return makeResult(404, "application/json");
+    return reasonResponse(responseBuf, responseBufSize, CommandDispatchReason::NotFound);
 }

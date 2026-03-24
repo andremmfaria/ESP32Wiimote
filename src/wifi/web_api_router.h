@@ -29,6 +29,7 @@ struct WebApiContext {
 
     // Read callbacks
     WebWiimoteStatusSnapshot (*getWiimoteStatus)(void *userData) = nullptr;
+    WebControllerStatusSnapshot (*getControllerStatus)(void *userData) = nullptr;
     WebConfigSnapshot (*getConfig)(void *userData) = nullptr;
     WebWifiControlStateSnapshot (*getWifiControlState)(void *userData) = nullptr;
 

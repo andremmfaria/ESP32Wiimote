@@ -12,6 +12,7 @@ static const char *kTestWifiToken = "esp32wiimote_bearer_token_v1";
 // ===== Mock State =====
 
 static WebWiimoteStatusSnapshot gMockStatus;
+static WebControllerStatusSnapshot gMockControllerStatus;
 static WebConfigSnapshot gMockConfig;
 
 static bool gSetLedsResult;
@@ -54,6 +55,9 @@ static char gBuf[8192];
 
 static WebWiimoteStatusSnapshot mockGetStatus(void * /*userData*/) {
     return gMockStatus;
+}
+static WebControllerStatusSnapshot mockGetControllerStatus(void * /*userData*/) {
+    return gMockControllerStatus;
 }
 static WebConfigSnapshot mockGetConfig(void * /*userData*/) {
     return gMockConfig;
@@ -120,6 +124,7 @@ static WebApiContext makeCtx() {
     WebApiContext ctx;
     ctx.wifiApiToken = kTestWifiToken;
     ctx.getWiimoteStatus = mockGetStatus;
+    ctx.getControllerStatus = mockGetControllerStatus;
     ctx.getConfig = mockGetConfig;
     ctx.getWifiControlState = mockGetWifiControlState;
     ctx.setLeds = mockSetLeds;
@@ -156,6 +161,7 @@ static WebApiRouteResult callRoute(const WebApiContext *ctx,
 
 void setUp() {
     gMockStatus = {};
+    gMockControllerStatus = {};
     gMockConfig = {};
     gSetLedsResult = true;
     gLastLedsMask = 0;
@@ -397,6 +403,16 @@ void testPostLedsRejectedReturns409() {
     TEST_ASSERT_EQUAL(409, r.httpStatus);
 }
 
+void testPostLedsDisconnectedReturnsHelpful409() {
+    gSetLedsResult = false;
+    gMockStatus.connected = false;
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/leds", kValidBearer,
+                                    "{\"command\":\"set_leds\",\"mask\":\"3\"}");
+    TEST_ASSERT_EQUAL(409, r.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "wiimote not connected"));
+}
+
 void testPostLedsQueuedWhenQueueConfiguredReturns202() {
     WebApiContext ctx = makeCtx();
     ctx.commandQueue = &gCommandQueue;
@@ -536,6 +552,7 @@ void testPostScanUnknownVerbReturns400() {
     WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/scan", kValidBearer,
                                     "{\"command\":\"scan_unknown\"}");
     TEST_ASSERT_EQUAL(400, r.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "expected scan_start or scan_stop"));
 }
 
 // ===== POST /api/wiimote/commands/discovery =====
@@ -562,11 +579,34 @@ void testPostDiscoveryStartRejectedReturns409() {
     TEST_ASSERT_EQUAL(409, r.httpStatus);
 }
 
+void testPostDiscoveryStartNotStartedReturnsHelpful409() {
+    gStartDiscoveryResult = false;
+    gMockControllerStatus.started = false;
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/discovery", kValidBearer,
+                                    "{\"command\":\"discovery_start\"}");
+    TEST_ASSERT_EQUAL(409, r.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "bluetooth controller not started"));
+}
+
+void testPostDiscoveryStopInactiveReturnsHelpful409() {
+    gStopDiscoveryResult = false;
+    gMockControllerStatus.started = true;
+    gMockControllerStatus.connected = false;
+    gMockControllerStatus.scanning = false;
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/discovery", kValidBearer,
+                                    "{\"command\":\"discovery_stop\"}");
+    TEST_ASSERT_EQUAL(409, r.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "discovery not active"));
+}
+
 void testPostDiscoveryUnknownVerbReturns400() {
     WebApiContext ctx = makeCtx();
     WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/discovery", kValidBearer,
                                     "{\"command\":\"discovery_bad\"}");
     TEST_ASSERT_EQUAL(400, r.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "expected discovery_start or discovery_stop"));
 }
 
 // ===== POST /api/wiimote/commands/disconnect =====
@@ -600,6 +640,17 @@ void testPostDisconnectRejectedReturns409() {
     WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/disconnect", kValidBearer,
                                     "{\"command\":\"disconnect\"}");
     TEST_ASSERT_EQUAL(409, r.httpStatus);
+}
+
+void testPostDisconnectNotConnectedReturnsHelpful409() {
+    gDisconnectResult = false;
+    gMockControllerStatus.started = true;
+    gMockControllerStatus.connected = false;
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/disconnect", kValidBearer,
+                                    "{\"command\":\"disconnect\"}");
+    TEST_ASSERT_EQUAL(409, r.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "wiimote not connected"));
 }
 
 // ===== POST /api/wiimote/commands/reconnect-policy =====
@@ -669,10 +720,21 @@ void testPostWifiNetworkUpdate() {
 }
 
 void testPostWifiRestart() {
+    gMockWifiControlState.enabled = true;
     WebApiContext ctx = makeCtx();
     WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wifi/restart", kValidBearer,
                                     "{\"command\":\"wifi_restart\"}");
     TEST_ASSERT_EQUAL(200, r.httpStatus);
+}
+
+void testPostWifiRestartDisabledReturnsHelpful409() {
+    gRestartWifiResult = false;
+    gMockWifiControlState.enabled = false;
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wifi/restart", kValidBearer,
+                                    "{\"command\":\"wifi_restart\"}");
+    TEST_ASSERT_EQUAL(409, r.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "wifi control is disabled"));
 }
 
 void testPostWifiTokenPolicyBlockedReturns403() {
@@ -681,6 +743,16 @@ void testPostWifiTokenPolicyBlockedReturns403() {
     WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wifi/token", kValidBearer,
                                     "{\"command\":\"wifi_token\",\"token\":\"new_token\"}");
     TEST_ASSERT_EQUAL(403, r.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "wifi API token mutation is disabled by policy"));
+}
+
+void testPostWifiTokenEmptyReturns400() {
+    WebApiContext ctx = makeCtx();
+    ctx.allowWifiApiTokenMutation = true;
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wifi/token", kValidBearer,
+                                    "{\"command\":\"wifi_token\",\"token\":\"\"}");
+    TEST_ASSERT_EQUAL(400, r.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "token must not be empty"));
 }
 
 void testPostWifiTokenAllowedReturns200() {
@@ -813,6 +885,7 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testPostLedsMissingMaskReturns400);
     RUN_TEST(testPostLedsInvalidMaskReturns400);
     RUN_TEST(testPostLedsRejectedReturns409);
+    RUN_TEST(testPostLedsDisconnectedReturnsHelpful409);
     RUN_TEST(testPostLedsQueuedWhenQueueConfiguredReturns202);
     RUN_TEST(testPostLedsQueueFullReturns503);
 
@@ -836,12 +909,15 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testPostDiscoveryStartSuccess);
     RUN_TEST(testPostDiscoveryStopSuccess);
     RUN_TEST(testPostDiscoveryStartRejectedReturns409);
+    RUN_TEST(testPostDiscoveryStartNotStartedReturnsHelpful409);
+    RUN_TEST(testPostDiscoveryStopInactiveReturnsHelpful409);
     RUN_TEST(testPostDiscoveryUnknownVerbReturns400);
 
     RUN_TEST(testPostDisconnectDefaultReason);
     RUN_TEST(testPostDisconnectCustomReason);
     RUN_TEST(testPostDisconnectInvalidReasonReturns400);
     RUN_TEST(testPostDisconnectRejectedReturns409);
+    RUN_TEST(testPostDisconnectNotConnectedReturnsHelpful409);
 
     RUN_TEST(testPostReconnectPolicyEnable);
     RUN_TEST(testPostReconnectPolicyDisable);
@@ -852,7 +928,9 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testPostWifiModeRestWs);
     RUN_TEST(testPostWifiNetworkUpdate);
     RUN_TEST(testPostWifiRestart);
+    RUN_TEST(testPostWifiRestartDisabledReturnsHelpful409);
     RUN_TEST(testPostWifiTokenPolicyBlockedReturns403);
+    RUN_TEST(testPostWifiTokenEmptyReturns400);
     RUN_TEST(testPostWifiTokenAllowedReturns200);
 
     RUN_TEST(testGetCommandStatusReturnsQueuedForEnqueuedCommand);
