@@ -42,10 +42,10 @@ static void recordCapture(SendCapture *capture,
     capture->frame[sizeof(capture->frame) - 1U] = '\0';
 
     if (capture->callCount <= 32U) {
-        const size_t idx = capture->callCount - 1U;
-        std::strncpy(capture->frames[idx], frame, sizeof(capture->frames[idx]) - 1U);
-        capture->frames[idx][sizeof(capture->frames[idx]) - 1U] = '\0';
-        capture->frameLens[idx] = frameLen;
+        const size_t kIdx = capture->callCount - 1U;
+        std::strncpy(capture->frames[kIdx], frame, sizeof(capture->frames[kIdx]) - 1U);
+        capture->frames[kIdx][sizeof(capture->frames[kIdx]) - 1U] = '\0';
+        capture->frameLens[kIdx] = frameLen;
     }
 }
 

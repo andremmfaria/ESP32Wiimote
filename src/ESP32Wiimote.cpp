@@ -139,6 +139,7 @@ void ESP32Wiimote::configure(const WiimoteConfig &config) {
 }
 
 void ESP32Wiimote::enableWifiControl(bool enabled, WifiDeliveryMode deliveryMode) {
+    const WifiDeliveryMode kPreviousDeliveryMode = wifiDeliveryMode_;
     wifiDeliveryMode_ = deliveryMode;
 
     if (!enabled || !wifiEnabled_) {
@@ -147,7 +148,7 @@ void ESP32Wiimote::enableWifiControl(bool enabled, WifiDeliveryMode deliveryMode
         return;
     }
 
-    if (wifiControlEnabled_ && wifiControlReady_ && wifiDeliveryMode_ == deliveryMode) {
+    if (wifiControlEnabled_ && wifiControlReady_ && kPreviousDeliveryMode == deliveryMode) {
         return;
     }
 
