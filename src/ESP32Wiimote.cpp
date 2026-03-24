@@ -168,7 +168,9 @@ ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config)
     , littleFsMounted_(false)
     , staticRoutesRegistered_(false)
     , apiRoutesRegistered_(false)
-    , websocketRoutesRegistered_(false) {
+    , websocketRoutesRegistered_(false)
+    , serverStarted_(false)
+    , serverBindFailed_(false) {
     hciCallbacks_ = new HciCallbacksHandler();
     queueManager_ = new HciQueueManager(config_.txQueueSize, config_.rxQueueSize);
     buttonState_ = new ButtonStateManager();
@@ -355,6 +357,8 @@ ESP32Wiimote::WifiControlState ESP32Wiimote::getWifiControlState() const {
     state.staticRoutesRegistered = staticRoutesRegistered_;
     state.apiRoutesRegistered = apiRoutesRegistered_;
     state.websocketRoutesRegistered = websocketRoutesRegistered_;
+    state.serverStarted = serverStarted_;
+    state.serverBindFailed = serverBindFailed_;
     return state;
 }
 
@@ -787,6 +791,8 @@ void ESP32Wiimote::resetWifiLifecycleState() {
     staticRoutesRegistered_ = false;
     apiRoutesRegistered_ = false;
     websocketRoutesRegistered_ = false;
+    serverStarted_ = false;
+    serverBindFailed_ = false;
 }
 
 void ESP32Wiimote::persistRuntimeConfigSnapshot() {

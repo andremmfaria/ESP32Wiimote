@@ -626,6 +626,7 @@ void testGetWifiControlReturns200() {
     WebApiRouteResult r = callRoute(&ctx, "GET", "/api/wifi/control", kValidBearer, nullptr);
     TEST_ASSERT_EQUAL(200, r.httpStatus);
     TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "\"enabled\":true"));
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "\"serverStarted\":false"));
     TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "\"deliveryMode\":\"rest-ws\""));
 }
 

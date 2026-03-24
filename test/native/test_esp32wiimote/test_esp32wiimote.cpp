@@ -447,6 +447,8 @@ void testESP32WiimoteWifiControlDisabledByDefault() {
     TEST_ASSERT_FALSE(kState.networkConnected);
     TEST_ASSERT_FALSE(kState.networkConnectFailed);
     TEST_ASSERT_FALSE(kState.wifiLayerStarted);
+    TEST_ASSERT_FALSE(kState.serverStarted);
+    TEST_ASSERT_FALSE(kState.serverBindFailed);
 }
 
 void testESP32WiimoteWifiControlCanBeEnabledAtRuntimeWhenConfigStartsDisabled() {
@@ -500,6 +502,8 @@ void testESP32WiimoteWifiControlAsyncLifecycleRestOnly() {
     device.task();
     TEST_ASSERT_TRUE(device.isWifiControlReady());
     TEST_ASSERT_FALSE(device.getWifiControlState().websocketRoutesRegistered);
+    TEST_ASSERT_FALSE(device.getWifiControlState().serverStarted);
+    TEST_ASSERT_FALSE(device.getWifiControlState().serverBindFailed);
 }
 
 void testESP32WiimoteWifiControlRestAndWebSocketAddsWebSocketStage() {

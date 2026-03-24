@@ -142,11 +142,14 @@ WebSerializeResult serializeWifiControlState(char *buf,
         "\"networkConnectAttempted\":%s,"
         "\"networkConnected\":%s,"
         "\"networkConnectFailed\":%s,"
+        "\"serverStarted\":%s,"
+        "\"serverBindFailed\":%s,"
         "\"deliveryMode\":\"%s\""
         "}",
         boolStr(state.enabled), boolStr(state.ready), boolStr(state.networkCredentialsConfigured),
         boolStr(state.networkConnectAttempted), boolStr(state.networkConnected),
-        boolStr(state.networkConnectFailed), state.restAndWebSocket ? "rest-ws" : "rest");
+        boolStr(state.networkConnectFailed), boolStr(state.serverStarted),
+        boolStr(state.serverBindFailed), state.restAndWebSocket ? "rest-ws" : "rest");
     if (!snprintfFits(n, size)) {
         return WebSerializeResult::BufferTooSmall;
     }

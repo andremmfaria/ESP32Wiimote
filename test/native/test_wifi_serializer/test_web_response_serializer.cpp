@@ -273,6 +273,8 @@ void testSerializeWifiControlStateBasic() {
     state.networkConnectAttempted = true;
     state.networkConnected = false;
     state.networkConnectFailed = true;
+    state.serverStarted = false;
+    state.serverBindFailed = true;
     state.restAndWebSocket = true;
 
     WebSerializeResult r = serializeWifiControlState(buf, sizeof(buf), state);
@@ -280,7 +282,8 @@ void testSerializeWifiControlStateBasic() {
     TEST_ASSERT_EQUAL_STRING(
         "{\"enabled\":true,\"ready\":false,\"networkCredentialsConfigured\":true,"
         "\"networkConnectAttempted\":true,\"networkConnected\":false,"
-        "\"networkConnectFailed\":true,\"deliveryMode\":\"rest-ws\"}",
+        "\"networkConnectFailed\":true,\"serverStarted\":false,"
+        "\"serverBindFailed\":true,\"deliveryMode\":\"rest-ws\"}",
         buf);
 }
 

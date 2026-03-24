@@ -106,6 +106,8 @@ class ESP32Wiimote {
         bool staticRoutesRegistered;
         bool apiRoutesRegistered;
         bool websocketRoutesRegistered;
+        bool serverStarted;
+        bool serverBindFailed;
     };
 
     /**
@@ -396,6 +398,8 @@ class ESP32Wiimote {
     bool staticRoutesRegistered_;
     bool apiRoutesRegistered_;
     bool websocketRoutesRegistered_;
+    bool serverStarted_;
+    bool serverBindFailed_;
 
     void processSerialControl();
     void processSerialCommandLine(const char *line);
