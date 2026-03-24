@@ -27,6 +27,8 @@ NvsStore *storeFor(nvs_handle_t handle) {
 
 }  // namespace
 
+bool gMockNvsOpenFail = false;
+
 esp_err_t nvs_flash_init() {
     return ESP_OK;
 }
@@ -39,7 +41,7 @@ esp_err_t nvs_flash_erase() {
 }
 
 esp_err_t nvs_open(const char *name, nvs_open_mode_t /*mode*/, nvs_handle_t *out_handle) {
-    if (name == nullptr || out_handle == nullptr) {
+    if (gMockNvsOpenFail || name == nullptr || out_handle == nullptr) {
         return ESP_FAIL;
     }
     *out_handle = gNextHandle++;

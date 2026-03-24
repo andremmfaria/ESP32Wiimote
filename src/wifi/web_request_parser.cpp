@@ -22,6 +22,14 @@ struct JsonToken {
     size_t valueLen;
 };
 
+JsonToken makeToken(JsonTokenType type) {
+    JsonToken token;
+    token.type = type;
+    token.value[0] = '\0';
+    token.valueLen = 0U;
+    return token;
+}
+
 class JsonParser {
    public:
     JsonParser(const char *data, size_t len) : data_(data), len_(len) {}
@@ -30,7 +38,7 @@ class JsonParser {
         skipWhitespace();
 
         if (pos_ >= len_) {
-            return {JsonTokenType::Eof, "", 0};
+            return makeToken(JsonTokenType::Eof);
         }
 
         char ch = data_[pos_];
@@ -38,20 +46,20 @@ class JsonParser {
         switch (ch) {
             case '{':
                 ++pos_;
-                return {JsonTokenType::ObjectStart, "", 0};
+                return makeToken(JsonTokenType::ObjectStart);
             case '}':
                 ++pos_;
-                return {JsonTokenType::ObjectEnd, "", 0};
+                return makeToken(JsonTokenType::ObjectEnd);
             case ':':
                 ++pos_;
-                return {JsonTokenType::Colon, "", 0};
+                return makeToken(JsonTokenType::Colon);
             case ',':
                 ++pos_;
-                return {JsonTokenType::Comma, "", 0};
+                return makeToken(JsonTokenType::Comma);
             case '"':
                 return parseString();
             default:
-                return {JsonTokenType::Error, "", 0};
+                return makeToken(JsonTokenType::Error);
         }
     }
 
@@ -69,11 +77,11 @@ class JsonParser {
 
     JsonToken parseString() {
         if (data_[pos_] != '"') {
-            return {JsonTokenType::Error, "", 0};
+            return makeToken(JsonTokenType::Error);
         }
 
         ++pos_;  // Skip opening quote
-        JsonToken token{JsonTokenType::String, "", 0};
+        JsonToken token = makeToken(JsonTokenType::String);
 
         while (pos_ < len_ && token.valueLen < kWebRequestMaxValueSize - 1) {
             char ch = data_[pos_];
@@ -89,7 +97,7 @@ class JsonParser {
                 // Basic escape handling
                 ++pos_;
                 if (pos_ >= len_) {
-                    return {JsonTokenType::Error, "", 0};
+                    return makeToken(JsonTokenType::Error);
                 }
                 char escaped = data_[pos_];
                 // For simplicity, just include the escaped char as-is
@@ -112,7 +120,7 @@ class JsonParser {
         }
 
         // Unterminated string or value too long
-        return {JsonTokenType::Error, "", 0};
+        return makeToken(JsonTokenType::Error);
     }
 };
 

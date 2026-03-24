@@ -72,6 +72,49 @@ void testUpdateChangesStatusAndResult() {
     TEST_ASSERT_EQUAL(WebCommandQueueResult::Accepted, entry.result);
 }
 
+void testInitNullIsNoOp() {
+    webCommandQueueInit(nullptr);
+}
+
+void testEnqueueNullQueueReturnsFalse() {
+    uint32_t commandId = 0U;
+    TEST_ASSERT_FALSE(
+        webCommandQueueEnqueue(nullptr, "/api/wiimote/commands/leds", "set_leds", &commandId));
+}
+
+void testEnqueueOversizedPathReturnsFalse() {
+    // kWebCommandQueuePathMaxLen == 64; a 64-char path causes copyBounded to fail
+    static const char kOversizedPath[] =
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    uint32_t commandId = 0U;
+    TEST_ASSERT_FALSE(webCommandQueueEnqueue(&gQueue, kOversizedPath, "verb", &commandId));
+    TEST_ASSERT_EQUAL_UINT32(0U, webCommandQueueCount(&gQueue));
+}
+
+void testGetNullQueueReturnsFalse() {
+    WebCommandQueueEntry entry = {};
+    TEST_ASSERT_FALSE(webCommandQueueGet(nullptr, 1U, &entry));
+}
+
+void testGetUnknownIdReturnsFalse() {
+    WebCommandQueueEntry entry = {};
+    TEST_ASSERT_FALSE(webCommandQueueGet(&gQueue, 9999U, &entry));
+}
+
+void testUpdateNullQueueReturnsFalse() {
+    TEST_ASSERT_FALSE(webCommandQueueUpdate(nullptr, 1U, WebCommandQueueStatus::Completed,
+                                            WebCommandQueueResult::Accepted));
+}
+
+void testUpdateUnknownIdReturnsFalse() {
+    TEST_ASSERT_FALSE(webCommandQueueUpdate(&gQueue, 9999U, WebCommandQueueStatus::Completed,
+                                            WebCommandQueueResult::Accepted));
+}
+
+void testCountNullQueueReturnsZero() {
+    TEST_ASSERT_EQUAL_UINT32(0U, webCommandQueueCount(nullptr));
+}
+
 int main(int /*argc*/, char ** /*argv*/) {
     UNITY_BEGIN();
 
@@ -80,6 +123,15 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testEnqueueIncrementsCommandId);
     RUN_TEST(testQueueFullReturnsFalse);
     RUN_TEST(testUpdateChangesStatusAndResult);
+
+    RUN_TEST(testInitNullIsNoOp);
+    RUN_TEST(testEnqueueNullQueueReturnsFalse);
+    RUN_TEST(testEnqueueOversizedPathReturnsFalse);
+    RUN_TEST(testGetNullQueueReturnsFalse);
+    RUN_TEST(testGetUnknownIdReturnsFalse);
+    RUN_TEST(testUpdateNullQueueReturnsFalse);
+    RUN_TEST(testUpdateUnknownIdReturnsFalse);
+    RUN_TEST(testCountNullQueueReturnsZero);
 
     return UNITY_END();
 }

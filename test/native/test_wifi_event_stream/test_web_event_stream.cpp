@@ -141,7 +141,7 @@ void testWebEventStreamConnectReplacesExistingClient() {
     // userData should now point to sentinel2
     WebWiimoteInputSnapshot snap = {};
     webEventStreamPublishInput(&gStream, snap, gBuf, sizeof(gBuf));
-    TEST_ASSERT_EQUAL_PTR(&sentinel2, gInputCapture.userData);
+    TEST_ASSERT_TRUE(gInputCapture.userData == &sentinel2);
 }
 
 // ===== Disconnect Tests =====
@@ -205,7 +205,7 @@ void testWebEventStreamPublishInputForwardsUserData() {
     webEventStreamConnect(&gStream, WebEventStreamChannel::Input, spyInputSend, &token);
     WebWiimoteInputSnapshot snap = {};
     webEventStreamPublishInput(&gStream, snap, gBuf, sizeof(gBuf));
-    TEST_ASSERT_EQUAL_PTR(&token, gInputCapture.userData);
+    TEST_ASSERT_TRUE(gInputCapture.userData == &token);
 }
 
 // ===== PublishStatus Tests =====
@@ -337,7 +337,7 @@ void testWebEventStreamPublishStatusForwardsUserData() {
     webEventStreamConnect(&gStream, WebEventStreamChannel::Status, spyStatusSend, &token);
     WebWiimoteStatusSnapshot snap = {};
     webEventStreamPublishStatus(&gStream, snap, gBuf, sizeof(gBuf));
-    TEST_ASSERT_EQUAL_PTR(&token, gStatusCapture.userData);
+    TEST_ASSERT_TRUE(gStatusCapture.userData == &token);
 }
 
 // ===== Router Integration Tests =====
@@ -442,6 +442,118 @@ void testWebApiRouteEventPathRequiresGetMethod() {
     TEST_ASSERT_NOT_EQUAL(101, kResult.httpStatus);
 }
 
+// ===== Null Guard Tests =====
+
+void testWebEventStreamInitNullIsNoOp() {
+    webEventStreamInit(nullptr);
+    TEST_ASSERT_FALSE(webEventStreamHasClient(&gStream, WebEventStreamChannel::Input));
+}
+
+void testWebEventStreamConnectNullStreamIsNoOp() {
+    webEventStreamConnect(nullptr, WebEventStreamChannel::Input, spyInputSend, nullptr);
+    TEST_ASSERT_FALSE(webEventStreamHasClient(&gStream, WebEventStreamChannel::Input));
+}
+
+void testWebEventStreamDisconnectNullStreamIsNoOp() {
+    webEventStreamConnect(&gStream, WebEventStreamChannel::Input, spyInputSend, nullptr);
+    webEventStreamDisconnect(nullptr, WebEventStreamChannel::Input);
+    TEST_ASSERT_TRUE(webEventStreamHasClient(&gStream, WebEventStreamChannel::Input));
+}
+
+void testWebEventStreamHasClientNullStreamReturnsFalse() {
+    TEST_ASSERT_FALSE(webEventStreamHasClient(nullptr, WebEventStreamChannel::Input));
+    TEST_ASSERT_FALSE(webEventStreamHasClient(nullptr, WebEventStreamChannel::Status));
+}
+
+void testWebEventStreamLatestSeqNullStreamReturnsZero() {
+    TEST_ASSERT_EQUAL_UINT32(0U, webEventStreamLatestSeq(nullptr, WebEventStreamChannel::Input));
+}
+
+void testWebEventStreamPublishInputNullStreamIsNoOp() {
+    WebWiimoteInputSnapshot snap = {};
+    webEventStreamPublishInput(nullptr, snap, gBuf, sizeof(gBuf));
+    TEST_ASSERT_FALSE(gInputCapture.called);
+}
+
+void testWebEventStreamPublishInputNullBufIsNoOp() {
+    webEventStreamConnect(&gStream, WebEventStreamChannel::Input, spyInputSend, nullptr);
+    WebWiimoteInputSnapshot snap = {};
+    webEventStreamPublishInput(&gStream, snap, nullptr, 64U);
+    TEST_ASSERT_FALSE(gInputCapture.called);
+}
+
+void testWebEventStreamPublishInputZeroSizeIsNoOp() {
+    webEventStreamConnect(&gStream, WebEventStreamChannel::Input, spyInputSend, nullptr);
+    WebWiimoteInputSnapshot snap = {};
+    webEventStreamPublishInput(&gStream, snap, gBuf, 0U);
+    TEST_ASSERT_FALSE(gInputCapture.called);
+}
+
+void testWebEventStreamPublishStatusNullStreamIsNoOp() {
+    WebWiimoteStatusSnapshot snap = {};
+    webEventStreamPublishStatus(nullptr, snap, gBuf, sizeof(gBuf));
+    TEST_ASSERT_FALSE(gStatusCapture.called);
+}
+
+void testWebEventStreamPublishStatusNullBufIsNoOp() {
+    webEventStreamConnect(&gStream, WebEventStreamChannel::Status, spyStatusSend, nullptr);
+    WebWiimoteStatusSnapshot snap = {};
+    webEventStreamPublishStatus(&gStream, snap, nullptr, 64U);
+    TEST_ASSERT_FALSE(gStatusCapture.called);
+}
+
+void testWebEventStreamPublishStatusZeroSizeIsNoOp() {
+    webEventStreamConnect(&gStream, WebEventStreamChannel::Status, spyStatusSend, nullptr);
+    WebWiimoteStatusSnapshot snap = {};
+    webEventStreamPublishStatus(&gStream, snap, gBuf, 0U);
+    TEST_ASSERT_FALSE(gStatusCapture.called);
+}
+
+// ===== Reliability Tests =====
+
+void testWebEventStreamReplaySinceEmptyChannelReturnsZeroReplayed() {
+    SendCapture replayCapture = {};
+    WebEventStreamReplayResult replay = {};
+    TEST_ASSERT_TRUE(webEventStreamReplaySince(&gStream, WebEventStreamChannel::Input, 0U,
+                                               spyReplaySend, &replayCapture, &replay));
+    TEST_ASSERT_EQUAL_UINT32(0U, replay.replayedCount);
+    TEST_ASSERT_EQUAL_UINT32(0U, replay.latestSeq);
+    TEST_ASSERT_EQUAL_UINT32(1U, replay.nextSeq);
+    TEST_ASSERT_FALSE(replay.requiresSnapshotRecovery);
+    TEST_ASSERT_FALSE(replayCapture.called);
+}
+
+void testWebEventStreamReconnectAndReplayAfterDisconnect() {
+    webEventStreamConnect(&gStream, WebEventStreamChannel::Input, spyInputSend, nullptr);
+    WebWiimoteInputSnapshot input = {};
+    webEventStreamPublishInput(&gStream, input, gBuf, sizeof(gBuf));
+    webEventStreamPublishInput(&gStream, input, gBuf, sizeof(gBuf));
+    webEventStreamPublishInput(&gStream, input, gBuf, sizeof(gBuf));
+    TEST_ASSERT_EQUAL_UINT32(3U, gInputCapture.callCount);
+
+    const uint32_t kLastSeq = webEventStreamLatestSeq(&gStream, WebEventStreamChannel::Input);
+    webEventStreamDisconnect(&gStream, WebEventStreamChannel::Input);
+    TEST_ASSERT_FALSE(webEventStreamHasClient(&gStream, WebEventStreamChannel::Input));
+
+    webEventStreamPublishInput(&gStream, input, gBuf, sizeof(gBuf));
+    webEventStreamPublishInput(&gStream, input, gBuf, sizeof(gBuf));
+
+    SendCapture replayCapture = {};
+    WebEventStreamReplayResult replay = {};
+    TEST_ASSERT_TRUE(webEventStreamReplaySince(&gStream, WebEventStreamChannel::Input, kLastSeq,
+                                               spyReplaySend, &replayCapture, &replay));
+    TEST_ASSERT_EQUAL_UINT32(2U, replay.replayedCount);
+    TEST_ASSERT_FALSE(replay.requiresSnapshotRecovery);
+    TEST_ASSERT_NOT_NULL(std::strstr(replayCapture.frames[0], "\"seq\":4"));
+    TEST_ASSERT_NOT_NULL(std::strstr(replayCapture.frames[1], "\"seq\":5"));
+
+    gInputCapture = {};
+    webEventStreamConnect(&gStream, WebEventStreamChannel::Input, spyInputSend, nullptr);
+    webEventStreamPublishInput(&gStream, input, gBuf, sizeof(gBuf));
+    TEST_ASSERT_TRUE(gInputCapture.called);
+    TEST_ASSERT_NOT_NULL(std::strstr(gInputCapture.frame, "\"seq\":6"));
+}
+
 // ===== Entry Point =====
 
 int main(int /*argc*/, char ** /*argv*/) {
@@ -487,6 +599,20 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testWebApiRouteReturns101ForStatusEventPath);
     RUN_TEST(testWebApiRouteIgnoresEventPathsWhenStreamNotConfigured);
     RUN_TEST(testWebApiRouteEventPathRequiresGetMethod);
+
+    RUN_TEST(testWebEventStreamInitNullIsNoOp);
+    RUN_TEST(testWebEventStreamConnectNullStreamIsNoOp);
+    RUN_TEST(testWebEventStreamDisconnectNullStreamIsNoOp);
+    RUN_TEST(testWebEventStreamHasClientNullStreamReturnsFalse);
+    RUN_TEST(testWebEventStreamLatestSeqNullStreamReturnsZero);
+    RUN_TEST(testWebEventStreamPublishInputNullStreamIsNoOp);
+    RUN_TEST(testWebEventStreamPublishInputNullBufIsNoOp);
+    RUN_TEST(testWebEventStreamPublishInputZeroSizeIsNoOp);
+    RUN_TEST(testWebEventStreamPublishStatusNullStreamIsNoOp);
+    RUN_TEST(testWebEventStreamPublishStatusNullBufIsNoOp);
+    RUN_TEST(testWebEventStreamPublishStatusZeroSizeIsNoOp);
+    RUN_TEST(testWebEventStreamReplaySinceEmptyChannelReturnsZeroReplayed);
+    RUN_TEST(testWebEventStreamReconnectAndReplayAfterDisconnect);
 
     return UNITY_END();
 }

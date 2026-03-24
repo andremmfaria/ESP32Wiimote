@@ -3,6 +3,9 @@
 
 #include "esp_bt.h"  // esp_err_t, ESP_OK, ESP_FAIL
 
+// Set to true to make nvs_open return ESP_FAIL (tests openStore failure paths)
+extern bool gMockNvsOpenFail;
+
 #include <stdint.h>
 
 #define ESP_ERR_NVS_BASE 0x1100

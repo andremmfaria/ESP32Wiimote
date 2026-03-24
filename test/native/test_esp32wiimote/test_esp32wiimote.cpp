@@ -220,7 +220,7 @@ void testESP32WiimoteOutputMethodsDelegateAndPropagateResults() {
     TEST_ASSERT_EQUAL(1, mockWriteMemoryCallCount);
     TEST_ASSERT_EQUAL_UINT8(0x04, mockLastWriteMemoryAddressSpace);
     TEST_ASSERT_EQUAL_UINT32(0x12345678U, mockLastWriteMemoryOffset);
-    TEST_ASSERT_EQUAL_PTR(payload, mockLastWriteMemoryData);
+    TEST_ASSERT_TRUE(mockLastWriteMemoryData == payload);
     TEST_ASSERT_EQUAL_UINT8(sizeof(payload), mockLastWriteMemoryLen);
 
     mockReadMemoryResult = true;
