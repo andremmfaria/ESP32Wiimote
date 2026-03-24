@@ -133,6 +133,8 @@ class ESP32Wiimote {
     /**
      * Enable or disable Wi-Fi control lifecycle.
      * Lifecycle startup is asynchronous and progresses during task() calls.
+     * Calling enableWifiControl(true, ...) is a runtime opt-in and can activate
+     * Wi-Fi lifecycle even when config.wifi.enabled started as false.
      */
     void enableWifiControl(bool enabled,
                            WifiDeliveryMode deliveryMode = WifiDeliveryMode::RestOnly);

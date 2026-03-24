@@ -17,6 +17,10 @@
 #include "serial/serial_response_formatter.h"
 #include "utils/serial_logging.h"
 
+#if defined(ARDUINO_ARCH_ESP32)
+#include <WiFi.h>
+#endif
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -35,6 +39,35 @@ enum WifiInitStage : uint8_t {
     KWifiInitStageRegisterWebSocketRoutes = 4U,
     KWifiInitStageReady = 5U,
 };
+
+const char *wifiDeliveryModeToString(const WifiDeliveryMode mode) {
+    return mode == WifiDeliveryMode::RestAndWebSocket ? "RestAndWebSocket" : "RestOnly";
+}
+
+const char *safeSsid(const WiimoteNetworkCredentials &network) {
+    return (network.ssid != nullptr && network.ssid[0] != '\0') ? network.ssid : "<unset>";
+}
+
+void logWifiConnectedDetails(const WiimoteNetworkCredentials &network,
+                             const WifiDeliveryMode mode) {
+#if defined(ARDUINO_ARCH_ESP32)
+    String mac = WiFi.macAddress();
+    if (mac.length() == 0) {
+        mac = "n/a";
+    }
+
+    String ip = WiFi.localIP().toString();
+    if (ip == "0.0.0.0") {
+        ip = "not-assigned";
+    }
+
+    LOG_INFO("ESP32Wiimote: wifi.connected ssid=%s mode=%s mac=%s ip=%s\n", safeSsid(network),
+             wifiDeliveryModeToString(mode), mac.c_str(), ip.c_str());
+#else
+    LOG_INFO("ESP32Wiimote: wifi.connected ssid=%s mode=%s\n", safeSsid(network),
+             wifiDeliveryModeToString(mode));
+#endif
+}
 
 class Esp32SerialCommandTarget : public SerialCommandTarget {
    public:
@@ -222,10 +255,15 @@ void ESP32Wiimote::enableWifiControl(bool enabled, WifiDeliveryMode deliveryMode
     const WifiDeliveryMode kPreviousDeliveryMode = wifiDeliveryMode_;
     wifiDeliveryMode_ = deliveryMode;
 
-    if (!enabled || !wifiEnabled_) {
+    if (!enabled) {
         wifiControlEnabled_ = false;
         resetWifiLifecycleState();
         return;
+    }
+
+    if (!wifiEnabled_) {
+        wifiEnabled_ = true;
+        config_.wifi.enabled = true;
     }
 
     if (wifiControlEnabled_ && wifiControlReady_ && kPreviousDeliveryMode == deliveryMode) {
@@ -324,6 +362,12 @@ ESP32Wiimote::WifiControlState ESP32Wiimote::getWifiControlState() const {
  */
 bool ESP32Wiimote::init() {
     LOG_INFO("ESP32Wiimote: Starting initialization...\n");
+    LOG_INFO("ESP32Wiimote: wifi.config enabled=%d mode=%s ssid=%s\n",
+             static_cast<int>(wifiEnabled_), wifiDeliveryModeToString(wifiDeliveryMode_),
+             safeSsid(networkCredentials_));
+    if (!wifiEnabled_) {
+        LOG_INFO("ESP32Wiimote: wifi.startup skipped (config.wifi.enabled=0)\n");
+    }
 
     // Initialize Bluetooth controller (which initializes TinyWiimote, queues, and VHCI callbacks)
     LOG_DEBUG("ESP32Wiimote: Calling BluetoothController::init()...\n");
@@ -636,6 +680,7 @@ void ESP32Wiimote::processWifiControl() {
         case KWifiInitStageStartWifi:
             wifiNetworkConnectAttempted_ = true;
             if (!wifiNetworkCredentialsConfigured_) {
+                LOG_WARN("ESP32Wiimote: wifi.startup failed (missing credentials)\n");
                 wifiNetworkConnectFailed_ = true;
                 wifiControlEnabled_ = false;
                 wifiControlInitializing_ = false;
@@ -643,6 +688,8 @@ void ESP32Wiimote::processWifiControl() {
             }
 
             if (strcmp(networkCredentials_.ssid, kWifiMockFailSsid) == 0) {
+                LOG_WARN("ESP32Wiimote: wifi.startup failed (mock join failure) ssid=%s\n",
+                         safeSsid(networkCredentials_));
                 wifiNetworkConnectFailed_ = true;
                 wifiControlEnabled_ = false;
                 wifiControlInitializing_ = false;
@@ -652,6 +699,7 @@ void ESP32Wiimote::processWifiControl() {
             wifiNetworkConnected_ = true;
             wifiNetworkConnectFailed_ = false;
             wifiLayerStarted_ = true;
+            logWifiConnectedDetails(networkCredentials_, wifiDeliveryMode_);
             wifiInitStage_ = KWifiInitStageMountLittleFs;
             break;
         case KWifiInitStageMountLittleFs:
@@ -677,6 +725,10 @@ void ESP32Wiimote::processWifiControl() {
         case KWifiInitStageReady:
             wifiControlInitializing_ = false;
             wifiControlReady_ = true;
+            LOG_INFO("ESP32Wiimote: wifi.startup ready static=%d api=%d ws=%d\n",
+                     static_cast<int>(staticRoutesRegistered_),
+                     static_cast<int>(apiRoutesRegistered_),
+                     static_cast<int>(websocketRoutesRegistered_));
             break;
         default:
             wifiControlEnabled_ = false;

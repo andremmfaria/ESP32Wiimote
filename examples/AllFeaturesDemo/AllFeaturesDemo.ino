@@ -97,10 +97,8 @@ void setup() {
         }
     }
 
-    if (wiimote.getConfig().wifi.enabled) {
-        wiimote.enableWifiControl(true, wiimote.getConfig().wifi.deliveryMode);
-        Serial.println("Wi-Fi control enabled (async startup in task loop)");
-    }
+    wiimote.enableWifiControl(true, wiimote.getConfig().wifi.deliveryMode);
+    Serial.println("Wi-Fi control enabled (async startup in task loop)");
 
     Serial.println("Bluetooth initialized successfully!");
 
