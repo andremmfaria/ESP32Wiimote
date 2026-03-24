@@ -37,11 +37,10 @@ constexpr uint32_t kWifiConnectTimeoutMs = 15000U;
 enum WifiInitStage : uint8_t {
     KWifiInitStageStartWifi = 0U,
     KWifiInitStageWaitNetworkConnected = 1U,
-    KWifiInitStageMountLittleFs = 2U,
-    KWifiInitStageRegisterStaticRoutes = 3U,
-    KWifiInitStageRegisterApiRoutes = 4U,
-    KWifiInitStageRegisterWebSocketRoutes = 5U,
-    KWifiInitStageReady = 6U,
+    KWifiInitStageRegisterStaticRoutes = 2U,
+    KWifiInitStageRegisterApiRoutes = 3U,
+    KWifiInitStageRegisterWebSocketRoutes = 4U,
+    KWifiInitStageReady = 5U,
 };
 
 const char *wifiDeliveryModeToString(const WifiDeliveryMode kMode) {
@@ -328,7 +327,6 @@ ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config)
     , wifiDeliveryMode_(WifiDeliveryMode::RestOnly)
     , wifiInitStage_(KWifiInitStageStartWifi)
     , wifiLayerStarted_(false)
-    , littleFsMounted_(false)
     , staticRoutesRegistered_(false)
     , apiRoutesRegistered_(false)
     , websocketRoutesRegistered_(false)
@@ -516,7 +514,6 @@ ESP32Wiimote::WifiControlState ESP32Wiimote::getWifiControlState() const {
     state.networkConnectFailed = wifiNetworkConnectFailed_;
     state.deliveryMode = wifiDeliveryMode_;
     state.wifiLayerStarted = wifiLayerStarted_;
-    state.littleFsMounted = littleFsMounted_;
     state.staticRoutesRegistered = staticRoutesRegistered_;
     state.apiRoutesRegistered = apiRoutesRegistered_;
     state.websocketRoutesRegistered = websocketRoutesRegistered_;
@@ -884,7 +881,7 @@ void ESP32Wiimote::processWifiControl() {
             wifiNetworkConnectFailed_ = false;
             wifiLayerStarted_ = true;
             logWifiConnectedDetails(networkCredentials_, wifiDeliveryMode_);
-            wifiInitStage_ = KWifiInitStageMountLittleFs;
+            wifiInitStage_ = KWifiInitStageRegisterStaticRoutes;
 #endif
             break;
         case KWifiInitStageWaitNetworkConnected:
@@ -893,7 +890,7 @@ void ESP32Wiimote::processWifiControl() {
                 wifiNetworkConnected_ = true;
                 wifiNetworkConnectFailed_ = false;
                 logWifiConnectedDetails(networkCredentials_, wifiDeliveryMode_);
-                wifiInitStage_ = KWifiInitStageMountLittleFs;
+                wifiInitStage_ = KWifiInitStageRegisterStaticRoutes;
                 break;
             }
 
@@ -907,10 +904,6 @@ void ESP32Wiimote::processWifiControl() {
                 return;
             }
 #endif
-            break;
-        case KWifiInitStageMountLittleFs:
-            littleFsMounted_ = true;
-            wifiInitStage_ = KWifiInitStageRegisterStaticRoutes;
             break;
         case KWifiInitStageRegisterStaticRoutes:
             staticRoutesRegistered_ = true;
@@ -958,7 +951,6 @@ void ESP32Wiimote::resetWifiLifecycleState() {
     wifiNetworkConnectStartMs_ = 0U;
     wifiInitStage_ = KWifiInitStageStartWifi;
     wifiLayerStarted_ = false;
-    littleFsMounted_ = false;
     staticRoutesRegistered_ = false;
     apiRoutesRegistered_ = false;
     websocketRoutesRegistered_ = false;

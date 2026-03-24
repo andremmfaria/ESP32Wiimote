@@ -1,4 +1,10 @@
-<!doctype html>
+#include "web_assets.h"
+
+#include <cstddef>
+
+namespace web_assets {
+
+const char kIndexHtml[] = R"HTML(<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -13,7 +19,6 @@
       <h1>Control Bridge</h1>
       <p class="sub">Monitor status and send runtime commands from your browser.</p>
     </header>
-
     <section class="panel" aria-label="Connection status">
       <h2>Status</h2>
       <div class="status-grid">
@@ -26,9 +31,14 @@
           <strong id="status-battery">-</strong>
         </div>
       </div>
+      <br>
       <button id="refresh-status" class="btn primary">Refresh Status</button>
     </section>
-
+    <section class="panel" aria-label="Authentication">
+      <h2>Auth</h2>
+      <p class="small">Insert the token</code>.</p>
+      <input id="auth-input" class="input" type="text" placeholder="Authorization header value">
+    </section>
     <section class="panel" aria-label="Controller actions">
       <h2>Actions</h2>
       <div class="actions">
@@ -38,7 +48,6 @@
         <button id="disconnect" class="btn danger">Disconnect</button>
       </div>
     </section>
-
     <section class="panel" aria-label="Wi-Fi control">
       <h2>Wi-Fi Control</h2>
       <div class="status-grid">
@@ -55,6 +64,7 @@
           <strong id="wifi-control-token">-</strong>
         </div>
       </div>
+      <br>
       <div class="actions">
         <button id="refresh-wifi-control" class="btn primary">Refresh Wi-Fi Status</button>
         <button id="wifi-enable" class="btn">Enable Wi-Fi Control</button>
@@ -63,6 +73,7 @@
         <button id="wifi-mode-rest-ws" class="btn">Mode: REST + WS</button>
         <button id="wifi-restart" class="btn">Restart Wi-Fi</button>
       </div>
+      <br>
       <div class="field-grid">
         <input id="wifi-ssid" class="input" type="text" placeholder="Wi-Fi SSID">
         <input id="wifi-password" class="input" type="text" placeholder="Wi-Fi Password">
@@ -74,15 +85,14 @@
       </div>
     </section>
 
-    <section class="panel" aria-label="Authentication">
-      <h2>Auth</h2>
-      <p class="small">Use <code>Bearer &lt;token&gt;</code>.</p>
-      <input id="auth-input" class="input" type="text" placeholder="Authorization header value">
-    </section>
-
     <pre id="log" class="log" aria-live="polite"></pre>
   </main>
 
   <script src="/app.js"></script>
 </body>
 </html>
+)HTML";
+
+const size_t kIndexHtmlLen = sizeof(kIndexHtml) - 1U;
+
+}  // namespace web_assets

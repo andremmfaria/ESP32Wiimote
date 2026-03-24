@@ -1,4 +1,10 @@
-:root {
+#include "web_assets.h"
+
+#include <cstddef>
+
+namespace web_assets {
+
+const char kStylesCss[] = R"ESP32WIIMOTE_CSS(:root {
   --bg: radial-gradient(circle at 20% 0%, #1f3558 0%, #0e1624 45%, #080c14 100%);
   --panel: rgba(12, 21, 36, 0.82);
   --ink: #e8f0ff;
@@ -151,3 +157,8 @@ body {
     grid-template-columns: 1fr;
   }
 }
+)ESP32WIIMOTE_CSS";
+
+const size_t kStylesCssLen = sizeof(kStylesCss) - 1U;
+
+}  // namespace web_assets

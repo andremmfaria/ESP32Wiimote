@@ -1,5 +1,6 @@
 #include "web_api_router.h"
 
+#include "web/web_assets.h"
 #include "web_auth.h"
 #include "web_event_stream.h"
 #include "web_request_parser.h"
@@ -10,33 +11,6 @@
 #include <cstring>
 
 namespace {
-
-const char kStaticIndexHtml[] =
-    "<!doctype html>\n"
-    "<html lang=\"en\">\n"
-    "<head><meta charset=\"utf-8\"><meta name=\"viewport\" "
-    "content=\"width=device-width,initial-scale=1\">"
-    "<title>ESP32 Wiimote Control</title><link rel=\"stylesheet\" href=\"/styles.css\"></head>\n"
-    "<body><main class=\"shell\"><h1>ESP32 Wiimote Control</h1>"
-    "<p>Wi-Fi control API available at /api/wifi/control, /api/wifi/delivery-mode, "
-    "/api/wifi/network, /api/wifi/restart, and /api/wifi/token.</p></main>"
-    "<script src=\"/app.js\"></script></body></html>\n";
-
-const char kStaticAppJs[] =
-    "const WIFI_API_PATHS={control:'/api/wifi/control',mode:'/api/wifi/delivery-mode',network:"
-    "'/api/wifi/network',restart:'/api/wifi/restart',token:'/api/wifi/token'};\n"
-    "async function fetchWithAuth(path, init = {}) {\n"
-    "  const auth = localStorage.getItem('auth') || 'Bearer esp32wiimote_bearer_token_v1';\n"
-    "  const headers = { Authorization: auth, ...(init.headers || {}) };\n"
-    "  return fetch(path, { ...init, headers });\n"
-    "}\n";
-
-const char kStaticStylesCss[] =
-    ":root{--bg:#0f1828;--ink:#e8f0ff;--accent:#34d6a3;}\n"
-    "body{margin:0;background:var(--bg);color:var(--ink);font-family:'Trebuchet MS','Avenir "
-    "Next','Segoe UI',sans-serif;}\n"
-    ".shell{width:min(920px,92vw);margin:24px auto;}\n"
-    "h1{color:var(--accent);}\n";
 
 // ===== Route Handler Type =====
 
@@ -300,6 +274,7 @@ WebApiRouteResult makeResult(int status, const char *contentType) {
 }
 
 WebApiRouteResult writeStaticResponse(const char *body,
+                                      size_t bodyLen,
                                       const char *contentType,
                                       char *buf,
                                       size_t size) {
@@ -307,11 +282,13 @@ WebApiRouteResult writeStaticResponse(const char *body,
         return makeResult(500, "text/plain");
     }
 
-    int written = std::snprintf(buf, size, "%s", body);
-    if (written < 0 || static_cast<size_t>(written) >= size) {
+    if (bodyLen + 1U > size) {
         serializeError(buf, size, "response buffer too small");
         return makeResult(500, "application/json");
     }
+
+    std::memcpy(buf, body, bodyLen);
+    buf[bodyLen] = '\0';
 
     return makeResult(200, contentType);
 }
@@ -325,16 +302,18 @@ WebApiRouteResult tryServeStatic(const char *method,
     }
 
     if (std::strcmp(path, "/") == 0 || std::strcmp(path, "/index.html") == 0) {
-        return writeStaticResponse(kStaticIndexHtml, "text/html", responseBuf, responseBufSize);
+        return writeStaticResponse(web_assets::kIndexHtml, web_assets::kIndexHtmlLen, "text/html",
+                                   responseBuf, responseBufSize);
     }
 
     if (std::strcmp(path, "/app.js") == 0) {
-        return writeStaticResponse(kStaticAppJs, "application/javascript", responseBuf,
-                                   responseBufSize);
+        return writeStaticResponse(web_assets::kAppJs, web_assets::kAppJsLen,
+                                   "application/javascript", responseBuf, responseBufSize);
     }
 
     if (std::strcmp(path, "/styles.css") == 0) {
-        return writeStaticResponse(kStaticStylesCss, "text/css", responseBuf, responseBufSize);
+        return writeStaticResponse(web_assets::kStylesCss, web_assets::kStylesCssLen, "text/css",
+                                   responseBuf, responseBufSize);
     }
 
     if (std::strcmp(path, "/openapi.json") == 0) {

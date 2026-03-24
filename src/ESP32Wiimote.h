@@ -103,7 +103,6 @@ class ESP32Wiimote {
         bool networkConnectFailed;
         WifiDeliveryMode deliveryMode;
         bool wifiLayerStarted;
-        bool littleFsMounted;
         bool staticRoutesRegistered;
         bool apiRoutesRegistered;
         bool websocketRoutesRegistered;
@@ -395,7 +394,6 @@ class ESP32Wiimote {
     WifiDeliveryMode wifiDeliveryMode_;
     uint8_t wifiInitStage_;
     bool wifiLayerStarted_;
-    bool littleFsMounted_;
     bool staticRoutesRegistered_;
     bool apiRoutesRegistered_;
     bool websocketRoutesRegistered_;

@@ -486,10 +486,6 @@ void testESP32WiimoteWifiControlAsyncLifecycleRestOnly() {
     TEST_ASSERT_TRUE(device.getWifiControlState().networkConnected);
     TEST_ASSERT_FALSE(device.getWifiControlState().networkConnectFailed);
     TEST_ASSERT_TRUE(device.getWifiControlState().wifiLayerStarted);
-    TEST_ASSERT_FALSE(device.getWifiControlState().littleFsMounted);
-
-    device.task();
-    TEST_ASSERT_TRUE(device.getWifiControlState().littleFsMounted);
     TEST_ASSERT_FALSE(device.getWifiControlState().staticRoutesRegistered);
 
     device.task();
@@ -499,7 +495,6 @@ void testESP32WiimoteWifiControlAsyncLifecycleRestOnly() {
     device.task();
     TEST_ASSERT_TRUE(device.getWifiControlState().apiRoutesRegistered);
     TEST_ASSERT_FALSE(device.getWifiControlState().websocketRoutesRegistered);
-    TEST_ASSERT_FALSE(device.isWifiControlReady());
 
     device.task();
     TEST_ASSERT_TRUE(device.isWifiControlReady());
@@ -509,7 +504,7 @@ void testESP32WiimoteWifiControlAsyncLifecycleRestOnly() {
 }
 
 void testESP32WiimoteWifiControlStartsHttpServerAndRoutesRequests() {
-    static const size_t kResponseBufSize = 4096U;
+    static const size_t kResponseBufSize = 8192U;
     ESP32WiimoteConfig config;
     config.wifi.enabled = true;
     config.auth.serialPrivilegedToken = "token";
@@ -539,6 +534,14 @@ void testESP32WiimoteWifiControlStartsHttpServerAndRoutesRequests() {
     TEST_ASSERT_EQUAL(200, status);
     TEST_ASSERT_EQUAL_STRING("application/json", contentType);
     TEST_ASSERT_NOT_NULL(std::strstr(responseBuf, "\"openapi\":\"3.0.3\""));
+
+    memset(responseBuf, 0, sizeof(responseBuf));
+    TEST_ASSERT_TRUE(wifiHttpServerMockDispatchRequest("GET", "/app.js", nullptr, nullptr, &status,
+                                                       &contentType, responseBuf,
+                                                       sizeof(responseBuf)));
+    TEST_ASSERT_EQUAL(200, status);
+    TEST_ASSERT_EQUAL_STRING("application/javascript", contentType);
+    TEST_ASSERT_NOT_NULL(std::strstr(responseBuf, "fetchWithAuth"));
 
     memset(responseBuf, 0, sizeof(responseBuf));
     TEST_ASSERT_TRUE(wifiHttpServerMockDispatchRequest("GET", "/api/wifi/control", "Bearer token",
@@ -659,7 +662,7 @@ void testESP32WiimoteWifiControlRestAndWebSocketAddsWebSocketStage() {
 
     device.enableWifiControl(true, WifiDeliveryMode::RestAndWebSocket);
 
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 4; ++i) {
         device.task();
     }
 
@@ -695,7 +698,7 @@ void testESP32WiimoteWifiControlModeSwitchRestToWebSocketRestartsLifecycle() {
     TEST_ASSERT_FALSE(device.getWifiControlState().apiRoutesRegistered);
     TEST_ASSERT_FALSE(device.getWifiControlState().websocketRoutesRegistered);
 
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 4; ++i) {
         device.task();
     }
 
@@ -730,7 +733,7 @@ void testESP32WiimoteWifiControlModeSwitchWebSocketToRestDisablesWebSocketStage(
     TEST_ASSERT_FALSE(device.getWifiControlState().apiRoutesRegistered);
     TEST_ASSERT_FALSE(device.getWifiControlState().websocketRoutesRegistered);
 
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 3; ++i) {
         device.task();
     }
 

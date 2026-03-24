@@ -54,6 +54,7 @@ Run specific test:
 ./build.sh test:native:button_state
 ./build.sh test:native:sensor_state
 ./build.sh test:native:wifi_router
+./build.sh test:native:esp32wiimote
 ```
 
 Verbose output:
@@ -188,6 +189,18 @@ test/
 - `test_tinywiimote_core/`, `test_utils/`: TinyWiimote core and utility helpers
 - `test_esp32wiimote/`: public API delegation and task-loop integration behavior
 - `test_serial*`: serial parser/dispatcher/formatter/session and end-to-end serial task-loop behavior
+
+### Wi-Fi HTTP Static Asset Coverage
+
+The embedded browser assets are validated in two places:
+
+- `test:native:wifi_router` verifies unauthenticated static route handling for `/`, `/app.js`, `/styles.css`, and `/openapi.json`
+- `test:native:esp32wiimote` verifies the Wi-Fi HTTP bridge can serve the embedded assets through the mock server path
+
+Implementation details that matter for testing:
+
+- the C++ translation units in `src/wifi/web/*.cpp` are the sole source of truth for asset content; there are no separate `.html`, `.js`, or `.css` source files
+- the ESP32 HTTP response buffer was increased to 8192 bytes so the browser asset payloads fit without truncation
 
 ### Test Mock Infrastructure
 

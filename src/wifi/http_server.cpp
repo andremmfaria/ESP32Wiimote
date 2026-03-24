@@ -2,6 +2,7 @@
 
 #ifdef ARDUINO_ARCH_ESP32
 #include <WebServer.h>
+#include <cstring>
 #endif
 
 namespace {
@@ -9,7 +10,7 @@ namespace {
 #ifdef ARDUINO_ARCH_ESP32
 constexpr size_t kCollectedHeaderCount = 1U;
 const char *kCollectedHeaders[kCollectedHeaderCount] = {"Authorization"};
-constexpr size_t kResponseBufSize = 4096U;
+constexpr size_t kResponseBufSize = 8192U;
 
 WifiHttpMethod mapMethod(const int kMethod) {
     switch (kMethod) {
@@ -57,7 +58,8 @@ bool WifiHttpServer::begin(uint16_t port) {
             return;
         }
 
-        char responseBuf[kResponseBufSize] = {0};
+        static char responseBuf[kResponseBufSize];
+        std::memset(responseBuf, 0, sizeof(responseBuf));
         WifiHttpResponse response = {};
         const String kUri = currentServer->uri();
         const String kAuthHeader = currentServer->header("Authorization");

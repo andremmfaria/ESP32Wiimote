@@ -31,8 +31,7 @@ static void printWifiState(const ESP32Wiimote::WifiControlState &state) {
         (int)state.networkCredentialsConfigured, (int)state.networkConnectAttempted,
         (int)state.networkConnected, (int)state.networkConnectFailed,
         deliveryModeToString(state.deliveryMode));
-    Serial.printf("      stages: wifi=%d fs=%d static=%d api=%d ws=%d\n",
-                  (int)state.wifiLayerStarted, (int)state.littleFsMounted,
+    Serial.printf("      stages: wifi=%d static=%d api=%d ws=%d\n", (int)state.wifiLayerStarted,
                   (int)state.staticRoutesRegistered, (int)state.apiRoutesRegistered,
                   (int)state.websocketRoutesRegistered);
 }

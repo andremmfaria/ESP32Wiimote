@@ -1,4 +1,10 @@
-const logEl = document.getElementById('log');
+#include "web_assets.h"
+
+#include <cstddef>
+
+namespace web_assets {
+
+const char kAppJs[] = R"ESP32WIIMOTE_JS(const logEl = document.getElementById('log');
 const authInput = document.getElementById('auth-input');
 
 function appendLog(line) {
@@ -8,12 +14,24 @@ function appendLog(line) {
 
 function authHeader() {
   const value = authInput.value.trim();
-  return value.length > 0 ? value : 'Bearer esp32wiimote_bearer_token_v1';
+  if (value.length === 0) {
+    appendLog('ERROR missing auth token: set the Auth field before sending requests');
+    return null;
+  }
+
+  return `Bearer ${value}`;
 }
 
 async function fetchWithAuth(path, init = {}) {
+  const authorization = authHeader();
+  if (!authorization) {
+    const text = '{"status":"error","message":"missing auth token"}';
+    appendLog(`${init.method || 'GET'} ${path} -> 400 ${text}`);
+    return { res: { ok: false, status: 400 }, text };
+  }
+
   const headers = {
-    'Authorization': authHeader(),
+    'Authorization': authorization,
     ...(init.headers || {}),
   };
 
@@ -141,3 +159,8 @@ document.getElementById('wifi-set-token')?.addEventListener('click', async () =>
 
 refreshStatus();
 refreshWifiControl();
+)ESP32WIIMOTE_JS";
+
+const size_t kAppJsLen = sizeof(kAppJs) - 1U;
+
+}  // namespace web_assets

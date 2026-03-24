@@ -247,6 +247,43 @@ For native tests, this is expected - tests provide setup/loop.
 2. Ensure SSID/password are configured (`wm wifi-set-network <ssid> <password>` or constructor config)
 3. Restart lifecycle after updates (`wm wifi-restart` or `POST /api/wifi/restart`)
 
+### Root page or static assets return HTTP 500
+
+**Symptoms:**
+
+- `GET /` or `GET /index.html` returns HTTP `500`
+- `GET /app.js` or `GET /styles.css` fails while API routes still work
+- Browser loads HTML shell but script or stylesheet requests fail
+
+**Explanation:**
+
+The web UI assets are embedded directly in firmware as C++ string literals. A `500` on these routes usually means the HTTP response buffer is too small for the selected asset payload.
+
+**Checks:**
+
+1. Verify the current build includes the updated HTTP response buffer size in `src/wifi/http_server.cpp`
+1. Re-run native coverage for the static routes:
+
+```bash
+./build.sh test:native:wifi_router
+./build.sh test:native:esp32wiimote
+```
+
+1. Edit the string literal directly in the relevant C++ asset file (`src/wifi/web/index_html.cpp`, `src/wifi/web/app_js.cpp`, or `src/wifi/web/styles_css.cpp`), then rebuild and reflash the firmware
+
+### Browser shows stale UI after firmware update
+
+**Symptoms:**
+
+- API behavior changed but the browser still shows the old control page
+- `/app.js` appears unchanged after flashing new firmware
+
+**Checks:**
+
+1. Hard-refresh the browser and bypass cache
+1. Confirm the committed runtime assets in `src/wifi/web/index_html.cpp`, `src/wifi/web/app_js.cpp`, and `src/wifi/web/styles_css.cpp` match the intended source changes
+1. Rebuild and reflash the firmware image; there is no separate asset upload step in this delivery model
+
 ### Wi-Fi token update is blocked
 
 **Symptoms:**

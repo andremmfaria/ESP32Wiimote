@@ -48,7 +48,7 @@ static bool gSetWifiTokenResult;
 static const char *gLastWifiToken;
 static WebCommandQueue gCommandQueue;
 
-static char gBuf[512];
+static char gBuf[8192];
 
 // ===== Mock Callbacks =====
 

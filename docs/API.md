@@ -701,9 +701,17 @@ Wi-Fi control is exposed as an authenticated REST API with a runtime-generated O
 #### Static routes
 
 - `GET /` -> control page (`text/html`)
+- `GET /index.html` -> control page (`text/html`)
 - `GET /app.js` -> browser client script (`application/javascript`)
 - `GET /styles.css` -> stylesheet (`text/css`)
 - `GET /openapi.json` -> OpenAPI 3.0 contract generated from the router's self-describing route table (`application/json`)
+
+Static asset delivery model:
+
+- the browser assets are committed as C++ string literals in `src/wifi/web/`
+- one source file is used per asset so HTML, JavaScript, and CSS can evolve independently
+- the router copies the selected asset into the caller-provided response buffer and returns the matching content type
+- there is no filesystem mount or asset upload step in the runtime path
 
 OpenAPI generation model:
 
@@ -819,10 +827,14 @@ Wi-Fi lifecycle snapshot fields:
 - `networkConnectFailed`
 - `deliveryMode`
 - `wifiLayerStarted`
-- `littleFsMounted`
 - `staticRoutesRegistered`
 - `apiRoutesRegistered`
 - `websocketRoutesRegistered`
+
+Lifecycle notes:
+
+- `staticRoutesRegistered` indicates the embedded browser assets are available for serving
+- there is no separate filesystem-mount stage in the public lifecycle state
 
 ---
 
