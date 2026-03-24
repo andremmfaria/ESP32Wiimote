@@ -16,15 +16,26 @@ static const bool kIgnoreAccel = false;
 static const bool kIgnoreNunchukStick = false;
 static const bool kIgnoreButtons = false;
 
+// Set true to demo Wi-Fi control lifecycle and REST/WebSocket delivery mode.
+static const bool kEnableWifiControl = false;
+static const WifiDeliveryMode kWifiDeliveryMode = WifiDeliveryMode::RestAndWebSocket;
+static const char *kWifiApiUsername = "admin";
+static const char *kWifiApiPassword = "password";
+static const char *kWifiBearerToken = "esp32wiimote_bearer_token_v1";
+static const char *kWifiSsid = "YOUR_WIFI_SSID";
+static const char *kWifiNetworkPassword = "YOUR_WIFI_PASSWORD";
+
 // Runtime state
 static bool wasConnected = false;
 static unsigned long lastStatsMs = 0;
 static unsigned long lastBatteryMs = 0;
+static unsigned long lastWifiStateMs = 0;
 static int numLoopRuns = 0;
 static int numInputUpdates = 0;
 
 static const unsigned long kStatsIntervalMs = 1000;
 static const unsigned long kBatteryIntervalMs = 3000;
+static const unsigned long kWifiStateIntervalMs = 2000;
 
 static void printButtonLine(ButtonState button) {
     char ca = buttonStateHas(button, kButtonA) ? 'A' : '.';
@@ -63,19 +74,40 @@ static void printBatteryLine() {
     Serial.printf("battery: %3u/255 (%.1f%%)\n", battery, batteryPercent);
 }
 
+static void printWifiStateLine(const ESP32Wiimote::WifiControlState &state) {
+    const char *deliveryMode =
+        state.deliveryMode == WifiDeliveryMode::RestAndWebSocket ? "RestAndWebSocket" : "RestOnly";
+    Serial.printf("wifi: ready=%d net=%d failed=%d mode=%s static=%d api=%d ws=%d\n",
+                  (int)state.ready, (int)state.networkConnected, (int)state.networkConnectFailed,
+                  deliveryMode, (int)state.staticRoutesRegistered, (int)state.apiRoutesRegistered,
+                  (int)state.websocketRoutesRegistered);
+}
+
 void setup() {
     Serial.begin(115200);
     delay(200);
 
     Serial.println("\n\n===== ESP32Wiimote All Features Demo =====");
-    Serial.println("Features: connection, battery, buttons, accel, nunchuk, filters");
+    Serial.println("Features: connection, battery, buttons, accel, nunchuk, filters, Wi-Fi state");
     Serial.println("Initializing Bluetooth controller...");
+
+    WiimoteConfig runtimeConfig = {
+        kEnableWifiControl,
+        {kWifiApiUsername, kWifiApiPassword, kWifiBearerToken},
+        {kWifiSsid, kWifiNetworkPassword},
+    };
+    wiimote.configure(runtimeConfig);
 
     if (!wiimote.init()) {
         Serial.println("FATAL: Bluetooth initialization failed! Halting.");
         while (true) {
             delay(1000);
         }
+    }
+
+    if (kEnableWifiControl) {
+        wiimote.enableWifiControl(true, kWifiDeliveryMode);
+        Serial.println("Wi-Fi control enabled (async startup in task loop)");
     }
 
     Serial.println("Bluetooth initialized successfully!");
@@ -92,6 +124,7 @@ void setup() {
 
     lastStatsMs = millis();
     lastBatteryMs = millis();
+    lastWifiStateMs = millis();
 
     Serial.println("Ready! Press 1 + 2 on the Wiimote to connect.");
 }
@@ -100,16 +133,22 @@ void loop() {
     wiimote.task();
     numLoopRuns++;
 
+    unsigned long now = millis();
+
     bool isConnected = ESP32Wiimote::isConnected();
     if (isConnected != wasConnected) {
         Serial.printf("connection: %s\n", isConnected ? "CONNECTED" : "DISCONNECTED");
         wasConnected = isConnected;
     }
 
-    unsigned long now = millis();
     if (isConnected && (now - lastBatteryMs >= kBatteryIntervalMs)) {
         printBatteryLine();
         lastBatteryMs = now;
+    }
+
+    if (kEnableWifiControl && (now - lastWifiStateMs >= kWifiStateIntervalMs)) {
+        printWifiStateLine(wiimote.getWifiControlState());
+        lastWifiStateMs = now;
     }
 
     while (wiimote.available() > 0) {

@@ -67,9 +67,15 @@ struct WiimoteCredentials {
     const char *bearerToken;
 };
 
+struct WiimoteNetworkCredentials {
+    const char *ssid;
+    const char *password;
+};
+
 struct WiimoteConfig {
     bool wifiEnabled;
     WiimoteCredentials credentials;
+    WiimoteNetworkCredentials network;
 };
 ```
 
@@ -80,7 +86,8 @@ ESP32Wiimote wiimote;
 
 WiimoteConfig runtimeConfig = {
     true,
-    {"admin", "password", "esp32wiimote_bearer_token_v1"}
+    {"admin", "password", "esp32wiimote_bearer_token_v1"},
+    {"YOUR_WIFI_SSID", "YOUR_WIFI_PASSWORD"}
 };
 
 wiimote.configure(runtimeConfig);
@@ -95,6 +102,7 @@ Behavior:
 
 - `wifiEnabled=false` prevents Wi-Fi control startup
 - credentials are reused by both web auth and serial unlock validation
+- when Wi-Fi control is enabled, valid runtime network credentials are required for station join
 - serial control remains available regardless of `wifiEnabled`
 
 #### `void enableWifiControl(bool enabled, WifiDeliveryMode deliveryMode = WifiDeliveryMode::RestOnly)`
@@ -649,6 +657,30 @@ Wi-Fi control is exposed as an authenticated REST API with a static OpenAPI docu
 
 - `GET /api/wiimote/status`
 - `GET /api/wiimote/config`
+- `GET /api/commands/<id>/status`
+
+#### Optional WebSocket event endpoints
+
+Available only when `enableWifiControl(..., WifiDeliveryMode::RestAndWebSocket)` is used:
+
+- `GET /api/wiimote/input/events`
+- `GET /api/wiimote/status/events`
+
+Event frame envelope:
+
+```json
+{
+    "seq": 42,
+    "event": "input",
+    "payload": { ... }
+}
+```
+
+Recovery contract:
+
+- each channel (`input` and `status`) uses its own monotonically increasing `seq`
+- events are retained in bounded per-channel buffers and oldest frames are dropped under backpressure
+- if reconnect replay detects a sequence gap, clients should fetch REST snapshots and resume from `nextSeq`
 
 #### REST write endpoints
 
@@ -717,6 +749,10 @@ Wi-Fi lifecycle snapshot fields:
 - `enabled`
 - `initializing`
 - `ready`
+- `networkCredentialsConfigured`
+- `networkConnectAttempted`
+- `networkConnected`
+- `networkConnectFailed`
 - `deliveryMode`
 - `wifiLayerStarted`
 - `littleFsMounted`
@@ -728,20 +764,20 @@ Wi-Fi lifecycle snapshot fields:
 
 ### Filtering
 
-#### `void addFilter(int action, int filter)`
+#### `void addFilter(FilterAction action, int filter)`
 
 Configures data filters to reduce update frequency.
 
 **Parameters:**
 
-- `action` - Filter action (currently only `ACTION_IGNORE`)
-- `filter` - Data type to filter
+- `action` - Filter action (currently only `FilterAction::Ignore`)
+- `filter` - Data type to filter (`kFilterButton`, `kFilterAccel`, `kFilterNunchukStick`)
 
 **Available Filters:**
 
-- `FILTER_BUTTON` - Ignore button changes
-- `FILTER_ACCEL` - Ignore Wiimote accelerometer changes
-- `FILTER_NUNCHUK_STICK` - Ignore Nunchuk stick changes
+- `kFilterButton` - Ignore button changes
+- `kFilterAccel` - Ignore Wiimote accelerometer changes
+- `kFilterNunchukStick` - Ignore Nunchuk stick changes
 
 **Example:**
 
@@ -750,8 +786,8 @@ void setup() {
     wiimote.init();
     
     // Only care about buttons, ignore motion
-    wiimote.addFilter(ACTION_IGNORE, FILTER_ACCEL);
-    wiimote.addFilter(ACTION_IGNORE, FILTER_NUNCHUK_STICK);
+    wiimote.addFilter(FilterAction::Ignore, kFilterAccel);
+    wiimote.addFilter(FilterAction::Ignore, kFilterNunchukStick);
 }
 ```
 

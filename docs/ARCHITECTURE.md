@@ -364,6 +364,8 @@ Components:
 - Request parser: `src/wifi/web_request_parser.{h,cpp}`
 - Response serializer: `src/wifi/web_response_serializer.{h,cpp}`
 - Router and static assets: `src/wifi/web_api_router.{h,cpp}`, `src/wifi/web/`
+- Async command queue + command status readback: `src/wifi/web_command_queue.{h,cpp}`
+- Split event stream buffering/replay: `src/wifi/web_event_stream.{h,cpp}`
 
 Request flow:
 
@@ -386,8 +388,21 @@ HTTP mapping:
 Lifecycle integration:
 
 - Wi-Fi startup is staged asynchronously in `ESP32Wiimote::task()`
-- startup order is Wi-Fi layer -> filesystem mount -> static routes -> API routes -> ready flag
+- startup order is Wi-Fi layer -> filesystem mount -> static routes -> API routes
+- if delivery mode is `RestAndWebSocket`, websocket routes are registered before ready
 - `RestOnly` mode enables REST routes only; `RestAndWebSocket` includes websocket route stage
+
+Event stream model:
+
+- channels: `/api/wiimote/input/events` and `/api/wiimote/status/events`
+- each channel has bounded buffering and independent monotonic `seq`
+- replay is sequence-driven; if a gap is detected the client must recover from REST snapshots
+
+Runtime configuration integration:
+
+- runtime auth and network credentials are provided through `WiimoteConfig`
+- Wi-Fi station join is attempted before API route readiness
+- reconnect policy fields are persisted in NVS via `RuntimeConfigStore` and restored on startup
 
 ---
 

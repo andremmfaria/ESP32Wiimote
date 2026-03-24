@@ -17,6 +17,9 @@ Due to ESP32 Bluetooth Classic HCI limitations, this project supports one active
 - ✅ Credential-validated unlock window for privileged serial commands
 - ✅ Runtime credentials model shared by Serial and Wi-Fi auth
 - ✅ Wi-Fi REST control API with Bearer/Basic auth
+- ✅ Runtime Wi-Fi station credentials (SSID/password) with async join lifecycle
+- ✅ Optional command queue status polling endpoint (`/api/commands/<id>/status`)
+- ✅ Optional split WebSocket event streams with sequence-based recovery
 - ✅ Static OpenAPI 3.0 document at `/openapi.json`
 - ✅ Comprehensive 4-level logging system (ERROR/WARN/INFO/DEBUG)
 - ✅ Unit tests with PlatformIO
@@ -90,6 +93,7 @@ Focused examples:
 - [SensorReadout](./examples/SensorReadout/SensorReadout.ino) - Wiimote/Nunchuk accelerometer and stick output
 - [BatteryStatus](./examples/BatteryStatus/BatteryStatus.ino) - periodic battery status requests and reporting
 - [FiltersDemo](./examples/FiltersDemo/FiltersDemo.ino) - apply data filters to reduce update volume
+- [WifiControlLifecycle](./examples/WifiControlLifecycle/WifiControlLifecycle.ino) - runtime Wi-Fi/auth config, async lifecycle state, REST/WebSocket delivery mode
 
 Comprehensive example (all features):
 
@@ -233,15 +237,32 @@ Configure runtime auth credentials and Wi-Fi policy before startup:
 ```cpp
 WiimoteConfig runtimeConfig = {
   true,
-  {"admin", "password", "esp32wiimote_bearer_token_v1"}
+  {"admin", "password", "esp32wiimote_bearer_token_v1"},
+  {"YOUR_WIFI_SSID", "YOUR_WIFI_PASSWORD"}
 };
 
 ESP32Wiimote wiimote;
 wiimote.configure(runtimeConfig);
-wiimote.enableWifiControl(true, WifiDeliveryMode::RestOnly);
+wiimote.enableWifiControl(true, WifiDeliveryMode::RestAndWebSocket);
 ```
 
 See [API Reference](docs/API.md#serial-control-interface) for command details.
+
+### Wi-Fi REST + Event Streams
+
+When Wi-Fi control is enabled and ready, you can use:
+
+- REST snapshots:
+  - `GET /api/wiimote/status`
+  - `GET /api/wiimote/config`
+- command queue status:
+  - `GET /api/commands/<id>/status`
+- optional split event streams (when delivery mode is `RestAndWebSocket`):
+  - `GET /api/wiimote/input/events`
+  - `GET /api/wiimote/status/events`
+
+WebSocket event messages include `seq`, `event`, and `payload` fields.
+Use `seq` as a cursor for reconnect/replay handling and fallback to REST snapshots if a gap is detected.
 
 ## Testing
 

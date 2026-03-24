@@ -190,6 +190,8 @@ Usage:
 Targets:
   help                 Show this help.
   test:native          Run native unit tests.
+  test:native:list     List native test modules available for per-module runs.
+  test:native:<module> Run a single native module test (example: test:native:wifi_queue).
   test:coverage        Run native coverage and write reports to coverage/.
   test:dev             Run embedded tests on esp32dev (hardware).
   test:dev:build       Build embedded tests without upload/execution.
@@ -206,11 +208,37 @@ Environment Variables:
 
 Examples:
   ./build.sh test:native
+  ./build.sh test:native:list
+  ./build.sh test:native:wifi_router
   ./build.sh test:dev
   ESP32_PORT=/dev/ttyUSB0 ./build.sh test:dev
   ./build.sh test:coverage
   ./build.sh release
 EOF
+}
+
+list_native_modules() {
+        find test/native -maxdepth 1 -mindepth 1 -type d -name 'test_*' \
+                -exec basename {} \; \
+                | sed 's/^test_//' \
+                | sort
+}
+
+run_native_module() {
+        local module="$1"
+    shift
+        local normalized="${module//-/_}"
+        local filter="native/test_${normalized}"
+
+        if [[ ! -d "test/native/test_${normalized}" ]]; then
+                echo "Error: unknown native module '${module}'" >&2
+                echo >&2
+                echo "Available modules:" >&2
+                list_native_modules | sed 's/^/  - /' >&2
+                exit 2
+        fi
+
+        pio_cmd test -e native --filter "$filter" "$@"
 }
 
 case "$TARGET" in
@@ -220,6 +248,15 @@ case "$TARGET" in
 
     test:native)
         pio_cmd test -e native "$@"
+        ;;
+
+    test:native:list)
+        list_native_modules
+        ;;
+
+    test:native:*)
+        module="${TARGET#test:native:}"
+        run_native_module "$module" "$@"
         ;;
 
     test:coverage)
