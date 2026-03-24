@@ -106,8 +106,59 @@ jobs:
               "$example_dir"
           done
 
+      - name: Generate OpenAPI JSON artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cat > /tmp/export_openapi.cpp <<'CPP'
+          #include "src/wifi/web_api_router.h"
+
+          #include <cstdio>
+          #include <cstring>
+
+          int main() {
+              WebApiContext ctx{};
+              char buf[16384];
+              std::memset(buf, 0, sizeof(buf));
+
+              WebApiRouteResult result =
+                  webApiRoute(&ctx, "GET", "/openapi.json", nullptr, nullptr, 0U, buf, sizeof(buf));
+
+              if (result.httpStatus != 200 || std::strcmp(result.contentType, "application/json") != 0) {
+                  std::fprintf(stderr,
+                               "OpenAPI export failed (status=%d, contentType=%s)\n",
+                               result.httpStatus,
+                               result.contentType);
+                  return 1;
+              }
+
+              std::printf("%s", buf);
+              return 0;
+          }
+          CPP
+
+          g++ -std=c++17 -I. -Isrc \
+            /tmp/export_openapi.cpp \
+            src/wifi/web_api_router.cpp \
+            src/wifi/web_auth.cpp \
+            src/wifi/web_event_stream.cpp \
+            src/wifi/web_request_parser.cpp \
+            src/wifi/web_response_serializer.cpp \
+            src/wifi/web_command_queue.cpp \
+            -o /tmp/export_openapi
+
+          /tmp/export_openapi > dist/openapi.json
+
+          if [[ ! -s dist/openapi.json ]]; then
+            echo "::error::Generated dist/openapi.json is empty."
+            exit 1
+          fi
+
       - name: Upload firmware to release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          files: dist/**/*.bin
+          files: |
+            dist/**/*.bin
+            dist/openapi.json
