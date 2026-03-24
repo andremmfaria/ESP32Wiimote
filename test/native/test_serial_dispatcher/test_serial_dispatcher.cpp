@@ -491,18 +491,19 @@ void testUnlockMissingArgument() {
 void testUnlockBadArgument() {
     MockTarget t;
     SerialCommandSession session;
+    session.setToken("token");
 
-    TEST_ASSERT_EQUAL(
-        SerialDispatchResult::BadArgument,
-        dispatchWithOptions("wm unlock user pass notanumber", &t, &session, true, 1000U));
+    TEST_ASSERT_EQUAL(SerialDispatchResult::BadArgument,
+                      dispatchWithOptions("wm unlock token notanumber", &t, &session, true, 1000U));
 }
 
 void testUnlockEnablesSessionWindow() {
     MockTarget t;
     SerialCommandSession session;
+    session.setToken("token");
 
     TEST_ASSERT_EQUAL(SerialDispatchResult::Ok,
-                      dispatchWithOptions("wm unlock user pass 30", &t, &session, true, 2000U));
+                      dispatchWithOptions("wm unlock token 30", &t, &session, true, 2000U));
     TEST_ASSERT_TRUE(session.isUnlocked(2000U));
     TEST_ASSERT_TRUE(session.isUnlocked(31999U));
     TEST_ASSERT_FALSE(session.isUnlocked(32000U));
@@ -511,20 +512,19 @@ void testUnlockEnablesSessionWindow() {
 void testUnlockBadCredentialsReturnsBadCredentials() {
     MockTarget t;
     SerialCommandSession session;
-    const WiimoteCredentials kCredentials = {"admin", "password", "token"};
-
-    session.setCredentials(&kCredentials);
+    session.setToken("token");
 
     TEST_ASSERT_EQUAL(SerialDispatchResult::BadCredentials,
-                      dispatchWithOptions("wm unlock admin wrong 30", &t, &session, true, 2000U));
+                      dispatchWithOptions("wm unlock wrong 30", &t, &session, true, 2000U));
 }
 
 void testUnlockWithoutSecondsUsesDefaultDuration() {
     MockTarget t;
     SerialCommandSession session;
+    session.setToken("token");
 
     TEST_ASSERT_EQUAL(SerialDispatchResult::Ok,
-                      dispatchWithOptions("wm unlock user pass", &t, &session, true, 2000U));
+                      dispatchWithOptions("wm unlock token", &t, &session, true, 2000U));
     TEST_ASSERT_TRUE(session.isUnlocked(61999U));
     TEST_ASSERT_FALSE(session.isUnlocked(62000U));
 }
@@ -544,9 +544,10 @@ void testPrivilegedCommandRunsWhenUnlocked() {
     MockTarget t;
     t.connected = true;
     SerialCommandSession session;
+    session.setToken("token");
 
     TEST_ASSERT_EQUAL(SerialDispatchResult::Ok,
-                      dispatchWithOptions("wm unlock user pass 2", &t, &session, true, 100U));
+                      dispatchWithOptions("wm unlock token 2", &t, &session, true, 100U));
     TEST_ASSERT_EQUAL(SerialDispatchResult::Ok,
                       dispatchWithOptions("wm led 0x07", &t, &session, true, 150U));
     TEST_ASSERT_TRUE(t.setLedsCalledWith);
@@ -557,9 +558,10 @@ void testPrivilegedCommandRelocksAfterExpiry() {
     MockTarget t;
     t.connected = true;
     SerialCommandSession session;
+    session.setToken("token");
 
     TEST_ASSERT_EQUAL(SerialDispatchResult::Ok,
-                      dispatchWithOptions("wm unlock user pass 1", &t, &session, true, 1000U));
+                      dispatchWithOptions("wm unlock token 1", &t, &session, true, 1000U));
     const SerialDispatchResult kResult =
         dispatchWithOptions("wm led 0x03", &t, &session, true, 2500U);
     TEST_ASSERT_EQUAL(SerialDispatchResult::Locked, kResult);

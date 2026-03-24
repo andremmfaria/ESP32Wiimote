@@ -4,12 +4,11 @@
 
 ESP32Wiimote wiimote;
 
-// Current runtime config model (auth + optional Wi-Fi network credentials).
+// Current runtime config model (tokens + optional Wi-Fi network credentials).
 // Keep Wi-Fi control disabled in this basic example.
 static const bool kEnableWifiControl = false;
-static const char *kApiUsername = "admin";
-static const char *kApiPassword = "password";
-static const char *kBearerToken = "esp32wiimote_bearer_token_v1";
+static const char *kSerialPrivilegedToken = "esp32wiimote_serial_token_v1";
+static const char *kWifiApiToken = "esp32wiimote_wifi_api_token_v1";
 static const char *kWifiSsid = "YOUR_WIFI_SSID";
 static const char *kWifiNetworkPassword = "YOUR_WIFI_PASSWORD";
 
@@ -21,7 +20,8 @@ void setup() {
 
     WiimoteConfig runtimeConfig = {
         kEnableWifiControl,
-        {kApiUsername, kApiPassword, kBearerToken},
+        kSerialPrivilegedToken,
+        kWifiApiToken,
         {kWifiSsid, kWifiNetworkPassword},
     };
     wiimote.configure(runtimeConfig);

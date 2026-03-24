@@ -45,48 +45,38 @@ void testWrapAroundElapsedCheckWorks() {
     TEST_ASSERT_FALSE(session.isUnlocked(kNearWrap + 40U));
 }
 
-void testSetCredentialsAndValidateMatching() {
+void testSetTokenAndValidateMatching() {
     SerialCommandSession session;
-    const WiimoteCredentials kCredentials = {"admin", "password", "token"};
+    const char *kToken = "token";
 
-    session.setCredentials(&kCredentials);
+    session.setToken(kToken);
 
-    TEST_ASSERT_TRUE(session.validateCredentials("admin", "password"));
+    TEST_ASSERT_TRUE(session.validateToken("token"));
 }
 
-void testSetCredentialsAndValidateWrongPassword() {
+void testSetTokenAndValidateWrongToken() {
     SerialCommandSession session;
-    const WiimoteCredentials kCredentials = {"admin", "password", "token"};
+    const char *kToken = "token";
 
-    session.setCredentials(&kCredentials);
+    session.setToken(kToken);
 
-    TEST_ASSERT_FALSE(session.validateCredentials("admin", "wrong"));
+    TEST_ASSERT_FALSE(session.validateToken("wrong"));
 }
 
-void testSetCredentialsAndValidateWrongUsername() {
+void testValidateNullTokenWhenTokenSet() {
     SerialCommandSession session;
-    const WiimoteCredentials kCredentials = {"admin", "password", "token"};
+    const char *kToken = "token";
 
-    session.setCredentials(&kCredentials);
+    session.setToken(kToken);
 
-    TEST_ASSERT_FALSE(session.validateCredentials("wrong", "password"));
+    TEST_ASSERT_FALSE(session.validateToken(nullptr));
 }
 
-void testValidateNullInputWhenCredentialsSet() {
-    SerialCommandSession session;
-    const WiimoteCredentials kCredentials = {"admin", "password", "token"};
-
-    session.setCredentials(&kCredentials);
-
-    TEST_ASSERT_FALSE(session.validateCredentials(nullptr, "password"));
-    TEST_ASSERT_FALSE(session.validateCredentials("admin", nullptr));
-}
-
-void testValidateWithNullCredentialsAllowsNoAuthMode() {
+void testValidateWhenNoTokenConfiguredIsRejected() {
     SerialCommandSession session;
 
-    TEST_ASSERT_TRUE(session.validateCredentials("anything", "anything"));
-    TEST_ASSERT_TRUE(session.validateCredentials(nullptr, nullptr));
+    TEST_ASSERT_FALSE(session.validateToken("token"));
+    TEST_ASSERT_FALSE(session.validateToken(nullptr));
 }
 
 int main(int /*argc*/, char ** /*argv*/) {
@@ -97,11 +87,10 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testLockClearsWindow);
     RUN_TEST(testUnlockZeroDurationKeepsLocked);
     RUN_TEST(testWrapAroundElapsedCheckWorks);
-    RUN_TEST(testSetCredentialsAndValidateMatching);
-    RUN_TEST(testSetCredentialsAndValidateWrongPassword);
-    RUN_TEST(testSetCredentialsAndValidateWrongUsername);
-    RUN_TEST(testValidateNullInputWhenCredentialsSet);
-    RUN_TEST(testValidateWithNullCredentialsAllowsNoAuthMode);
+    RUN_TEST(testSetTokenAndValidateMatching);
+    RUN_TEST(testSetTokenAndValidateWrongToken);
+    RUN_TEST(testValidateNullTokenWhenTokenSet);
+    RUN_TEST(testValidateWhenNoTokenConfiguredIsRejected);
 
     return UNITY_END();
 }

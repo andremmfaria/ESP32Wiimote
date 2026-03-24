@@ -58,15 +58,9 @@ Set `fastReconnectTtlMs = 0` to disable fast reconnect and always use inquiry af
 
 ### Runtime Wi-Fi/Auth Configuration
 
-Runtime credentials and Wi-Fi policy are configured via `WiimoteConfig`:
+Runtime tokens and Wi-Fi policy are configured via `WiimoteConfig`:
 
 ```cpp
-struct WiimoteCredentials {
-    const char *username;
-    const char *password;
-    const char *bearerToken;
-};
-
 struct WiimoteNetworkCredentials {
     const char *ssid;
     const char *password;
@@ -74,7 +68,8 @@ struct WiimoteNetworkCredentials {
 
 struct WiimoteConfig {
     bool wifiEnabled;
-    WiimoteCredentials credentials;
+    const char *serialPrivilegedToken;
+    const char *wifiApiToken;
     WiimoteNetworkCredentials network;
 };
 ```
@@ -86,7 +81,8 @@ ESP32Wiimote wiimote;
 
 WiimoteConfig runtimeConfig = {
     true,
-    {"admin", "password", "esp32wiimote_bearer_token_v1"},
+    "esp32wiimote_serial_token_v1",
+    "esp32wiimote_wifi_api_token_v1",
     {"YOUR_WIFI_SSID", "YOUR_WIFI_PASSWORD"}
 };
 
@@ -96,12 +92,14 @@ wiimote.enableWifiControl(true, WifiDeliveryMode::RestOnly);
 
 #### `void configure(const WiimoteConfig &config)`
 
-Sets runtime credentials and Wi-Fi enablement policy.
+Sets runtime tokens and Wi-Fi enablement policy.
 
 Behavior:
 
 - `wifiEnabled=false` prevents Wi-Fi control startup
-- credentials are reused by both web auth and serial unlock validation
+- `serialPrivilegedToken` is used for serial unlock validation (`wm unlock <token> [seconds]`)
+- `wifiApiToken` is used for Wi-Fi Bearer auth
+- if `wifiApiToken` is null/empty, it falls back to `serialPrivilegedToken` and startup prints `@wm: info wifi_api_token_missing_using_serial_token`
 - when Wi-Fi control is enabled, valid runtime network credentials are required for station join
 - serial control remains available regardless of `wifiEnabled`
 
@@ -571,7 +569,7 @@ Returns whether serial command processing is enabled.
 #### Implemented command set
 
 - `wm status`
-- `wm unlock <username> <password> [seconds]`
+- `wm unlock <token> [seconds]`
 - `wm led <mask>`
 - `wm mode <mode> [continuous]`
 - `wm accel <on|off>`
@@ -602,9 +600,9 @@ Error examples:
 
 Serial privileged commands are locked by default.
 
-- `wm unlock <username> <password> [seconds]` starts a credential-validated, time-bounded unlock session
+- `wm unlock <token> [seconds]` starts a token-validated, time-bounded unlock session
 - default unlock duration is 60 seconds when `[seconds]` is omitted
-- invalid credentials return `@wm: error bad_credentials`
+- invalid token returns `@wm: error bad_credentials`
 - while unlocked, privileged commands are accepted (subject to normal state guards)
 - after expiry, privileged commands return `@wm: error locked`
 
@@ -643,8 +641,8 @@ Wi-Fi control is exposed as an authenticated REST API with a static OpenAPI docu
 
 #### Auth model
 
-- API routes require either `Authorization: Bearer <token>` or `Authorization: Basic <base64(user:pass)>`
-- missing or invalid credentials return HTTP `401`
+- API routes require `Authorization: Bearer <token>`
+- missing or invalid token returns HTTP `401`
 
 #### Static routes
 

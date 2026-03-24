@@ -116,14 +116,14 @@ Current implementation snapshot:
 
 - parser/dispatcher/formatter wired through `ESP32Wiimote::task()`
 - one complete command line processed per `task()` call
-- unlock window for privileged serial commands (`wm unlock <username> <password> [seconds]`)
+- unlock window for privileged serial commands (`wm unlock <token> [seconds]`)
 - native serial suites cover parser, dispatcher, formatter, session, and integration paths
 
 ### Phase 4: Wi-Fi API
 
 Deliverables:
 
-- authenticated REST API (Bearer and/or Basic)
+- authenticated REST API (Bearer token)
 - read snapshots for input/status/config/controller status
 - write endpoints for runtime and controller commands
 - static OpenAPI and minimal web page routing
@@ -140,7 +140,7 @@ Status:
 
 Current implementation snapshot:
 
-- Bearer/Basic auth implemented in web auth layer with runtime credentials
+- Bearer auth implemented in web auth layer with runtime Wi-Fi token
 - static assets served at `/`, `/app.js`, `/styles.css`
 - OpenAPI 3.0 asset served at `/openapi.json`
 - REST reads: `/api/wiimote/status`, `/api/wiimote/config`
@@ -160,7 +160,7 @@ Exit criteria:
 
 - stable mixed local/remote command behavior
 - persistence and event features validated when enabled
-- Wi-Fi join behavior is explicit, test-covered, and fail-closed on invalid credentials
+- Wi-Fi join behavior is explicit, test-covered, and fail-closed on invalid token/network config
 
 ## Cross-Cutting Requirements
 

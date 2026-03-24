@@ -4,10 +4,9 @@
 
 ESP32Wiimote wiimote;
 
-// Fill these with your runtime credentials and network data.
-static const char *kApiUsername = "admin";
-static const char *kApiPassword = "password";
-static const char *kBearerToken = "esp32wiimote_bearer_token_v1";
+// Fill these with your runtime tokens and network data.
+static const char *kSerialPrivilegedToken = "esp32wiimote_serial_token_v1";
+static const char *kWifiApiToken = "esp32wiimote_wifi_api_token_v1";
 static const char *kSsid = "YOUR_WIFI_SSID";
 static const char *kSsidPassword = "YOUR_WIFI_PASSWORD";
 
@@ -43,7 +42,8 @@ void setup() {
 
     WiimoteConfig runtimeConfig = {
         true,
-        {kApiUsername, kApiPassword, kBearerToken},
+        kSerialPrivilegedToken,
+        kWifiApiToken,
         {kSsid, kSsidPassword},
     };
     wiimote.configure(runtimeConfig);

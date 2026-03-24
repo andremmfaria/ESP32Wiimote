@@ -284,12 +284,17 @@ void testESP32WiimoteSerialControlDisabledByDefaultAndOptIn() {
 
 void testESP32WiimoteSerialControlProcessesOneLinePerTaskCall() {
     ESP32Wiimote device;
+    WiimoteConfig config;
+    config.wifiEnabled = false;
+    config.serialPrivilegedToken = "token";
+    config.wifiApiToken = "token";
     mockBtStarted = true;
     mockTinyWiimoteConnected = true;
     mockSetLedsResult = true;
 
+    device.configure(config);
     device.enableSerialControl(true);
-    mockSerialSetInput("wm unlock user pass 60\nwm led 0x01\n");
+    mockSerialSetInput("wm unlock token 60\nwm led 0x01\n");
 
     device.task();
     TEST_ASSERT_EQUAL_STRING("@wm: ok\n", mockSerialGetOutput());
@@ -318,14 +323,19 @@ void testESP32WiimoteSerialControlPrivilegedCommandIsLockedByDefault() {
 
 void testESP32WiimoteSerialControlUnlockExpiresByTime() {
     ESP32Wiimote device;
+    WiimoteConfig config;
+    config.wifiEnabled = false;
+    config.serialPrivilegedToken = "token";
+    config.wifiApiToken = "token";
     mockBtStarted = true;
     mockTinyWiimoteConnected = true;
     mockSetLedsResult = true;
 
+    device.configure(config);
     device.enableSerialControl(true);
 
     mockSetMillis(1000UL);
-    mockSerialSetInput("wm unlock user pass 1\nwm led 0x01\n");
+    mockSerialSetInput("wm unlock token 1\nwm led 0x01\n");
 
     device.task();
     TEST_ASSERT_EQUAL_STRING("@wm: ok\n", mockSerialGetOutput());
@@ -345,16 +355,15 @@ void testESP32WiimoteSerialControlUnlockExpiresByTime() {
 
 void testESP32WiimoteConfigureWithWifiDisabledRejectsBadCredentials() {
     ESP32Wiimote device;
-    WiimoteConfig config = {};
+    WiimoteConfig config;
     config.wifiEnabled = false;
-    config.credentials.username = "admin";
-    config.credentials.password = "password";
-    config.credentials.bearerToken = "token";
+    config.serialPrivilegedToken = "token";
+    config.wifiApiToken = "token";
 
     mockBtStarted = true;
     device.configure(config);
     device.enableSerialControl(true);
-    mockSerialSetInput("wm unlock admin wrong 60\n");
+    mockSerialSetInput("wm unlock wrong 60\n");
 
     device.task();
 
@@ -363,18 +372,17 @@ void testESP32WiimoteConfigureWithWifiDisabledRejectsBadCredentials() {
 
 void testESP32WiimoteConfigurePropagatesCredentialsToSerialUnlock() {
     ESP32Wiimote device;
-    WiimoteConfig config = {};
+    WiimoteConfig config;
     config.wifiEnabled = false;
-    config.credentials.username = "admin";
-    config.credentials.password = "password";
-    config.credentials.bearerToken = "token";
+    config.serialPrivilegedToken = "token";
+    config.wifiApiToken = "token";
 
     mockBtStarted = true;
     mockTinyWiimoteConnected = true;
     mockSetLedsResult = true;
     device.configure(config);
     device.enableSerialControl(true);
-    mockSerialSetInput("wm unlock admin password 60\nwm led 0x01\n");
+    mockSerialSetInput("wm unlock token 60\nwm led 0x01\n");
 
     device.task();
     device.task();
@@ -401,11 +409,10 @@ void testESP32WiimoteWifiControlDisabledByDefault() {
 
 void testESP32WiimoteWifiControlNotEnabledWhenConfigDisablesWifi() {
     ESP32Wiimote device;
-    WiimoteConfig config = {};
+    WiimoteConfig config;
     config.wifiEnabled = false;
-    config.credentials.username = "admin";
-    config.credentials.password = "password";
-    config.credentials.bearerToken = "token";
+    config.serialPrivilegedToken = "token";
+    config.wifiApiToken = "token";
 
     device.configure(config);
     device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
@@ -416,11 +423,10 @@ void testESP32WiimoteWifiControlNotEnabledWhenConfigDisablesWifi() {
 
 void testESP32WiimoteWifiControlAsyncLifecycleRestOnly() {
     ESP32Wiimote device;
-    WiimoteConfig config = {};
+    WiimoteConfig config;
     config.wifiEnabled = true;
-    config.credentials.username = "admin";
-    config.credentials.password = "password";
-    config.credentials.bearerToken = "token";
+    config.serialPrivilegedToken = "token";
+    config.wifiApiToken = "token";
     config.network.ssid = "ssid";
     config.network.password = "wifi_password";
 
@@ -458,11 +464,10 @@ void testESP32WiimoteWifiControlAsyncLifecycleRestOnly() {
 
 void testESP32WiimoteWifiControlRestAndWebSocketAddsWebSocketStage() {
     ESP32Wiimote device;
-    WiimoteConfig config = {};
+    WiimoteConfig config;
     config.wifiEnabled = true;
-    config.credentials.username = "admin";
-    config.credentials.password = "password";
-    config.credentials.bearerToken = "token";
+    config.serialPrivilegedToken = "token";
+    config.wifiApiToken = "token";
     config.network.ssid = "ssid";
     config.network.password = "wifi_password";
 
@@ -483,11 +488,10 @@ void testESP32WiimoteWifiControlRestAndWebSocketAddsWebSocketStage() {
 
 void testESP32WiimoteWifiControlModeSwitchRestToWebSocketRestartsLifecycle() {
     ESP32Wiimote device;
-    WiimoteConfig config = {};
+    WiimoteConfig config;
     config.wifiEnabled = true;
-    config.credentials.username = "admin";
-    config.credentials.password = "password";
-    config.credentials.bearerToken = "token";
+    config.serialPrivilegedToken = "token";
+    config.wifiApiToken = "token";
     config.network.ssid = "ssid";
     config.network.password = "wifi_password";
 
@@ -520,11 +524,10 @@ void testESP32WiimoteWifiControlModeSwitchRestToWebSocketRestartsLifecycle() {
 
 void testESP32WiimoteWifiControlModeSwitchWebSocketToRestDisablesWebSocketStage() {
     ESP32Wiimote device;
-    WiimoteConfig config = {};
+    WiimoteConfig config;
     config.wifiEnabled = true;
-    config.credentials.username = "admin";
-    config.credentials.password = "password";
-    config.credentials.bearerToken = "token";
+    config.serialPrivilegedToken = "token";
+    config.wifiApiToken = "token";
     config.network.ssid = "ssid";
     config.network.password = "wifi_password";
 
@@ -557,11 +560,10 @@ void testESP32WiimoteWifiControlModeSwitchWebSocketToRestDisablesWebSocketStage(
 
 void testESP32WiimoteWifiControlFailsWithoutNetworkCredentials() {
     ESP32Wiimote device;
-    WiimoteConfig config = {};
+    WiimoteConfig config;
     config.wifiEnabled = true;
-    config.credentials.username = "admin";
-    config.credentials.password = "password";
-    config.credentials.bearerToken = "token";
+    config.serialPrivilegedToken = "token";
+    config.wifiApiToken = "token";
 
     device.configure(config);
     device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
@@ -580,11 +582,10 @@ void testESP32WiimoteWifiControlFailsWithoutNetworkCredentials() {
 
 void testESP32WiimoteWifiControlFailsWhenJoinFails() {
     ESP32Wiimote device;
-    WiimoteConfig config = {};
+    WiimoteConfig config;
     config.wifiEnabled = true;
-    config.credentials.username = "admin";
-    config.credentials.password = "password";
-    config.credentials.bearerToken = "token";
+    config.serialPrivilegedToken = "token";
+    config.wifiApiToken = "token";
     config.network.ssid = "__fail__";
     config.network.password = "wifi_password";
 

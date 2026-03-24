@@ -97,11 +97,11 @@ static bool startsWithCaseInsensitive(const char *str, const char *prefix) {
 
 // ===== Bearer Token Validation =====
 
-WebAuthResult webAuthValidateBearer(const char *authHeaderValue, const WiimoteCredentials *creds) {
+WebAuthResult webAuthValidateBearer(const char *authHeaderValue, const char *wifiApiToken) {
     if (authHeaderValue == nullptr) {
         return WebAuthResult::MissingHeader;
     }
-    if (creds == nullptr || creds->bearerToken == nullptr) {
+    if (wifiApiToken == nullptr) {
         return WebAuthResult::InvalidCredentials;
     }
 
@@ -117,7 +117,7 @@ WebAuthResult webAuthValidateBearer(const char *authHeaderValue, const WiimoteCr
     const char *token = authHeaderValue + 7;  // strlen("Bearer ") == 7
     token = trimLeading(token);
 
-    if (std::strcmp(token, creds->bearerToken) != 0) {
+    if (std::strcmp(token, wifiApiToken) != 0) {
         return WebAuthResult::InvalidCredentials;
     }
 
@@ -126,66 +126,16 @@ WebAuthResult webAuthValidateBearer(const char *authHeaderValue, const WiimoteCr
 
 // ===== Basic Auth Validation =====
 
-WebAuthResult webAuthValidateBasic(const char *authHeaderValue, const WiimoteCredentials *creds) {
+WebAuthResult webAuthValidateBasic(const char *authHeaderValue, const char * /*wifiApiToken*/) {
     if (authHeaderValue == nullptr) {
         return WebAuthResult::MissingHeader;
     }
-    if (creds == nullptr || creds->username == nullptr || creds->password == nullptr) {
-        return WebAuthResult::InvalidCredentials;
-    }
-
-    // Trim leading whitespace
-    authHeaderValue = trimLeading(authHeaderValue);
-
-    // Check "Basic " prefix
-    if (!startsWithCaseInsensitive(authHeaderValue, "basic ")) {
-        return WebAuthResult::UnsupportedScheme;
-    }
-
-    // Extract base64 part after "Basic "
-    const char *base64 = authHeaderValue + 6;  // strlen("Basic ") == 6
-    base64 = trimLeading(base64);
-
-    // Decode base64 credentials (max space for "username:password")
-    char decoded[64];
-    size_t decodedLen = base64Decode(base64, decoded, sizeof(decoded) - 1);
-    if (decodedLen == 0) {
-        return WebAuthResult::MalformedHeader;
-    }
-    decoded[decodedLen] = '\0';
-
-    // Parse "username:password" format
-    const char *colonPtr = std::strchr(decoded, ':');
-    if (colonPtr == nullptr) {
-        return WebAuthResult::MalformedHeader;
-    }
-
-    size_t usernameLen = static_cast<size_t>(colonPtr - decoded);
-    const char *password = colonPtr + 1;
-
-    // Validate username and password lengths
-    size_t expectedUsernameLen = std::strlen(creds->username);
-
-    if (usernameLen != expectedUsernameLen) {
-        return WebAuthResult::InvalidCredentials;
-    }
-
-    // Compare username (case-sensitive)
-    if (std::strncmp(decoded, creds->username, usernameLen) != 0) {
-        return WebAuthResult::InvalidCredentials;
-    }
-
-    // Compare password (case-sensitive)
-    if (std::strcmp(password, creds->password) != 0) {
-        return WebAuthResult::InvalidCredentials;
-    }
-
-    return WebAuthResult::Ok;
+    return WebAuthResult::UnsupportedScheme;
 }
 
 // ===== Combined Auth Entrypoint =====
 
-WebAuthResult webAuthValidate(const char *authHeaderValue, const WiimoteCredentials *creds) {
+WebAuthResult webAuthValidate(const char *authHeaderValue, const char *wifiApiToken) {
     if (authHeaderValue == nullptr) {
         return WebAuthResult::MissingHeader;
     }
@@ -197,29 +147,10 @@ WebAuthResult webAuthValidate(const char *authHeaderValue, const WiimoteCredenti
     }
 
     // Try Bearer first
-    WebAuthResult bearerResult = webAuthValidateBearer(authHeaderValue, creds);
+    WebAuthResult bearerResult = webAuthValidateBearer(authHeaderValue, wifiApiToken);
     if (bearerResult == WebAuthResult::Ok) {
         return WebAuthResult::Ok;
     }
 
-    // Try Basic second
-    WebAuthResult basicResult = webAuthValidateBasic(authHeaderValue, creds);
-    if (basicResult == WebAuthResult::Ok) {
-        return WebAuthResult::Ok;
-    }
-
-    // If both schemes were unsupported, return the first unsupported error
-    if (bearerResult == WebAuthResult::UnsupportedScheme &&
-        basicResult == WebAuthResult::UnsupportedScheme) {
-        return WebAuthResult::UnsupportedScheme;
-    }
-
-    // Otherwise, return a malformed/invalid error (prioritize invalid credentials)
-    if (bearerResult == WebAuthResult::InvalidCredentials ||
-        basicResult == WebAuthResult::InvalidCredentials) {
-        return WebAuthResult::InvalidCredentials;
-    }
-
-    // Fallback: malformed
-    return WebAuthResult::MalformedHeader;
+    return bearerResult;
 }

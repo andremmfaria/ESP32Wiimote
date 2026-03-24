@@ -655,7 +655,7 @@ WebApiRouteResult webApiRoute(const WebApiContext *ctx,
     }
 
     // Step 1: Authenticate
-    if (webAuthValidate(authHeader, ctx->credentials) != WebAuthResult::Ok) {
+    if (webAuthValidate(authHeader, ctx->wifiApiToken) != WebAuthResult::Ok) {
         serializeError(responseBuf, responseBufSize, "unauthorized");
         return makeResult(401, "application/json");
     }

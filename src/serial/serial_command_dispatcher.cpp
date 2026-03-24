@@ -188,26 +188,25 @@ static SerialDispatchResult handleReconnect(const SerialParsedCommand &cmd,
     return SerialDispatchResult::Ok;
 }
 
-// wm unlock <username> <password> [seconds]
+// wm unlock <token> [seconds]
 static SerialDispatchResult handleUnlock(const SerialParsedCommand &cmd,
                                          SerialCommandSession *session,
                                          uint32_t nowMs) {
-    if (cmd.tokenCount < 4) {
+    if (cmd.tokenCount < 3) {
         return SerialDispatchResult::MissingArgument;
     }
     if (session == nullptr) {
         return SerialDispatchResult::Rejected;
     }
 
-    const char *username = cmd.tokens[2];
-    const char *password = cmd.tokens[3];
-    if (!session->validateCredentials(username, password)) {
+    const char *token = cmd.tokens[2];
+    if (!session->validateToken(token)) {
         return SerialDispatchResult::BadCredentials;
     }
 
     uint16_t seconds = 60U;
-    if (cmd.tokenCount >= 5) {
-        if (!serialParseUint16(cmd.tokens[4], &seconds)) {
+    if (cmd.tokenCount >= 4) {
+        if (!serialParseUint16(cmd.tokens[3], &seconds)) {
             return SerialDispatchResult::BadArgument;
         }
     }

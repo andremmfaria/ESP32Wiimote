@@ -308,9 +308,11 @@ class ESP32Wiimote {
 
    private:
     ESP32WiimoteConfig config_;
-    WiimoteCredentials credentials_;
+    const char *serialPrivilegedToken_;
+    const char *wifiApiToken_;
     WiimoteNetworkCredentials networkCredentials_;
     bool wifiEnabled_;
+    bool wifiTokenFallbackToSerial_;
     RuntimeConfigStore runtimeConfigStore_;
     bool runtimeConfigStoreReady_;
     RuntimeConfigSnapshot runtimeConfigSnapshot_;

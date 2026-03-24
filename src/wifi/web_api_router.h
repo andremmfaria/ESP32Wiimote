@@ -26,7 +26,7 @@
  * All callbacks default to nullptr; populate every member before calling webApiRoute.
  */
 struct WebApiContext {
-    const WiimoteCredentials *credentials = nullptr;
+    const char *wifiApiToken = nullptr;
 
     // Read callbacks
     WebWiimoteStatusSnapshot (*getWiimoteStatus)(void *userData) = nullptr;

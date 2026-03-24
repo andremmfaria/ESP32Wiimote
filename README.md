@@ -14,9 +14,9 @@ Due to ESP32 Bluetooth Classic HCI limitations, this project supports one active
 - ✅ Battery level readout (0-100%) via `getBatteryLevel()`
 - ✅ Battery status requests via `requestBatteryUpdate()`
 - ✅ Serial runtime control (`wm ...`) with deterministic responses
-- ✅ Credential-validated unlock window for privileged serial commands
-- ✅ Runtime credentials model shared by Serial and Wi-Fi auth
-- ✅ Wi-Fi REST control API with Bearer/Basic auth
+- ✅ Token-validated unlock window for privileged serial commands
+- ✅ Split runtime token model for Serial and Wi-Fi auth
+- ✅ Wi-Fi REST control API with Bearer auth
 - ✅ Runtime Wi-Fi station credentials (SSID/password) with async join lifecycle
 - ✅ Optional command queue status polling endpoint (`/api/commands/<id>/status`)
 - ✅ Optional split WebSocket event streams with sequence-based recovery
@@ -219,7 +219,7 @@ Example session:
 wm status
 @wm: ok
 
-wm unlock admin password 30
+wm unlock serial_token_here 30
 @wm: ok
 
 wm led 0x01
@@ -228,16 +228,17 @@ wm led 0x01
 
 Privileged commands are locked by default and return `@wm: error locked` until an unlock window is active.
 
-When credentials are configured, invalid unlock credentials return `@wm: error bad_credentials`.
+When a serial privileged token is configured, invalid unlock tokens return `@wm: error bad_credentials`.
 
 ### Runtime Wi-Fi/Auth Configuration
 
-Configure runtime auth credentials and Wi-Fi policy before startup:
+Configure runtime auth tokens and Wi-Fi policy before startup:
 
 ```cpp
 WiimoteConfig runtimeConfig = {
   true,
-  {"admin", "password", "esp32wiimote_bearer_token_v1"},
+  "esp32wiimote_serial_token_v1",
+  "esp32wiimote_wifi_api_token_v1",
   {"YOUR_WIFI_SSID", "YOUR_WIFI_PASSWORD"}
 };
 
@@ -245,6 +246,9 @@ ESP32Wiimote wiimote;
 wiimote.configure(runtimeConfig);
 wiimote.enableWifiControl(true, WifiDeliveryMode::RestAndWebSocket);
 ```
+
+If `wifiApiToken` is null/empty, Wi-Fi auth falls back to `serialPrivilegedToken` and startup prints:
+`@wm: info wifi_api_token_missing_using_serial_token`.
 
 See [API Reference](docs/API.md#serial-control-interface) for command details.
 

@@ -4,21 +4,16 @@
 
 SerialCommandSession::SerialCommandSession() = default;
 
-void SerialCommandSession::setCredentials(const WiimoteCredentials *credentials) {
-    credentials_ = credentials;
+void SerialCommandSession::setToken(const char *token) {
+    token_ = token;
 }
 
-bool SerialCommandSession::validateCredentials(const char *username, const char *password) const {
-    if (credentials_ == nullptr) {
-        return true;
-    }
-    if (username == nullptr || password == nullptr || credentials_->username == nullptr ||
-        credentials_->password == nullptr) {
+bool SerialCommandSession::validateToken(const char *token) const {
+    if (token_ == nullptr || token == nullptr) {
         return false;
     }
 
-    return std::strcmp(username, credentials_->username) == 0 &&
-           std::strcmp(password, credentials_->password) == 0;
+    return std::strcmp(token, token_) == 0;
 }
 
 void SerialCommandSession::lock() {

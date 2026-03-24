@@ -19,9 +19,8 @@ static const bool kIgnoreButtons = false;
 // Set true to demo Wi-Fi control lifecycle and REST/WebSocket delivery mode.
 static const bool kEnableWifiControl = false;
 static const WifiDeliveryMode kWifiDeliveryMode = WifiDeliveryMode::RestAndWebSocket;
-static const char *kWifiApiUsername = "admin";
-static const char *kWifiApiPassword = "password";
-static const char *kWifiBearerToken = "esp32wiimote_bearer_token_v1";
+static const char *kSerialPrivilegedToken = "esp32wiimote_serial_token_v1";
+static const char *kWifiApiToken = "esp32wiimote_wifi_api_token_v1";
 static const char *kWifiSsid = "YOUR_WIFI_SSID";
 static const char *kWifiNetworkPassword = "YOUR_WIFI_PASSWORD";
 
@@ -93,7 +92,8 @@ void setup() {
 
     WiimoteConfig runtimeConfig = {
         kEnableWifiControl,
-        {kWifiApiUsername, kWifiApiPassword, kWifiBearerToken},
+        kSerialPrivilegedToken,
+        kWifiApiToken,
         {kWifiSsid, kWifiNetworkPassword},
     };
     wiimote.configure(runtimeConfig);

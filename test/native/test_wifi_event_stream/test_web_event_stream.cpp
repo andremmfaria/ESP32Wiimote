@@ -342,11 +342,7 @@ void testWebEventStreamPublishStatusForwardsUserData() {
 
 // ===== Router Integration Tests =====
 
-static const WiimoteCredentials kTestCredentials = {
-    "admin",
-    "password",
-    "esp32wiimote_bearer_token_v1",
-};
+static const char *kTestWifiToken = "esp32wiimote_bearer_token_v1";
 static const char *kValidBearer = "Bearer esp32wiimote_bearer_token_v1";
 
 static WebWiimoteStatusSnapshot gMockStatus;
@@ -380,7 +376,7 @@ static void mockNoop7(bool /*a*/, void * /*u*/) {}
 
 static WebApiContext makeCtxWithStream(WebEventStream *stream) {
     WebApiContext ctx;
-    ctx.credentials = &kTestCredentials;
+    ctx.wifiApiToken = kTestWifiToken;
     ctx.getWiimoteStatus = mockGetStatus;
     ctx.getConfig = mockGetConfig;
     ctx.setLeds = mockNoop1;

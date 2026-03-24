@@ -345,7 +345,7 @@ Bounds and behavior:
 Privileged-command gating:
 
 - Write/control serial commands are locked by default
-- `wm unlock <username> <password> [seconds]` opens a credential-validated unlock window
+- `wm unlock <token> [seconds]` opens a token-validated unlock window
 - Once expired, privileged commands are rejected with `locked`
 
 Integration note:
@@ -370,7 +370,7 @@ Components:
 Request flow:
 
 1. Static route short-circuit (`/`, `/app.js`, `/styles.css`, `/openapi.json`)
-2. Auth enforcement (Bearer or Basic)
+2. Auth enforcement (Bearer token)
 3. Route lookup by method + path
 4. Body parse for `POST` routes
 5. Public API callback dispatch
@@ -380,7 +380,7 @@ HTTP mapping:
 
 - `200`: read success or command accepted
 - `400`: malformed body, missing required fields, invalid argument
-- `401`: missing/invalid credentials
+- `401`: missing/invalid token
 - `403`: reserved for future policy-based restrictions
 - `404`: unknown route
 - `409`: runtime/state guard rejected command
@@ -400,7 +400,7 @@ Event stream model:
 
 Runtime configuration integration:
 
-- runtime auth and network credentials are provided through `WiimoteConfig`
+- runtime serial/wifi tokens and network credentials are provided through `WiimoteConfig`
 - Wi-Fi station join is attempted before API route readiness
 - reconnect policy fields are persisted in NVS via `RuntimeConfigStore` and restored on startup
 
@@ -641,12 +641,13 @@ ESP32Wiimote wiimote(config);
 
 ### Runtime Auth and Wi-Fi Policy
 
-Runtime credentials and Wi-Fi enablement are configured through `WiimoteConfig`:
+Runtime tokens and Wi-Fi enablement are configured through `WiimoteConfig`:
 
 ```cpp
 WiimoteConfig runtimeConfig = {
   true,
-  {"admin", "password", "esp32wiimote_bearer_token_v1"}
+  "esp32wiimote_serial_token_v1",
+  "esp32wiimote_wifi_api_token_v1"
 };
 
 ESP32Wiimote wiimote;

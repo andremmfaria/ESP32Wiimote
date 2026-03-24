@@ -86,9 +86,10 @@ ESP32Wiimote::ESP32Wiimote() : ESP32Wiimote(ESP32WiimoteConfig()) {}
 
 ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config)
     : config_(config)
-    , credentials_()
-    , networkCredentials_()
+    , serialPrivilegedToken_(nullptr)
+    , wifiApiToken_(nullptr)
     , wifiEnabled_(false)
+    , wifiTokenFallbackToSerial_(false)
     , runtimeConfigStoreReady_(false)
     , runtimeConfigSnapshot_()
     , serialControlEnabled_(false)
@@ -125,13 +126,24 @@ ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config)
 
 void ESP32Wiimote::configure(const WiimoteConfig &config) {
     wifiEnabled_ = config.wifiEnabled;
-    credentials_ = config.credentials;
+    serialPrivilegedToken_ = config.serialPrivilegedToken;
+    wifiApiToken_ = config.wifiApiToken;
     networkCredentials_ = config.network;
+
+    if (serialPrivilegedToken_ == nullptr || serialPrivilegedToken_[0] == '\0') {
+        LOG_ERROR("ESP32Wiimote: serialPrivilegedToken must be provided\n");
+    }
+
+    wifiTokenFallbackToSerial_ = false;
+    if (wifiApiToken_ == nullptr || wifiApiToken_[0] == '\0') {
+        wifiApiToken_ = serialPrivilegedToken_;
+        wifiTokenFallbackToSerial_ = true;
+    }
 
     wifiNetworkCredentialsConfigured_ =
         networkCredentials_.ssid != nullptr && networkCredentials_.ssid[0] != '\0' &&
         networkCredentials_.password != nullptr && networkCredentials_.password[0] != '\0';
-    serialCommandSession_.setCredentials(&credentials_);
+    serialCommandSession_.setToken(serialPrivilegedToken_);
 
     if (!wifiEnabled_) {
         enableWifiControl(false, wifiDeliveryMode_);
@@ -211,6 +223,10 @@ bool ESP32Wiimote::init() {
         } else {
             runtimeConfigStoreReady_ = runtimeConfigStore_.save(runtimeConfigSnapshot_);
         }
+    }
+
+    if (wifiTokenFallbackToSerial_) {
+        Serial.println("@wm: info wifi_api_token_missing_using_serial_token");
     }
 
     LOG_INFO("ESP32Wiimote: Initialization complete!\n");

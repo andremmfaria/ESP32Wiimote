@@ -1,8 +1,6 @@
 #ifndef WEB_AUTH_H_
 #define WEB_AUTH_H_
 
-#include "../wiimote_config.h"
-
 #include <cstddef>
 #include <cstdint>
 
@@ -33,7 +31,7 @@ enum class WebAuthResult {
  * @param creds Runtime credentials to validate against
  * @return WebAuthResult indicating success or failure reason
  */
-WebAuthResult webAuthValidateBearer(const char *authHeaderValue, const WiimoteCredentials *creds);
+WebAuthResult webAuthValidateBearer(const char *authHeaderValue, const char *wifiApiToken);
 
 // ===== Basic Auth =====
 
@@ -47,7 +45,7 @@ WebAuthResult webAuthValidateBearer(const char *authHeaderValue, const WiimoteCr
  * @param creds Runtime credentials to validate against
  * @return WebAuthResult indicating success or failure reason
  */
-WebAuthResult webAuthValidateBasic(const char *authHeaderValue, const WiimoteCredentials *creds);
+WebAuthResult webAuthValidateBasic(const char *authHeaderValue, const char *wifiApiToken);
 
 // ===== Combined Auth Entrypoint =====
 
@@ -59,6 +57,6 @@ WebAuthResult webAuthValidateBasic(const char *authHeaderValue, const WiimoteCre
  * @param creds Runtime credentials to validate against
  * @return WebAuthResult; Ok if either scheme succeeds, error otherwise
  */
-WebAuthResult webAuthValidate(const char *authHeaderValue, const WiimoteCredentials *creds);
+WebAuthResult webAuthValidate(const char *authHeaderValue, const char *wifiApiToken);
 
 #endif  // WEB_AUTH_H_
