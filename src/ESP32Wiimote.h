@@ -19,6 +19,7 @@
 #include "serial/serial_command_parser.h"
 #include "serial/serial_command_session.h"
 #include "utils/serial_logging.h"
+#include "wifi/http_server.h"
 #include "wiimote_config.h"
 
 /**
@@ -406,7 +407,11 @@ class ESP32Wiimote {
     void applyRuntimeConfig(const ESP32WiimoteConfig &config, bool logValidationErrors);
     void processWifiControl();
     void resetWifiLifecycleState();
+    bool startWifiHttpServer();
+    void stopWifiHttpServer();
     void persistRuntimeConfigSnapshot();
+
+    WifiHttpServer httpServer_;
 };
 
 #endif  // ESP32_WIIMOTE_ES_P32_WIIMOTE_H

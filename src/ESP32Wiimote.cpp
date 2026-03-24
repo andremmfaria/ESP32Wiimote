@@ -16,6 +16,7 @@
 #include "serial/serial_command_dispatcher.h"
 #include "serial/serial_response_formatter.h"
 #include "utils/serial_logging.h"
+#include "wifi/web_api_router.h"
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include <WiFi.h>
@@ -29,6 +30,7 @@
 namespace {
 
 constexpr size_t kSerialResponseBufSize = 192U;
+constexpr uint16_t kWifiHttpPort = 80U;
 constexpr const char *kWifiMockFailSsid = "__fail__";
 constexpr uint32_t kWifiConnectTimeoutMs = 15000U;
 
@@ -42,8 +44,8 @@ enum WifiInitStage : uint8_t {
     KWifiInitStageReady = 6U,
 };
 
-const char *wifiDeliveryModeToString(const WifiDeliveryMode mode) {
-    return mode == WifiDeliveryMode::RestAndWebSocket ? "RestAndWebSocket" : "RestOnly";
+const char *wifiDeliveryModeToString(const WifiDeliveryMode kMode) {
+    return kMode == WifiDeliveryMode::RestAndWebSocket ? "RestAndWebSocket" : "RestOnly";
 }
 
 const char *safeSsid(const WiimoteNetworkCredentials &network) {
@@ -51,7 +53,7 @@ const char *safeSsid(const WiimoteNetworkCredentials &network) {
 }
 
 void logWifiConnectedDetails(const WiimoteNetworkCredentials &network,
-                             const WifiDeliveryMode mode) {
+                             const WifiDeliveryMode kMode) {
 #if defined(ARDUINO_ARCH_ESP32)
     String mac = WiFi.macAddress();
     if (mac.length() == 0) {
@@ -64,10 +66,10 @@ void logWifiConnectedDetails(const WiimoteNetworkCredentials &network,
     }
 
     LOG_INFO("ESP32Wiimote: wifi.connected ssid=%s mode=%s mac=%s ip=%s\n", safeSsid(network),
-             wifiDeliveryModeToString(mode), mac.c_str(), ip.c_str());
+             wifiDeliveryModeToString(kMode), mac.c_str(), ip.c_str());
 #else
     LOG_INFO("ESP32Wiimote: wifi.connected ssid=%s mode=%s\n", safeSsid(network),
-             wifiDeliveryModeToString(mode));
+             wifiDeliveryModeToString(kMode));
 #endif
 }
 
@@ -133,6 +135,167 @@ class Esp32SerialCommandTarget : public SerialCommandTarget {
    private:
     ESP32Wiimote *device_;
 };
+
+WebWiimoteStatusSnapshot webGetWiimoteStatus(void *userData) {
+    ESP32Wiimote *device = static_cast<ESP32Wiimote *>(userData);
+    WebWiimoteStatusSnapshot snapshot = {};
+    snapshot.connected = ESP32Wiimote::isConnected();
+    snapshot.batteryLevel = ESP32Wiimote::getBatteryLevel();
+    return snapshot;
+}
+
+WebConfigSnapshot webGetConfig(void *userData) {
+    ESP32Wiimote *device = static_cast<ESP32Wiimote *>(userData);
+    const ESP32WiimoteConfig &config = device->getConfig();
+
+    WebConfigSnapshot snapshot = {};
+    snapshot.nunchukStickThreshold = config.nunchukStickThreshold;
+    snapshot.txQueueSize = config.txQueueSize;
+    snapshot.rxQueueSize = config.rxQueueSize;
+    snapshot.fastReconnectTtlMs = config.fastReconnectTtlMs;
+    return snapshot;
+}
+
+WebWifiControlStateSnapshot webGetWifiControlState(void *userData) {
+    ESP32Wiimote *device = static_cast<ESP32Wiimote *>(userData);
+    const ESP32Wiimote::WifiControlState kState = device->getWifiControlState();
+
+    WebWifiControlStateSnapshot snapshot = {};
+    snapshot.enabled = kState.enabled;
+    snapshot.ready = kState.ready;
+    snapshot.networkCredentialsConfigured = kState.networkCredentialsConfigured;
+    snapshot.networkConnectAttempted = kState.networkConnectAttempted;
+    snapshot.networkConnected = kState.networkConnected;
+    snapshot.networkConnectFailed = kState.networkConnectFailed;
+    snapshot.restAndWebSocket = kState.deliveryMode == WifiDeliveryMode::RestAndWebSocket;
+    snapshot.serverStarted = kState.serverStarted;
+    snapshot.serverBindFailed = kState.serverBindFailed;
+    return snapshot;
+}
+
+bool webSetLeds(uint8_t ledMask, void *userData) {
+    return static_cast<ESP32Wiimote *>(userData)->setLeds(ledMask);
+}
+
+bool webSetReportingMode(uint8_t mode, bool continuous, void *userData) {
+    return static_cast<ESP32Wiimote *>(userData)->setReportingMode(static_cast<ReportingMode>(mode),
+                                                                   continuous);
+}
+
+bool webSetAccelEnabled(bool enabled, void *userData) {
+    return static_cast<ESP32Wiimote *>(userData)->setAccelerometerEnabled(enabled);
+}
+
+bool webRequestStatus(void *userData) {
+    return static_cast<ESP32Wiimote *>(userData)->requestStatus();
+}
+
+void webSetScanEnabled(bool enabled, void *userData) {
+    static_cast<ESP32Wiimote *>(userData)->setScanEnabled(enabled);
+}
+
+bool webStartDiscovery(void *userData) {
+    return static_cast<ESP32Wiimote *>(userData)->startDiscovery();
+}
+
+bool webStopDiscovery(void *userData) {
+    return static_cast<ESP32Wiimote *>(userData)->stopDiscovery();
+}
+
+bool webDisconnect(uint8_t reason, void *userData) {
+    return static_cast<ESP32Wiimote *>(userData)->disconnectActiveController(
+        static_cast<ESP32Wiimote::DisconnectReason>(reason));
+}
+
+void webSetAutoReconnect(bool enabled, void *userData) {
+    static_cast<ESP32Wiimote *>(userData)->setAutoReconnectEnabled(enabled);
+}
+
+bool webSetWifiControlEnabled(bool enabled, void *userData) {
+    ESP32Wiimote *device = static_cast<ESP32Wiimote *>(userData);
+    device->enableWifiControl(enabled, device->getConfig().wifi.deliveryMode);
+    return device->isWifiControlEnabled() == enabled;
+}
+
+bool webSetWifiDeliveryMode(bool restAndWebSocket, void *userData) {
+    return static_cast<ESP32Wiimote *>(userData)->setWifiDeliveryMode(
+        restAndWebSocket ? WifiDeliveryMode::RestAndWebSocket : WifiDeliveryMode::RestOnly);
+}
+
+bool webSetWifiNetwork(const char *ssid, const char *password, void *userData) {
+    return static_cast<ESP32Wiimote *>(userData)->updateWifiNetworkCredentials(ssid, password);
+}
+
+bool webRestartWifiControl(void *userData) {
+    return static_cast<ESP32Wiimote *>(userData)->restartWifiControl();
+}
+
+bool webSetWifiApiToken(const char *token, void *userData) {
+    return static_cast<ESP32Wiimote *>(userData)->updateWifiApiToken(token);
+}
+
+const char *wifiHttpMethodToString(const WifiHttpMethod kMethod) {
+    switch (kMethod) {
+        case WifiHttpMethod::Get:
+            return "GET";
+        case WifiHttpMethod::Post:
+            return "POST";
+        default:
+            return "UNKNOWN";
+    }
+}
+
+WebApiContext makeWebApiContext(ESP32Wiimote *device) {
+    WebApiContext context = {};
+    context.wifiApiToken = device->getConfig().auth.wifiApiToken;
+    context.getWiimoteStatus = webGetWiimoteStatus;
+    context.getConfig = webGetConfig;
+    context.getWifiControlState = webGetWifiControlState;
+    context.setLeds = webSetLeds;
+    context.setReportingMode = webSetReportingMode;
+    context.setAccelEnabled = webSetAccelEnabled;
+    context.requestStatus = webRequestStatus;
+    context.setScanEnabled = webSetScanEnabled;
+    context.startDiscovery = webStartDiscovery;
+    context.stopDiscovery = webStopDiscovery;
+    context.disconnect = webDisconnect;
+    context.setAutoReconnect = webSetAutoReconnect;
+    context.setWifiControlEnabled = webSetWifiControlEnabled;
+    context.setWifiDeliveryMode = webSetWifiDeliveryMode;
+    context.setWifiNetwork = webSetWifiNetwork;
+    context.restartWifiControl = webRestartWifiControl;
+    context.setWifiApiToken = webSetWifiApiToken;
+    context.allowWifiApiTokenMutation = false;
+    context.userData = device;
+    return context;
+}
+
+void handleWifiHttpRequest(const WifiHttpRequest *request,
+                           char *responseBuf,
+                           size_t responseBufSize,
+                           WifiHttpResponse *response,
+                           void *userData) {
+    if (request == nullptr || responseBuf == nullptr || responseBufSize == 0U ||
+        response == nullptr || userData == nullptr) {
+        return;
+    }
+
+    ESP32Wiimote *device = static_cast<ESP32Wiimote *>(userData);
+    WebApiContext context = makeWebApiContext(device);
+    const WebApiRouteResult kRouteResult = webApiRoute(
+        &context, wifiHttpMethodToString(request->method), request->path, request->authHeader,
+        request->body, request->bodyLen, responseBuf, responseBufSize);
+
+    if (kRouteResult.httpStatus == 101) {
+        serializeError(responseBuf, responseBufSize, "websocket upgrade not implemented");
+        response->status = 501;
+        response->contentType = "application/json";
+        return;
+    }
+
+    response->status = kRouteResult.httpStatus;
+    response->contentType = kRouteResult.contentType;
+}
 
 }  // namespace
 
@@ -413,6 +576,7 @@ bool ESP32Wiimote::init() {
 void ESP32Wiimote::task() {
     if (!BluetoothController::isStarted()) {
         processWifiControl();
+        httpServer_.poll();
         return;
     }
 
@@ -425,6 +589,7 @@ void ESP32Wiimote::task() {
     }
 
     processWifiControl();
+    httpServer_.poll();
 }
 
 /**
@@ -753,6 +918,11 @@ void ESP32Wiimote::processWifiControl() {
             break;
         case KWifiInitStageRegisterApiRoutes:
             apiRoutesRegistered_ = true;
+            if (!startWifiHttpServer()) {
+                wifiControlEnabled_ = false;
+                wifiControlInitializing_ = false;
+                return;
+            }
             if (wifiDeliveryMode_ == WifiDeliveryMode::RestAndWebSocket) {
                 wifiInitStage_ = KWifiInitStageRegisterWebSocketRoutes;
             } else {
@@ -779,6 +949,7 @@ void ESP32Wiimote::processWifiControl() {
 }
 
 void ESP32Wiimote::resetWifiLifecycleState() {
+    stopWifiHttpServer();
     wifiControlInitializing_ = false;
     wifiControlReady_ = false;
     wifiNetworkConnectAttempted_ = false;
@@ -793,6 +964,39 @@ void ESP32Wiimote::resetWifiLifecycleState() {
     websocketRoutesRegistered_ = false;
     serverStarted_ = false;
     serverBindFailed_ = false;
+}
+
+bool ESP32Wiimote::startWifiHttpServer() {
+    if (serverStarted_) {
+        return true;
+    }
+
+    httpServer_.setHandler(handleWifiHttpRequest, this);
+    if (!httpServer_.begin(kWifiHttpPort)) {
+        serverBindFailed_ = true;
+        serverStarted_ = false;
+        LOG_WARN("ESP32Wiimote: wifi.http start failed port=%u\n",
+                 static_cast<unsigned int>(kWifiHttpPort));
+        return false;
+    }
+
+    serverStarted_ = true;
+    serverBindFailed_ = false;
+    LOG_INFO("ESP32Wiimote: wifi.http started port=%u\n", static_cast<unsigned int>(kWifiHttpPort));
+    return true;
+}
+
+void ESP32Wiimote::stopWifiHttpServer() {
+    if (!httpServer_.isStarted()) {
+        return;
+    }
+
+    httpServer_.end();
+    if (serverStarted_) {
+        LOG_INFO("ESP32Wiimote: wifi.http stopped port=%u\n",
+                 static_cast<unsigned int>(kWifiHttpPort));
+    }
+    serverStarted_ = false;
 }
 
 void ESP32Wiimote::persistRuntimeConfigSnapshot() {
