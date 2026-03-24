@@ -1,7 +1,6 @@
 #ifndef WEB_API_ROUTER_H
 #define WEB_API_ROUTER_H
 
-#include "../wiimote_config.h"
 #include "web_command_queue.h"
 #include "web_event_stream.h"
 #include "web_response_serializer.h"

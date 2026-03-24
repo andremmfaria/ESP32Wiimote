@@ -28,11 +28,30 @@ enum class FilterAction : uint8_t {
     Ignore = 0,
 };
 
+enum class WifiDeliveryMode : uint8_t {
+    RestOnly = 0,
+    RestAndWebSocket = 1,
+};
+
+struct ESP32WiimoteAuthConfig {
+    const char *serialPrivilegedToken = nullptr;
+    const char *wifiApiToken = nullptr;
+    bool wifiTokenFallbackToSerial = true;
+};
+
+struct ESP32WiimoteWifiConfig {
+    bool enabled = false;
+    WifiDeliveryMode deliveryMode = WifiDeliveryMode::RestOnly;
+    WiimoteNetworkCredentials network;
+};
+
 struct ESP32WiimoteConfig {
     int nunchukStickThreshold = 1;
     int txQueueSize = 32;
     int rxQueueSize = 32;
     uint32_t fastReconnectTtlMs = 3UL * 60UL * 1000UL;
+    ESP32WiimoteAuthConfig auth = ESP32WiimoteAuthConfig();
+    ESP32WiimoteWifiConfig wifi = ESP32WiimoteWifiConfig();
 };
 
 enum class ReportingMode : uint8_t {
@@ -40,11 +59,6 @@ enum class ReportingMode : uint8_t {
     CoreButtonsAccel = 0x31,
     CoreButtonsAccelIr = 0x33,
     CoreButtonsAccelExt = 0x35,
-};
-
-enum class WifiDeliveryMode : uint8_t {
-    RestOnly = 0,
-    RestAndWebSocket = 1,
 };
 
 /**
@@ -105,11 +119,16 @@ class ESP32Wiimote {
     explicit ESP32Wiimote(const ESP32WiimoteConfig &config);
 
     /**
-     * Configure runtime credentials and Wi-Fi enablement policy.
+     * Configure runtime auth and Wi-Fi policy from the unified config object.
      * This configuration is independent from initialization and can be
-     * applied before init() to define auth behavior.
+     * applied before init() to define token and Wi-Fi behavior.
      */
-    void configure(const WiimoteConfig &config);
+    void configure(const ESP32WiimoteConfig &config);
+
+    /**
+     * Return the current public configuration snapshot.
+     */
+    const ESP32WiimoteConfig &getConfig() const;
 
     /**
      * Enable or disable Wi-Fi control lifecycle.
@@ -348,6 +367,7 @@ class ESP32Wiimote {
 
     void processSerialControl();
     void processSerialCommandLine(const char *line);
+    void applyRuntimeConfig(const ESP32WiimoteConfig &config, bool logValidationErrors);
     void processWifiControl();
     void resetWifiLifecycleState();
     void persistRuntimeConfigSnapshot();

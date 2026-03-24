@@ -58,7 +58,7 @@ Set `fastReconnectTtlMs = 0` to disable fast reconnect and always use inquiry af
 
 ### Runtime Wi-Fi/Auth Configuration
 
-Runtime tokens and Wi-Fi policy are configured via `WiimoteConfig`:
+Runtime tokens and Wi-Fi policy are configured via `ESP32WiimoteConfig`:
 
 ```cpp
 struct WiimoteNetworkCredentials {
@@ -66,42 +66,68 @@ struct WiimoteNetworkCredentials {
     const char *password;
 };
 
-struct WiimoteConfig {
-    bool wifiEnabled;
+struct ESP32WiimoteAuthConfig {
     const char *serialPrivilegedToken;
     const char *wifiApiToken;
+    bool wifiTokenFallbackToSerial;
+};
+
+struct ESP32WiimoteWifiConfig {
+    bool enabled;
+    WifiDeliveryMode deliveryMode;
     WiimoteNetworkCredentials network;
+};
+
+struct ESP32WiimoteConfig {
+    int nunchukStickThreshold;
+    int txQueueSize;
+    int rxQueueSize;
+    uint32_t fastReconnectTtlMs;
+    ESP32WiimoteAuthConfig auth;
+    ESP32WiimoteWifiConfig wifi;
 };
 ```
 
-Apply this configuration before `init()`:
+Prefer constructing the device with this configuration before `init()`:
 
 ```cpp
-ESP32Wiimote wiimote;
+ESP32WiimoteConfig runtimeConfig;
+runtimeConfig.auth.serialPrivilegedToken = "esp32wiimote_serial_token_v1";
+runtimeConfig.auth.wifiApiToken = "esp32wiimote_wifi_api_token_v1";
+runtimeConfig.wifi.enabled = true;
+runtimeConfig.wifi.deliveryMode = WifiDeliveryMode::RestOnly;
+runtimeConfig.wifi.network = {"YOUR_WIFI_SSID", "YOUR_WIFI_PASSWORD"};
 
-WiimoteConfig runtimeConfig = {
-    true,
-    "esp32wiimote_serial_token_v1",
-    "esp32wiimote_wifi_api_token_v1",
-    {"YOUR_WIFI_SSID", "YOUR_WIFI_PASSWORD"}
-};
-
-wiimote.configure(runtimeConfig);
+ESP32Wiimote wiimote(runtimeConfig);
 wiimote.enableWifiControl(true, WifiDeliveryMode::RestOnly);
 ```
 
-#### `void configure(const WiimoteConfig &config)`
+#### `void configure(const ESP32WiimoteConfig &config)`
 
 Sets runtime tokens and Wi-Fi enablement policy.
 
 Behavior:
 
-- `wifiEnabled=false` prevents Wi-Fi control startup
-- `serialPrivilegedToken` is used for serial unlock validation (`wm unlock <token> [seconds]`)
-- `wifiApiToken` is used for Wi-Fi Bearer auth
-- if `wifiApiToken` is null/empty, it falls back to `serialPrivilegedToken` and startup prints `@wm: info wifi_api_token_missing_using_serial_token`
+- `config.wifi.enabled=false` prevents Wi-Fi control startup
+- `config.auth.serialPrivilegedToken` is used for serial unlock validation (`wm unlock <token> [seconds]`)
+- `config.auth.wifiApiToken` is used for Wi-Fi Bearer auth
+- if `config.auth.wifiApiToken` is null/empty and `config.auth.wifiTokenFallbackToSerial=true`, Wi-Fi auth falls back to `config.auth.serialPrivilegedToken` and startup prints `@wm: info wifi_api_token_missing_using_serial_token`
 - when Wi-Fi control is enabled, valid runtime network credentials are required for station join
-- serial control remains available regardless of `wifiEnabled`
+- serial control remains available regardless of `config.wifi.enabled`
+- partial updates are supported for auth/Wi-Fi fields: omitted fields preserve current values
+
+#### `const ESP32WiimoteConfig &getConfig() const`
+
+Returns the active public configuration snapshot held by the instance.
+
+Use this to read the currently applied runtime auth/Wi-Fi policy after construction or after one or more `configure(...)` calls.
+
+```cpp
+const ESP32WiimoteConfig &cfg = wiimote.getConfig();
+if (cfg.wifi.enabled) {
+    wiimote.enableWifiControl(true, cfg.wifi.deliveryMode);
+}
+```
 
 #### `void enableWifiControl(bool enabled, WifiDeliveryMode deliveryMode = WifiDeliveryMode::RestOnly)`
 

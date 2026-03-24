@@ -2,33 +2,26 @@
 
 #include <Arduino.h>
 
-ESP32WiimoteConfig config = {
-    5,
-    32,
-    32,
-    180000,
-};
-ESP32Wiimote wiimote(config);
-
 // Current runtime config model (tokens + optional Wi-Fi network credentials).
 // Keep Wi-Fi control disabled in this sensor-focused example.
-static const bool kEnableWifiControl = false;
-static const char *kSerialPrivilegedToken = "esp32wiimote_serial_token_v1";
-static const char *kWifiApiToken = "esp32wiimote_wifi_api_token_v1";
-static const char *kWifiSsid = "YOUR_WIFI_SSID";
-static const char *kWifiNetworkPassword = "YOUR_WIFI_PASSWORD";
+static ESP32WiimoteConfig makeWiimoteConfig() {
+    ESP32WiimoteConfig config;
+    config.nunchukStickThreshold = 5;
+    config.txQueueSize = 32;
+    config.rxQueueSize = 32;
+    config.fastReconnectTtlMs = 180000;
+    config.auth.serialPrivilegedToken = "esp32wiimote_serial_token_v1";
+    config.auth.wifiApiToken = "esp32wiimote_wifi_api_token_v1";
+    config.wifi.enabled = false;
+    config.wifi.network = {"YOUR_WIFI_SSID", "YOUR_WIFI_PASSWORD"};
+    return config;
+}
+
+ESP32Wiimote wiimote(makeWiimoteConfig());
 
 void setup() {
     Serial.begin(115200);
     delay(200);
-
-    WiimoteConfig runtimeConfig = {
-        kEnableWifiControl,
-        kSerialPrivilegedToken,
-        kWifiApiToken,
-        {kWifiSsid, kWifiNetworkPassword},
-    };
-    wiimote.configure(runtimeConfig);
 
     Serial.println("SensorReadout: initializing...");
     if (!wiimote.init()) {
@@ -38,8 +31,8 @@ void setup() {
         }
     }
 
-    if (kEnableWifiControl) {
-        wiimote.enableWifiControl(true, WifiDeliveryMode::RestOnly);
+    if (wiimote.getConfig().wifi.enabled) {
+        wiimote.enableWifiControl(true, wiimote.getConfig().wifi.deliveryMode);
     }
 
     Serial.println("Ready. Press 1 + 2 and move Wiimote/Nunchuk.");

@@ -400,7 +400,7 @@ Event stream model:
 
 Runtime configuration integration:
 
-- runtime serial/wifi tokens and network credentials are provided through `WiimoteConfig`
+- runtime serial/wifi tokens and network credentials are provided through `ESP32WiimoteConfig`
 - Wi-Fi station join is attempted before API route readiness
 - reconnect policy fields are persisted in NVS via `RuntimeConfigStore` and restored on startup
 
@@ -641,18 +641,28 @@ ESP32Wiimote wiimote(config);
 
 ### Runtime Auth and Wi-Fi Policy
 
-Runtime tokens and Wi-Fi enablement are configured through `WiimoteConfig`:
+Runtime tokens and Wi-Fi enablement are configured through `ESP32WiimoteConfig`:
 
 ```cpp
-WiimoteConfig runtimeConfig = {
-  true,
-  "esp32wiimote_serial_token_v1",
-  "esp32wiimote_wifi_api_token_v1"
-};
+ESP32WiimoteConfig runtimeConfig;
+runtimeConfig.auth.serialPrivilegedToken = "esp32wiimote_serial_token_v1";
+runtimeConfig.auth.wifiApiToken = "esp32wiimote_wifi_api_token_v1";
+runtimeConfig.wifi.enabled = true;
+runtimeConfig.wifi.network = {"YOUR_WIFI_SSID", "YOUR_WIFI_PASSWORD"};
 
-ESP32Wiimote wiimote;
-wiimote.configure(runtimeConfig);
+ESP32Wiimote wiimote(runtimeConfig);
 ```
+
+Runtime policy introspection uses the same source of truth:
+
+```cpp
+const ESP32WiimoteConfig &cfg = wiimote.getConfig();
+```
+
+`configure(...)` applies auth/Wi-Fi updates with merge semantics:
+
+- provided token/network fields overwrite current values
+- omitted auth/Wi-Fi fields preserve current values
 
 ### Wi-Fi Lifecycle Control
 

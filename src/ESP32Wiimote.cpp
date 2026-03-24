@@ -122,20 +122,66 @@ ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config)
     runtimeConfigSnapshot_.ledMask = 0U;
     runtimeConfigSnapshot_.reportingMode = static_cast<uint8_t>(ReportingMode::CoreButtons);
     runtimeConfigSnapshot_.reportingContinuous = false;
+
+    applyRuntimeConfig(config_, false);
 }
 
-void ESP32Wiimote::configure(const WiimoteConfig &config) {
-    wifiEnabled_ = config.wifiEnabled;
-    serialPrivilegedToken_ = config.serialPrivilegedToken;
-    wifiApiToken_ = config.wifiApiToken;
-    networkCredentials_ = config.network;
+void ESP32Wiimote::configure(const ESP32WiimoteConfig &config) {
+    applyRuntimeConfig(config, true);
+}
 
-    if (serialPrivilegedToken_ == nullptr || serialPrivilegedToken_[0] == '\0') {
+const ESP32WiimoteConfig &ESP32Wiimote::getConfig() const {
+    return config_;
+}
+
+void ESP32Wiimote::applyRuntimeConfig(const ESP32WiimoteConfig &config, bool logValidationErrors) {
+    const bool kHasSerialToken = config.auth.serialPrivilegedToken != nullptr &&
+                                 config.auth.serialPrivilegedToken[0] != '\0';
+    const bool kHasWifiApiToken =
+        config.auth.wifiApiToken != nullptr && config.auth.wifiApiToken[0] != '\0';
+    const bool kHasWifiNetwork =
+        config.wifi.network.ssid != nullptr && config.wifi.network.ssid[0] != '\0' &&
+        config.wifi.network.password != nullptr && config.wifi.network.password[0] != '\0';
+
+    if (kHasSerialToken) {
+        config_.auth.serialPrivilegedToken = config.auth.serialPrivilegedToken;
+    }
+
+    if (kHasWifiApiToken) {
+        config_.auth.wifiApiToken = config.auth.wifiApiToken;
+    }
+
+    if (kHasSerialToken || kHasWifiApiToken || !config.auth.wifiTokenFallbackToSerial) {
+        config_.auth.wifiTokenFallbackToSerial = config.auth.wifiTokenFallbackToSerial;
+    }
+
+    if (config.wifi.enabled) {
+        config_.wifi.enabled = true;
+    }
+
+    if (config.wifi.deliveryMode == WifiDeliveryMode::RestAndWebSocket) {
+        config_.wifi.deliveryMode = WifiDeliveryMode::RestAndWebSocket;
+    }
+
+    if (kHasWifiNetwork) {
+        config_.wifi.network = config.wifi.network;
+    }
+
+    wifiEnabled_ = config_.wifi.enabled;
+    serialPrivilegedToken_ = config_.auth.serialPrivilegedToken;
+    wifiApiToken_ = config_.auth.wifiApiToken;
+    networkCredentials_ = config_.wifi.network;
+
+    wifiDeliveryMode_ = config_.wifi.deliveryMode;
+
+    if (logValidationErrors &&
+        (serialPrivilegedToken_ == nullptr || serialPrivilegedToken_[0] == '\0')) {
         LOG_ERROR("ESP32Wiimote: serialPrivilegedToken must be provided\n");
     }
 
     wifiTokenFallbackToSerial_ = false;
-    if (wifiApiToken_ == nullptr || wifiApiToken_[0] == '\0') {
+    if (config_.auth.wifiTokenFallbackToSerial &&
+        (wifiApiToken_ == nullptr || wifiApiToken_[0] == '\0')) {
         wifiApiToken_ = serialPrivilegedToken_;
         wifiTokenFallbackToSerial_ = true;
     }

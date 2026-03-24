@@ -235,17 +235,30 @@ When a serial privileged token is configured, invalid unlock tokens return `@wm:
 Configure runtime auth tokens and Wi-Fi policy before startup:
 
 ```cpp
-WiimoteConfig runtimeConfig = {
-  true,
-  "esp32wiimote_serial_token_v1",
-  "esp32wiimote_wifi_api_token_v1",
-  {"YOUR_WIFI_SSID", "YOUR_WIFI_PASSWORD"}
-};
+ESP32WiimoteConfig runtimeConfig;
+runtimeConfig.auth.serialPrivilegedToken = "esp32wiimote_serial_token_v1";
+runtimeConfig.auth.wifiApiToken = "esp32wiimote_wifi_api_token_v1";
+runtimeConfig.wifi.enabled = true;
+runtimeConfig.wifi.deliveryMode = WifiDeliveryMode::RestAndWebSocket;
+runtimeConfig.wifi.network = {"YOUR_WIFI_SSID", "YOUR_WIFI_PASSWORD"};
 
-ESP32Wiimote wiimote;
-wiimote.configure(runtimeConfig);
+ESP32Wiimote wiimote(runtimeConfig);
 wiimote.enableWifiControl(true, WifiDeliveryMode::RestAndWebSocket);
 ```
+
+You can inspect the active runtime policy through `getConfig()`:
+
+```cpp
+const ESP32WiimoteConfig &active = wiimote.getConfig();
+if (active.wifi.enabled) {
+  wiimote.enableWifiControl(true, active.wifi.deliveryMode);
+}
+```
+
+`configure(const ESP32WiimoteConfig&)` supports partial updates for auth/Wi-Fi fields:
+
+- provided non-empty token/network fields overwrite current values
+- omitted auth/Wi-Fi fields keep their previous values
 
 If `wifiApiToken` is null/empty, Wi-Fi auth falls back to `serialPrivilegedToken` and startup prints:
 `@wm: info wifi_api_token_missing_using_serial_token`.

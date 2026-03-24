@@ -2,27 +2,27 @@
 
 #include <Arduino.h>
 
-ESP32WiimoteConfig config = {
-    1,
-    32,
-    32,
-    180000,
-};
-ESP32Wiimote wiimote(config);
-
 // Demo options
 static const bool kEnableVerboseInputLog = true;
 static const bool kIgnoreAccel = false;
 static const bool kIgnoreNunchukStick = false;
 static const bool kIgnoreButtons = false;
 
-// Set true to demo Wi-Fi control lifecycle and REST/WebSocket delivery mode.
-static const bool kEnableWifiControl = false;
-static const WifiDeliveryMode kWifiDeliveryMode = WifiDeliveryMode::RestAndWebSocket;
-static const char *kSerialPrivilegedToken = "esp32wiimote_serial_token_v1";
-static const char *kWifiApiToken = "esp32wiimote_wifi_api_token_v1";
-static const char *kWifiSsid = "YOUR_WIFI_SSID";
-static const char *kWifiNetworkPassword = "YOUR_WIFI_PASSWORD";
+static ESP32WiimoteConfig makeWiimoteConfig() {
+    ESP32WiimoteConfig config;
+    config.nunchukStickThreshold = 1;
+    config.txQueueSize = 32;
+    config.rxQueueSize = 32;
+    config.fastReconnectTtlMs = 180000;
+    config.auth.serialPrivilegedToken = "esp32wiimote_serial_token_v1";
+    config.auth.wifiApiToken = "esp32wiimote_wifi_api_token_v1";
+    config.wifi.enabled = false;
+    config.wifi.deliveryMode = WifiDeliveryMode::RestAndWebSocket;
+    config.wifi.network = {"YOUR_WIFI_SSID", "YOUR_WIFI_PASSWORD"};
+    return config;
+}
+
+ESP32Wiimote wiimote(makeWiimoteConfig());
 
 // Runtime state
 static bool wasConnected = false;
@@ -90,14 +90,6 @@ void setup() {
     Serial.println("Features: connection, battery, buttons, accel, nunchuk, filters, Wi-Fi state");
     Serial.println("Initializing Bluetooth controller...");
 
-    WiimoteConfig runtimeConfig = {
-        kEnableWifiControl,
-        kSerialPrivilegedToken,
-        kWifiApiToken,
-        {kWifiSsid, kWifiNetworkPassword},
-    };
-    wiimote.configure(runtimeConfig);
-
     if (!wiimote.init()) {
         Serial.println("FATAL: Bluetooth initialization failed! Halting.");
         while (true) {
@@ -105,8 +97,8 @@ void setup() {
         }
     }
 
-    if (kEnableWifiControl) {
-        wiimote.enableWifiControl(true, kWifiDeliveryMode);
+    if (wiimote.getConfig().wifi.enabled) {
+        wiimote.enableWifiControl(true, wiimote.getConfig().wifi.deliveryMode);
         Serial.println("Wi-Fi control enabled (async startup in task loop)");
     }
 
@@ -146,7 +138,7 @@ void loop() {
         lastBatteryMs = now;
     }
 
-    if (kEnableWifiControl && (now - lastWifiStateMs >= kWifiStateIntervalMs)) {
+    if (wiimote.getConfig().wifi.enabled && (now - lastWifiStateMs >= kWifiStateIntervalMs)) {
         printWifiStateLine(wiimote.getWifiControlState());
         lastWifiStateMs = now;
     }

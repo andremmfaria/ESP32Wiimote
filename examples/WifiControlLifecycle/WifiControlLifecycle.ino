@@ -2,17 +2,20 @@
 
 #include <Arduino.h>
 
-ESP32Wiimote wiimote;
-
-// Fill these with your runtime tokens and network data.
-static const char *kSerialPrivilegedToken = "esp32wiimote_serial_token_v1";
-static const char *kWifiApiToken = "esp32wiimote_wifi_api_token_v1";
-static const char *kSsid = "YOUR_WIFI_SSID";
-static const char *kSsidPassword = "YOUR_WIFI_PASSWORD";
-
-static const WifiDeliveryMode kDeliveryMode = WifiDeliveryMode::RestAndWebSocket;
 static unsigned long gLastWifiPrintMs = 0;
 static const unsigned long kWifiPrintIntervalMs = 1000;
+
+static ESP32WiimoteConfig makeWiimoteConfig() {
+    ESP32WiimoteConfig config;
+    config.auth.serialPrivilegedToken = "esp32wiimote_serial_token_v1";
+    config.auth.wifiApiToken = "esp32wiimote_wifi_api_token_v1";
+    config.wifi.enabled = true;
+    config.wifi.deliveryMode = WifiDeliveryMode::RestAndWebSocket;
+    config.wifi.network = {"YOUR_WIFI_SSID", "YOUR_WIFI_PASSWORD"};
+    return config;
+}
+
+ESP32Wiimote wiimote(makeWiimoteConfig());
 
 static const char *deliveryModeToString(WifiDeliveryMode mode) {
     if (mode == WifiDeliveryMode::RestAndWebSocket) {
@@ -40,14 +43,6 @@ void setup() {
 
     Serial.println("WifiControlLifecycle: initializing...");
 
-    WiimoteConfig runtimeConfig = {
-        true,
-        kSerialPrivilegedToken,
-        kWifiApiToken,
-        {kSsid, kSsidPassword},
-    };
-    wiimote.configure(runtimeConfig);
-
     if (!wiimote.init()) {
         Serial.println("Init failed. Halting.");
         while (true) {
@@ -55,7 +50,7 @@ void setup() {
         }
     }
 
-    wiimote.enableWifiControl(true, kDeliveryMode);
+    wiimote.enableWifiControl(true, wiimote.getConfig().wifi.deliveryMode);
 
     Serial.println("Wi-Fi control enabled.");
     Serial.println("REST snapshots: GET /api/wiimote/status and /api/wiimote/config");

@@ -1,8 +1,6 @@
 #ifndef ESP32_WIIMOTE_SERIAL_COMMAND_SESSION_H
 #define ESP32_WIIMOTE_SERIAL_COMMAND_SESSION_H
 
-#include "../wiimote_config.h"
-
 #include <stdint.h>
 
 class SerialCommandSession {

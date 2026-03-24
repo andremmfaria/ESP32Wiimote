@@ -1,5 +1,5 @@
-#ifndef WIIMOTE_CONFIG_H_
-#define WIIMOTE_CONFIG_H_
+#ifndef WIIMOTE_CONFIG_H
+#define WIIMOTE_CONFIG_H
 
 struct WiimoteNetworkCredentials {
     const char *ssid;
@@ -7,24 +7,6 @@ struct WiimoteNetworkCredentials {
 
     WiimoteNetworkCredentials(const char *ssidIn = nullptr, const char *passwordIn = nullptr)
         : ssid(ssidIn), password(passwordIn) {}
-};
-
-struct WiimoteConfig {
-    bool wifiEnabled;
-    const char *serialPrivilegedToken;
-    const char *wifiApiToken;
-    WiimoteNetworkCredentials network;
-
-    WiimoteConfig() : wifiEnabled(false), serialPrivilegedToken(nullptr), wifiApiToken(nullptr) {}
-
-    WiimoteConfig(bool wifiEnabledIn,
-                  const char *serialPrivilegedTokenIn,
-                  const char *wifiApiTokenIn,
-                  WiimoteNetworkCredentials networkIn = WiimoteNetworkCredentials())
-        : wifiEnabled(wifiEnabledIn)
-        , serialPrivilegedToken(serialPrivilegedTokenIn)
-        , wifiApiToken(wifiApiTokenIn)
-        , network(networkIn) {}
 };
 
 #endif  // WIIMOTE_CONFIG_H_

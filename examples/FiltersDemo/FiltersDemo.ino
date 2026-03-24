@@ -2,15 +2,18 @@
 
 #include <Arduino.h>
 
-ESP32Wiimote wiimote;
-
 // Current runtime config model (tokens + optional Wi-Fi network credentials).
 // Keep Wi-Fi control disabled in this filter-focused example.
-static const bool kEnableWifiControl = false;
-static const char *kSerialPrivilegedToken = "esp32wiimote_serial_token_v1";
-static const char *kWifiApiToken = "esp32wiimote_wifi_api_token_v1";
-static const char *kWifiSsid = "YOUR_WIFI_SSID";
-static const char *kWifiNetworkPassword = "YOUR_WIFI_PASSWORD";
+static ESP32WiimoteConfig makeWiimoteConfig() {
+    ESP32WiimoteConfig config;
+    config.auth.serialPrivilegedToken = "esp32wiimote_serial_token_v1";
+    config.auth.wifiApiToken = "esp32wiimote_wifi_api_token_v1";
+    config.wifi.enabled = false;
+    config.wifi.network = {"YOUR_WIFI_SSID", "YOUR_WIFI_PASSWORD"};
+    return config;
+}
+
+ESP32Wiimote wiimote(makeWiimoteConfig());
 
 // Toggle these to reduce update volume.
 static const bool kIgnoreAccel = true;
@@ -21,14 +24,6 @@ void setup() {
     Serial.begin(115200);
     delay(200);
 
-    WiimoteConfig runtimeConfig = {
-        kEnableWifiControl,
-        kSerialPrivilegedToken,
-        kWifiApiToken,
-        {kWifiSsid, kWifiNetworkPassword},
-    };
-    wiimote.configure(runtimeConfig);
-
     Serial.println("FiltersDemo: initializing...");
     if (!wiimote.init()) {
         Serial.println("Init failed. Halting.");
@@ -37,8 +32,8 @@ void setup() {
         }
     }
 
-    if (kEnableWifiControl) {
-        wiimote.enableWifiControl(true, WifiDeliveryMode::RestOnly);
+    if (wiimote.getConfig().wifi.enabled) {
+        wiimote.enableWifiControl(true, wiimote.getConfig().wifi.deliveryMode);
     }
 
     if (kIgnoreAccel) {
