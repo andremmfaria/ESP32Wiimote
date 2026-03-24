@@ -22,7 +22,7 @@ Due to ESP32 Bluetooth Classic HCI limitations, this project supports one active
 - ✅ Policy-gated Wi-Fi API token mutation endpoint (`POST /api/wifi/token`)
 - ✅ Optional command queue status polling endpoint (`/api/commands/<id>/status`)
 - ✅ Optional split WebSocket event streams with sequence-based recovery
-- ✅ Static OpenAPI 3.0 document at `/openapi.json`
+- ✅ Runtime-generated OpenAPI 3.0 document at `/openapi.json`
 - ✅ Comprehensive 4-level logging system (ERROR/WARN/INFO/DEBUG)
 - ✅ Unit tests with PlatformIO
 - ✅ Hardware integration tests
@@ -281,6 +281,8 @@ When Wi-Fi control is enabled and ready, you can use:
 
 - Authenticated API routes require `Authorization: Bearer <token>`
 - Static assets (`/`, `/app.js`, `/styles.css`, `/openapi.json`) are served without auth
+- `GET /openapi.json` is generated directly by the router from the self-describing route table in `src/wifi/web_api_router.cpp`
+- Updating route metadata in the router updates the served OpenAPI document; there is no separate JSON file to maintain
 
 - REST snapshots:
   - `GET /api/wiimote/status`

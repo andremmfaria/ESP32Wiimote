@@ -71,6 +71,8 @@ struct WebApiRouteResult {
     WebEventStreamChannel upgradeChannel{WebEventStreamChannel::Input};
 };
 
+static constexpr size_t kOpenApiJsonMinBufSize = 4096U;
+
 // ===== Router Interface =====
 
 /**

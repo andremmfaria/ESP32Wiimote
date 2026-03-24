@@ -285,6 +285,45 @@ void testOpenApiRouteReturns200WithoutAuth() {
     TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wifi/network\""));
     TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wifi/restart\""));
     TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wifi/token\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/commands/{id}/status\""));
+}
+
+void testOpenApiRouteContainsAllRegisteredPaths() {
+    WebApiContext ctx = makeCtx();
+    static char kOpenApiBuf[8192];
+    std::memset(kOpenApiBuf, 0, sizeof(kOpenApiBuf));
+
+    WebApiRouteResult r = webApiRoute(&ctx, "GET", "/openapi.json", nullptr, nullptr, 0U,
+                                      kOpenApiBuf, sizeof(kOpenApiBuf));
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wiimote/status\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wiimote/config\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wiimote/commands/leds\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wiimote/commands/reporting-mode\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wiimote/commands/accelerometer\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wiimote/commands/request-status\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wiimote/commands/scan\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wiimote/commands/discovery\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wiimote/commands/disconnect\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wiimote/commands/reconnect-policy\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wifi/control\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wifi/delivery-mode\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wifi/network\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wifi/restart\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wifi/token\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/commands/{id}/status\""));
+}
+
+void testOpenApiRouteTruncatesSafelyInSmallBuffer() {
+    WebApiContext ctx = makeCtx();
+    char smallBuf[32] = {0};
+
+    WebApiRouteResult r =
+        webApiRoute(&ctx, "GET", "/openapi.json", nullptr, nullptr, 0U, smallBuf, sizeof(smallBuf));
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+    TEST_ASSERT_EQUAL_STRING("application/json", r.contentType);
+    TEST_ASSERT_EQUAL(0, smallBuf[sizeof(smallBuf) - 1U]);
+    TEST_ASSERT_NOT_EQUAL('\0', smallBuf[0]);
 }
 
 // ===== GET /api/wiimote/status =====
@@ -751,6 +790,8 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testStaticAppJsRouteReturns200WithoutAuth);
     RUN_TEST(testStaticStylesRouteReturns200WithoutAuth);
     RUN_TEST(testOpenApiRouteReturns200WithoutAuth);
+    RUN_TEST(testOpenApiRouteContainsAllRegisteredPaths);
+    RUN_TEST(testOpenApiRouteTruncatesSafelyInSmallBuffer);
 
     RUN_TEST(testGetStatusReturns200);
     RUN_TEST(testGetStatusJsonShape);

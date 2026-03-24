@@ -38,172 +38,234 @@ const char kStaticStylesCss[] =
     ".shell{width:min(920px,92vw);margin:24px auto;}\n"
     "h1{color:var(--accent);}\n";
 
-const char kStaticOpenApiJson[] =
-    "{"
-    "\"openapi\":\"3.0.3\","
-    "\"info\":{"
-    "\"title\":\"ESP32Wiimote Wi-Fi API\","
-    "\"version\":\"0.4.0\""
-    "},"
-    "\"paths\":{"
-    "\"/api/wiimote/status\":{\"get\":{"
-    "\"security\":[{\"bearerAuth\":[]}],"
-    "\"responses\":{"
-    "\"200\":{\"description\":\"Status snapshot\"},"
-    "\"400\":{\"description\":\"Bad request\"},"
-    "\"401\":{\"description\":\"Unauthorized\"},"
-    "\"403\":{\"description\":\"Forbidden\"}"
-    "}}},"
-    "\"/api/wiimote/config\":{\"get\":{"
-    "\"security\":[{\"bearerAuth\":[]}],"
-    "\"responses\":{"
-    "\"200\":{\"description\":\"Config snapshot\"},"
-    "\"400\":{\"description\":\"Bad request\"},"
-    "\"401\":{\"description\":\"Unauthorized\"},"
-    "\"403\":{\"description\":\"Forbidden\"}"
-    "}}},"
-    "\"/api/wiimote/commands/leds\":{\"post\":{"
-    "\"security\":[{\"bearerAuth\":[]}],"
-    "\"responses\":{"
-    "\"200\":{\"description\":\"OK\"},"
-    "\"400\":{\"description\":\"Bad request\"},"
-    "\"401\":{\"description\":\"Unauthorized\"},"
-    "\"403\":{\"description\":\"Forbidden\"},"
-    "\"409\":{\"description\":\"Command rejected\"}"
-    "}}},"
-    "\"/api/wiimote/commands/reporting-mode\":{\"post\":{"
-    "\"security\":[{\"bearerAuth\":[]}],"
-    "\"responses\":{"
-    "\"200\":{\"description\":\"OK\"},"
-    "\"400\":{\"description\":\"Bad request\"},"
-    "\"401\":{\"description\":\"Unauthorized\"},"
-    "\"403\":{\"description\":\"Forbidden\"},"
-    "\"409\":{\"description\":\"Command rejected\"}"
-    "}}},"
-    "\"/api/wiimote/commands/accelerometer\":{\"post\":{"
-    "\"security\":[{\"bearerAuth\":[]}],"
-    "\"responses\":{"
-    "\"200\":{\"description\":\"OK\"},"
-    "\"400\":{\"description\":\"Bad request\"},"
-    "\"401\":{\"description\":\"Unauthorized\"},"
-    "\"403\":{\"description\":\"Forbidden\"},"
-    "\"409\":{\"description\":\"Command rejected\"}"
-    "}}},"
-    "\"/api/wiimote/commands/request-status\":{\"post\":{"
-    "\"security\":[{\"bearerAuth\":[]}],"
-    "\"responses\":{"
-    "\"200\":{\"description\":\"OK\"},"
-    "\"400\":{\"description\":\"Bad request\"},"
-    "\"401\":{\"description\":\"Unauthorized\"},"
-    "\"403\":{\"description\":\"Forbidden\"},"
-    "\"409\":{\"description\":\"Command rejected\"}"
-    "}}},"
-    "\"/api/wiimote/commands/scan\":{\"post\":{"
-    "\"security\":[{\"bearerAuth\":[]}],"
-    "\"responses\":{"
-    "\"200\":{\"description\":\"OK\"},"
-    "\"400\":{\"description\":\"Bad request\"},"
-    "\"401\":{\"description\":\"Unauthorized\"},"
-    "\"403\":{\"description\":\"Forbidden\"},"
-    "\"409\":{\"description\":\"Command rejected\"}"
-    "}}},"
-    "\"/api/wiimote/commands/discovery\":{\"post\":{"
-    "\"security\":[{\"bearerAuth\":[]}],"
-    "\"responses\":{"
-    "\"200\":{\"description\":\"OK\"},"
-    "\"400\":{\"description\":\"Bad request\"},"
-    "\"401\":{\"description\":\"Unauthorized\"},"
-    "\"403\":{\"description\":\"Forbidden\"},"
-    "\"409\":{\"description\":\"Command rejected\"}"
-    "}}},"
-    "\"/api/wiimote/commands/disconnect\":{\"post\":{"
-    "\"security\":[{\"bearerAuth\":[]}],"
-    "\"responses\":{"
-    "\"200\":{\"description\":\"OK\"},"
-    "\"400\":{\"description\":\"Bad request\"},"
-    "\"401\":{\"description\":\"Unauthorized\"},"
-    "\"403\":{\"description\":\"Forbidden\"},"
-    "\"409\":{\"description\":\"Command rejected\"}"
-    "}}},"
-    "\"/api/wiimote/commands/reconnect-policy\":{\"post\":{"
-    "\"security\":[{\"bearerAuth\":[]}],"
-    "\"responses\":{"
-    "\"200\":{\"description\":\"OK\"},"
-    "\"400\":{\"description\":\"Bad request\"},"
-    "\"401\":{\"description\":\"Unauthorized\"},"
-    "\"403\":{\"description\":\"Forbidden\"},"
-    "\"409\":{\"description\":\"Command rejected\"}"
-    "}}},"
-    "\"/api/wifi/control\":{"
-    "\"get\":{"
-    "\"security\":[{\"bearerAuth\":[]}],"
-    "\"responses\":{"
-    "\"200\":{\"description\":\"Wi-Fi control lifecycle state\"},"
-    "\"401\":{\"description\":\"Unauthorized\"}"
-    "}},"
-    "\"post\":{"
-    "\"security\":[{\"bearerAuth\":[]}],"
-    "\"responses\":{"
-    "\"200\":{\"description\":\"OK\"},"
-    "\"400\":{\"description\":\"Bad request\"},"
-    "\"401\":{\"description\":\"Unauthorized\"},"
-    "\"409\":{\"description\":\"Command rejected\"}"
-    "}}},"
-    "\"/api/wifi/delivery-mode\":{\"post\":{"
-    "\"security\":[{\"bearerAuth\":[]}],"
-    "\"responses\":{"
-    "\"200\":{\"description\":\"OK\"},"
-    "\"400\":{\"description\":\"Bad request\"},"
-    "\"401\":{\"description\":\"Unauthorized\"},"
-    "\"409\":{\"description\":\"Command rejected\"}"
-    "}}},"
-    "\"/api/wifi/network\":{\"post\":{"
-    "\"security\":[{\"bearerAuth\":[]}],"
-    "\"responses\":{"
-    "\"200\":{\"description\":\"OK\"},"
-    "\"400\":{\"description\":\"Bad request\"},"
-    "\"401\":{\"description\":\"Unauthorized\"},"
-    "\"409\":{\"description\":\"Command rejected\"}"
-    "}}},"
-    "\"/api/wifi/restart\":{\"post\":{"
-    "\"security\":[{\"bearerAuth\":[]}],"
-    "\"responses\":{"
-    "\"200\":{\"description\":\"OK\"},"
-    "\"401\":{\"description\":\"Unauthorized\"},"
-    "\"409\":{\"description\":\"Command rejected\"}"
-    "}}},"
-    "\"/api/wifi/token\":{\"post\":{"
-    "\"security\":[{\"bearerAuth\":[]}],"
-    "\"responses\":{"
-    "\"200\":{\"description\":\"OK\"},"
-    "\"400\":{\"description\":\"Bad request\"},"
-    "\"401\":{\"description\":\"Unauthorized\"},"
-    "\"403\":{\"description\":\"Policy blocked\"},"
-    "\"409\":{\"description\":\"Command rejected\"}"
-    "}}},"
-    "\"/api/commands/{id}/status\":{\"get\":{"
-    "\"security\":[{\"bearerAuth\":[]}],"
-    "\"responses\":{"
-    "\"200\":{\"description\":\"Queued command status\"},"
-    "\"400\":{\"description\":\"Bad request\"},"
-    "\"401\":{\"description\":\"Unauthorized\"},"
-    "\"403\":{\"description\":\"Forbidden\"},"
-    "\"404\":{\"description\":\"Command not found\"}"
-    "}}}"
-    "},"
-    "\"components\":{"
-    "\"securitySchemes\":{"
-    "\"bearerAuth\":{\"type\":\"http\",\"scheme\":\"bearer\"}"
-    "}"
-    "}"
-    "}";
-
 // ===== Route Handler Type =====
 
 using route_handler_fn = WebApiRouteResult (*)(const WebApiContext *ctx,
                                                const WebParsedCommand *cmd,
                                                char *buf,
                                                size_t bufSize);
+
+enum class RouteAuthScheme : uint8_t {
+    BearerOnly = 0,
+};
+
+struct RouteResponseEntry {
+    int code;
+    const char *description;
+};
+
+struct RouteEntry {
+    const char *method;
+    const char *path;
+    route_handler_fn handler;
+    const char *summary;
+    const RouteResponseEntry *responses;
+    size_t responseCount;
+    bool requiresBody;
+    RouteAuthScheme auth;
+};
+
+struct OpenApiExtraRoute {
+    const char *method;
+    const char *path;
+    const char *summary;
+    RouteAuthScheme auth;
+    const RouteResponseEntry *responses;
+    size_t responseCount;
+};
+
+struct JsonWriter {
+    char *buffer;
+    size_t size;
+    size_t written;
+
+    bool appendFormat(const char *text) {
+        if (text == nullptr) {
+            return false;
+        }
+
+        const size_t kOffset = (written < size) ? written : (size - 1U);
+        const size_t kAvailable = size - kOffset;
+        const int kResult = std::snprintf(buffer + kOffset, kAvailable, "%s", text);
+
+        if (kResult < 0) {
+            buffer[size - 1U] = '\0';
+            return false;
+        }
+
+        written += static_cast<size_t>(kResult);
+        buffer[(written < size) ? written : (size - 1U)] = '\0';
+        return static_cast<size_t>(kResult) < kAvailable;
+    }
+
+    template <typename... Args>
+    bool appendFormat(const char *format, Args... args) {
+        if (buffer == nullptr || size == 0U || format == nullptr) {
+            return false;
+        }
+
+        const size_t kOffset = (written < size) ? written : (size - 1U);
+        const size_t kAvailable = size - kOffset;
+        const int kResult = std::snprintf(buffer + kOffset, kAvailable, format, args...);
+
+        if (kResult < 0) {
+            buffer[size - 1U] = '\0';
+            return false;
+        }
+
+        written += static_cast<size_t>(kResult);
+        buffer[(written < size) ? written : (size - 1U)] = '\0';
+        return static_cast<size_t>(kResult) < kAvailable;
+    }
+};
+
+template <typename T, size_t N>
+constexpr size_t arraySize(const T (&kItems)[N]) {
+    return N;
+}
+
+const RouteResponseEntry kReadResponses[] = {
+    {200, "OK"},
+    {400, "Bad request"},
+    {401, "Unauthorized"},
+    {403, "Forbidden"},
+};
+
+const RouteResponseEntry kCommandResponses[] = {
+    {200, "OK"},        {400, "Bad request"},      {401, "Unauthorized"},
+    {403, "Forbidden"}, {409, "Command rejected"},
+};
+
+const RouteResponseEntry kWifiStateResponses[] = {
+    {200, "Wi-Fi control lifecycle state"},
+    {401, "Unauthorized"},
+};
+
+const RouteResponseEntry kWifiCommandResponses[] = {
+    {200, "OK"},
+    {400, "Bad request"},
+    {401, "Unauthorized"},
+    {409, "Command rejected"},
+};
+
+const RouteResponseEntry kWifiTokenResponses[] = {
+    {200, "OK"},
+    {400, "Bad request"},
+    {401, "Unauthorized"},
+    {403, "Policy blocked"},
+    {409, "Command rejected"},
+};
+
+const RouteResponseEntry kCommandStatusResponses[] = {
+    {200, "Queued command status"}, {400, "Bad request"}, {401, "Unauthorized"}, {403, "Forbidden"},
+    {404, "Command not found"},
+};
+
+const OpenApiExtraRoute kOpenApiExtraRoutes[] = {
+    {"GET", "/api/commands/{id}/status", "Get queued command status", RouteAuthScheme::BearerOnly,
+     kCommandStatusResponses, arraySize(kCommandStatusResponses)},
+};
+
+const char *openApiMethodName(const char *method) {
+    if (std::strcmp(method, "GET") == 0) {
+        return "get";
+    }
+    if (std::strcmp(method, "POST") == 0) {
+        return "post";
+    }
+    return method;
+}
+
+void appendOpenApiSecurity(JsonWriter &writer, RouteAuthScheme auth) {
+    if (auth == RouteAuthScheme::BearerOnly) {
+        writer.appendFormat("\"security\":[{\"bearerAuth\":[]}]");
+    }
+}
+
+void appendOpenApiResponses(JsonWriter &writer,
+                            const RouteResponseEntry *responses,
+                            size_t responseCount) {
+    writer.appendFormat("\"responses\":{");
+    for (size_t i = 0U; i < responseCount; ++i) {
+        if (i != 0U) {
+            writer.appendFormat(",");
+        }
+        writer.appendFormat("\"%d\":{\"description\":\"%s\"}", responses[i].code,
+                            responses[i].description);
+    }
+    writer.appendFormat("}");
+}
+
+void appendOpenApiOperation(JsonWriter &writer,
+                            const char *method,
+                            const char *summary,
+                            RouteAuthScheme auth,
+                            const RouteResponseEntry *responses,
+                            size_t responseCount) {
+    writer.appendFormat("\"%s\":{", openApiMethodName(method));
+    writer.appendFormat("\"summary\":\"%s\",", summary);
+    appendOpenApiSecurity(writer, auth);
+    writer.appendFormat(",");
+    appendOpenApiResponses(writer, responses, responseCount);
+    writer.appendFormat("}");
+}
+
+void appendOpenApiPaths(JsonWriter &writer,
+                        const RouteEntry *routes,
+                        size_t routeCount,
+                        bool *firstPath) {
+    for (size_t i = 0U; i < routeCount; ++i) {
+        bool duplicatePath = false;
+        for (size_t j = 0U; j < i; ++j) {
+            if (std::strcmp(routes[i].path, routes[j].path) == 0) {
+                duplicatePath = true;
+                break;
+            }
+        }
+        if (duplicatePath) {
+            continue;
+        }
+
+        if (!*firstPath) {
+            writer.appendFormat(",");
+        }
+        *firstPath = false;
+        writer.appendFormat("\"%s\":{", routes[i].path);
+
+        bool firstMethod = true;
+        for (size_t j = i; j < routeCount; ++j) {
+            if (std::strcmp(routes[i].path, routes[j].path) != 0) {
+                continue;
+            }
+            if (!firstMethod) {
+                writer.appendFormat(",");
+            }
+            firstMethod = false;
+            appendOpenApiOperation(writer, routes[j].method, routes[j].summary, routes[j].auth,
+                                   routes[j].responses, routes[j].responseCount);
+        }
+
+        writer.appendFormat("}");
+    }
+}
+
+void appendOpenApiPaths(JsonWriter &writer,
+                        const OpenApiExtraRoute *routes,
+                        size_t routeCount,
+                        bool *firstPath) {
+    for (size_t i = 0U; i < routeCount; ++i) {
+        if (!*firstPath) {
+            writer.appendFormat(",");
+        }
+        *firstPath = false;
+        writer.appendFormat("\"%s\":{", routes[i].path);
+        appendOpenApiOperation(writer, routes[i].method, routes[i].summary, routes[i].auth,
+                               routes[i].responses, routes[i].responseCount);
+        writer.appendFormat("}");
+    }
+}
+
+size_t buildOpenApiJson(char *buf, size_t size);
 
 // ===== Internal Helpers =====
 
@@ -276,8 +338,8 @@ WebApiRouteResult tryServeStatic(const char *method,
     }
 
     if (std::strcmp(path, "/openapi.json") == 0) {
-        return writeStaticResponse(kStaticOpenApiJson, "application/json", responseBuf,
-                                   responseBufSize);
+        buildOpenApiJson(responseBuf, responseBufSize);
+        return makeResult(200, "application/json");
     }
 
     return makeResult(0, "application/json");
@@ -786,34 +848,65 @@ WebApiRouteResult handlePostWifiToken(const WebApiContext *ctx,
 
 // ===== Route Table =====
 
-struct RouteEntry {
-    const char *method;
-    const char *path;
-    route_handler_fn handler;
-    bool requiresBody;
-
-    RouteEntry(const char *m, const char *p, route_handler_fn h, bool rb)
-        : method(m), path(p), handler(h), requiresBody(rb) {}
-};
-
 const RouteEntry kRoutes[] = {
-    {"GET", "/api/wiimote/status", handleGetStatus, false},
-    {"GET", "/api/wiimote/config", handleGetConfig, false},
-    {"GET", "/api/wifi/control", handleGetWifiControl, false},
-    {"POST", "/api/wiimote/commands/leds", handlePostLeds, true},
-    {"POST", "/api/wiimote/commands/reporting-mode", handlePostReportingMode, true},
-    {"POST", "/api/wiimote/commands/accelerometer", handlePostAccelerometer, true},
-    {"POST", "/api/wiimote/commands/request-status", handlePostRequestStatus, true},
-    {"POST", "/api/wiimote/commands/scan", handlePostScan, true},
-    {"POST", "/api/wiimote/commands/discovery", handlePostDiscovery, true},
-    {"POST", "/api/wiimote/commands/disconnect", handlePostDisconnect, true},
-    {"POST", "/api/wiimote/commands/reconnect-policy", handlePostReconnectPolicy, true},
-    {"POST", "/api/wifi/control", handlePostWifiControl, true},
-    {"POST", "/api/wifi/delivery-mode", handlePostWifiMode, true},
-    {"POST", "/api/wifi/network", handlePostWifiNetwork, true},
-    {"POST", "/api/wifi/restart", handlePostWifiRestart, true},
-    {"POST", "/api/wifi/token", handlePostWifiToken, true},
+    {"GET", "/api/wiimote/status", handleGetStatus, "Get Wiimote status snapshot", kReadResponses,
+     arraySize(kReadResponses), false, RouteAuthScheme::BearerOnly},
+    {"GET", "/api/wiimote/config", handleGetConfig, "Get runtime configuration snapshot",
+     kReadResponses, arraySize(kReadResponses), false, RouteAuthScheme::BearerOnly},
+    {"GET", "/api/wifi/control", handleGetWifiControl, "Get Wi-Fi control lifecycle state",
+     kWifiStateResponses, arraySize(kWifiStateResponses), false, RouteAuthScheme::BearerOnly},
+    {"POST", "/api/wiimote/commands/leds", handlePostLeds, "Set LED mask", kCommandResponses,
+     arraySize(kCommandResponses), true, RouteAuthScheme::BearerOnly},
+    {"POST", "/api/wiimote/commands/reporting-mode", handlePostReportingMode, "Set reporting mode",
+     kCommandResponses, arraySize(kCommandResponses), true, RouteAuthScheme::BearerOnly},
+    {"POST", "/api/wiimote/commands/accelerometer", handlePostAccelerometer,
+     "Enable or disable accelerometer parsing", kCommandResponses, arraySize(kCommandResponses),
+     true, RouteAuthScheme::BearerOnly},
+    {"POST", "/api/wiimote/commands/request-status", handlePostRequestStatus,
+     "Request status report from controller", kCommandResponses, arraySize(kCommandResponses), true,
+     RouteAuthScheme::BearerOnly},
+    {"POST", "/api/wiimote/commands/scan", handlePostScan, "Start or stop scan", kCommandResponses,
+     arraySize(kCommandResponses), true, RouteAuthScheme::BearerOnly},
+    {"POST", "/api/wiimote/commands/discovery", handlePostDiscovery, "Start or stop discovery",
+     kCommandResponses, arraySize(kCommandResponses), true, RouteAuthScheme::BearerOnly},
+    {"POST", "/api/wiimote/commands/disconnect", handlePostDisconnect,
+     "Disconnect active controller", kCommandResponses, arraySize(kCommandResponses), true,
+     RouteAuthScheme::BearerOnly},
+    {"POST", "/api/wiimote/commands/reconnect-policy", handlePostReconnectPolicy,
+     "Set reconnect policy", kCommandResponses, arraySize(kCommandResponses), true,
+     RouteAuthScheme::BearerOnly},
+    {"POST", "/api/wifi/control", handlePostWifiControl, "Enable or disable Wi-Fi control",
+     kWifiCommandResponses, arraySize(kWifiCommandResponses), true, RouteAuthScheme::BearerOnly},
+    {"POST", "/api/wifi/delivery-mode", handlePostWifiMode, "Set Wi-Fi delivery mode",
+     kWifiCommandResponses, arraySize(kWifiCommandResponses), true, RouteAuthScheme::BearerOnly},
+    {"POST", "/api/wifi/network", handlePostWifiNetwork, "Update Wi-Fi network credentials",
+     kWifiCommandResponses, arraySize(kWifiCommandResponses), true, RouteAuthScheme::BearerOnly},
+    {"POST", "/api/wifi/restart", handlePostWifiRestart, "Restart Wi-Fi control service",
+     kWifiCommandResponses, arraySize(kWifiCommandResponses), true, RouteAuthScheme::BearerOnly},
+    {"POST", "/api/wifi/token", handlePostWifiToken, "Update Wi-Fi API token", kWifiTokenResponses,
+     arraySize(kWifiTokenResponses), true, RouteAuthScheme::BearerOnly},
 };
+
+size_t buildOpenApiJson(char *buf, size_t size) {
+    JsonWriter writer{buf, size, 0U};
+    writer.appendFormat(
+        "{\"openapi\":\"3.0.3\","
+        "\"info\":{\"title\":\"ESP32Wiimote Wi-Fi API\","
+        "\"version\":\"0.4.0\"},"
+        "\"paths\":{");
+
+    bool firstPath = true;
+    appendOpenApiPaths(writer, kRoutes, arraySize(kRoutes), &firstPath);
+    appendOpenApiPaths(writer, kOpenApiExtraRoutes, arraySize(kOpenApiExtraRoutes), &firstPath);
+
+    writer.appendFormat(
+        "},"
+        "\"components\":{"
+        "\"securitySchemes\":{"
+        "\"bearerAuth\":{\"type\":\"http\",\"scheme\":\"bearer\"}"
+        "}}}");
+    return writer.written;
+}
 
 }  // namespace
 

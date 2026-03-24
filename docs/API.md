@@ -691,7 +691,7 @@ Deterministic rejection examples:
 
 ### Wi-Fi Control API
 
-Wi-Fi control is exposed as an authenticated REST API with a static OpenAPI document.
+Wi-Fi control is exposed as an authenticated REST API with a runtime-generated OpenAPI document.
 
 #### Auth model
 
@@ -703,7 +703,13 @@ Wi-Fi control is exposed as an authenticated REST API with a static OpenAPI docu
 - `GET /` -> control page (`text/html`)
 - `GET /app.js` -> browser client script (`application/javascript`)
 - `GET /styles.css` -> stylesheet (`text/css`)
-- `GET /openapi.json` -> OpenAPI 3.0 contract (`application/json`)
+- `GET /openapi.json` -> OpenAPI 3.0 contract generated from the router's self-describing route table (`application/json`)
+
+OpenAPI generation model:
+
+- the route table in `src/wifi/web_api_router.cpp` is the authoritative source for served OpenAPI metadata
+- `GET /openapi.json` serializes that metadata at request time into the caller-supplied response buffer
+- there is no standalone `src/wifi/web/openapi.json` file in the repository anymore
 
 #### REST read endpoints
 
