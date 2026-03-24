@@ -39,6 +39,41 @@
       </div>
     </section>
 
+    <section class="panel" aria-label="Wi-Fi control">
+      <h2>Wi-Fi Control</h2>
+      <div class="status-grid">
+        <div>
+          <span class="label">Control</span>
+          <strong id="wifi-control-enabled">-</strong>
+        </div>
+        <div>
+          <span class="label">Delivery Mode</span>
+          <strong id="wifi-control-mode">-</strong>
+        </div>
+        <div>
+          <span class="label">API Token</span>
+          <strong id="wifi-control-token">-</strong>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="refresh-wifi-control" class="btn primary">Refresh Wi-Fi Status</button>
+        <button id="wifi-enable" class="btn">Enable Wi-Fi Control</button>
+        <button id="wifi-disable" class="btn danger">Disable Wi-Fi Control</button>
+        <button id="wifi-mode-rest" class="btn">Mode: REST</button>
+        <button id="wifi-mode-rest-ws" class="btn">Mode: REST + WS</button>
+        <button id="wifi-restart" class="btn">Restart Wi-Fi</button>
+      </div>
+      <div class="field-grid">
+        <input id="wifi-ssid" class="input" type="text" placeholder="Wi-Fi SSID">
+        <input id="wifi-password" class="input" type="text" placeholder="Wi-Fi Password">
+        <button id="wifi-set-network" class="btn">Set Network</button>
+      </div>
+      <div class="field-grid">
+        <input id="wifi-token" class="input" type="text" placeholder="New API token">
+        <button id="wifi-set-token" class="btn">Set API Token</button>
+      </div>
+    </section>
+
     <section class="panel" aria-label="Authentication">
       <h2>Auth</h2>
       <p class="small">Use <code>Bearer &lt;token&gt;</code> or <code>Basic &lt;base64&gt;</code>.</p>

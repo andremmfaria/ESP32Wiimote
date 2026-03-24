@@ -17,11 +17,14 @@ const char kStaticIndexHtml[] =
     "<head><meta charset=\"utf-8\"><meta name=\"viewport\" "
     "content=\"width=device-width,initial-scale=1\">"
     "<title>ESP32 Wiimote Control</title><link rel=\"stylesheet\" href=\"/styles.css\"></head>\n"
-    "<body><main class=\"shell\"><h1>ESP32 Wiimote Control</h1><p>Open the control "
-    "interface.</p></main>"
+    "<body><main class=\"shell\"><h1>ESP32 Wiimote Control</h1>"
+    "<p>Wi-Fi control API available at /api/wifi/control, /api/wifi/delivery-mode, "
+    "/api/wifi/network, /api/wifi/restart, and /api/wifi/token.</p></main>"
     "<script src=\"/app.js\"></script></body></html>\n";
 
 const char kStaticAppJs[] =
+    "const WIFI_API_PATHS={control:'/api/wifi/control',mode:'/api/wifi/delivery-mode',network:"
+    "'/api/wifi/network',restart:'/api/wifi/restart',token:'/api/wifi/token'};\n"
     "async function fetchWithAuth(path, init = {}) {\n"
     "  const auth = localStorage.getItem('auth') || 'Bearer esp32wiimote_bearer_token_v1';\n"
     "  const headers = { Authorization: auth, ...(init.headers || {}) };\n"

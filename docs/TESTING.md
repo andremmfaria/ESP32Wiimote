@@ -22,11 +22,14 @@ Common targets:
 
 ```bash
 ./build.sh test:native
+./build.sh test:native:list
 ./build.sh test:coverage
 ./build.sh test:dev
 ./build.sh test:dev:build
 ./build.sh build:dev
 ./build.sh release
+./build.sh clang:updatedb
+./build.sh clang:tidy
 ```
 
 Hardware targets accept `ESP32_PORT`:
@@ -48,8 +51,9 @@ Run all native tests on your PC (no hardware needed):
 Run specific test:
 
 ```bash
-./build.sh test:native -- -f test_button_state
-./build.sh test:native -- -f test_sensor_state
+./build.sh test:native:button_state
+./build.sh test:native:sensor_state
+./build.sh test:native:wifi_router
 ```
 
 Verbose output:
@@ -111,6 +115,26 @@ Outputs:
 - `coverage/src-coverage-status.txt`
 - `coverage/lcov.info`
 - `coverage/html-lcov/index.html`
+
+### 5. Clang Tooling
+
+Generate or refresh the compile database used by clang-based tooling:
+
+```bash
+./build.sh clang:updatedb
+```
+
+Run `clang-tidy` across the default set of production files:
+
+```bash
+./build.sh clang:tidy
+```
+
+Run `clang-tidy` against specific files only:
+
+```bash
+./build.sh clang:tidy src/ESP32Wiimote.cpp src/wifi/web_api_router.cpp
+```
 
 ## Test Structure
 

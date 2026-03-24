@@ -258,8 +258,8 @@ Targets:
   monitor:dev          Open serial monitor for esp32dev.
   clean                Clean all PlatformIO build artifacts.
   clean:coverage       Remove generated coverage artifacts.
-    clang:updatedb       Generate compile_commands.json for clang tools.
-    clang:tidy           Run clang-tidy (defaults to key production files).
+  clang:updatedb       Generate compile_commands.json for clang tools.
+  clang:tidy           Run clang-tidy (defaults to key production files).
 
 Environment Variables:
   ESP32_PORT           Serial port for hardware actions (example: /dev/ttyUSB0)
@@ -272,9 +272,9 @@ Examples:
   ESP32_PORT=/dev/ttyUSB0 ./build.sh test:dev
   ./build.sh test:coverage
   ./build.sh release
-    ./build.sh clang:updatedb
-    ./build.sh clang:tidy
-    ./build.sh clang:tidy src/ESP32Wiimote.cpp src/wifi/web_api_router.cpp
+  ./build.sh clang:updatedb
+  ./build.sh clang:tidy
+  ./build.sh clang:tidy src/ESP32Wiimote.cpp src/wifi/web_api_router.cpp
 EOF
 }
 

@@ -281,6 +281,11 @@ void testOpenApiRouteReturns200WithoutAuth() {
     TEST_ASSERT_EQUAL_STRING("application/json", r.contentType);
     TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"openapi\":\"3.0.3\""));
     TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"bearerAuth\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wifi/control\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wifi/delivery-mode\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wifi/network\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wifi/restart\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(kOpenApiBuf, "\"/api/wifi/token\""));
 }
 
 // ===== GET /api/wiimote/status =====

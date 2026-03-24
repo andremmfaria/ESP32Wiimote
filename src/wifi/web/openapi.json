@@ -399,6 +399,205 @@
                     }
                 }
             }
+        },
+        "/api/wifi/control": {
+            "get": {
+                "summary": "Get Wi-Fi control lifecycle state",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Current Wi-Fi control state",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/WifiControlState"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Enable or disable Wi-Fi control",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SetWifiControlCommand"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Ok"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/CommandRejected"
+                    }
+                }
+            }
+        },
+        "/api/wifi/delivery-mode": {
+            "post": {
+                "summary": "Set Wi-Fi delivery mode",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SetWifiDeliveryModeCommand"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Ok"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/CommandRejected"
+                    }
+                }
+            }
+        },
+        "/api/wifi/network": {
+            "post": {
+                "summary": "Update Wi-Fi network credentials",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SetWifiNetworkCommand"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Ok"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/CommandRejected"
+                    }
+                }
+            }
+        },
+        "/api/wifi/restart": {
+            "post": {
+                "summary": "Restart Wi-Fi control service",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RestartWifiControlCommand"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Ok"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/CommandRejected"
+                    }
+                }
+            }
+        },
+        "/api/wifi/token": {
+            "post": {
+                "summary": "Update Wi-Fi API token",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SetWifiTokenCommand"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Ok"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/CommandRejected"
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -685,6 +884,126 @@
                             "1",
                             "0"
                         ]
+                    }
+                }
+            },
+            "WifiControlState": {
+                "type": "object",
+                "required": [
+                    "enabled",
+                    "restAndWebSocket",
+                    "hasToken"
+                ],
+                "properties": {
+                    "enabled": {
+                        "type": "boolean"
+                    },
+                    "restAndWebSocket": {
+                        "type": "boolean"
+                    },
+                    "hasToken": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "SetWifiControlCommand": {
+                "type": "object",
+                "required": [
+                    "command",
+                    "enabled"
+                ],
+                "properties": {
+                    "command": {
+                        "type": "string",
+                        "enum": [
+                            "set_wifi_control"
+                        ]
+                    },
+                    "enabled": {
+                        "type": "string",
+                        "enum": [
+                            "true",
+                            "false",
+                            "1",
+                            "0"
+                        ]
+                    }
+                }
+            },
+            "SetWifiDeliveryModeCommand": {
+                "type": "object",
+                "required": [
+                    "command",
+                    "mode"
+                ],
+                "properties": {
+                    "command": {
+                        "type": "string",
+                        "enum": [
+                            "set_wifi_mode"
+                        ]
+                    },
+                    "mode": {
+                        "type": "string",
+                        "enum": [
+                            "rest",
+                            "rest-ws",
+                            "rest-websocket"
+                        ]
+                    }
+                }
+            },
+            "SetWifiNetworkCommand": {
+                "type": "object",
+                "required": [
+                    "command",
+                    "ssid",
+                    "password"
+                ],
+                "properties": {
+                    "command": {
+                        "type": "string",
+                        "enum": [
+                            "set_wifi_network"
+                        ]
+                    },
+                    "ssid": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string"
+                    }
+                }
+            },
+            "RestartWifiControlCommand": {
+                "type": "object",
+                "required": [
+                    "command"
+                ],
+                "properties": {
+                    "command": {
+                        "type": "string",
+                        "enum": [
+                            "restart_wifi_control"
+                        ]
+                    }
+                }
+            },
+            "SetWifiTokenCommand": {
+                "type": "object",
+                "required": [
+                    "command",
+                    "token"
+                ],
+                "properties": {
+                    "command": {
+                        "type": "string",
+                        "enum": [
+                            "set_wifi_token"
+                        ]
+                    },
+                    "token": {
+                        "type": "string"
                     }
                 }
             }

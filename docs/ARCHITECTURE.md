@@ -409,7 +409,7 @@ HTTP mapping:
 - `200`: read success or command accepted
 - `400`: malformed body, missing required fields, invalid argument
 - `401`: missing/invalid token
-- `403`: reserved for future policy-based restrictions
+- `403`: policy-based restriction (currently used for Wi-Fi API token mutation when disabled)
 - `404`: unknown route
 - `409`: runtime/state guard rejected command
 

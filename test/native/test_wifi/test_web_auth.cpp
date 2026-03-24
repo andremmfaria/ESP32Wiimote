@@ -41,6 +41,12 @@ void testBearerLeadingWhitespace() {
     TEST_ASSERT_EQUAL(WebAuthResult::Ok, result);
 }
 
+void testBearerLeadingTabWhitespace() {
+    WebAuthResult result =
+        webAuthValidateBearer("\tBearer esp32wiimote_bearer_token_v1", kTestToken);
+    TEST_ASSERT_EQUAL(WebAuthResult::Ok, result);
+}
+
 void testBearerWhitespaceAfterScheme() {
     WebAuthResult result =
         webAuthValidateBearer("Bearer   esp32wiimote_bearer_token_v1", kTestToken);
@@ -107,6 +113,11 @@ void testCombinedEmpty() {
     TEST_ASSERT_EQUAL(WebAuthResult::MissingHeader, result);
 }
 
+void testCombinedWhitespaceOnly() {
+    WebAuthResult result = webAuthValidate(" \t  ", kTestToken);
+    TEST_ASSERT_EQUAL(WebAuthResult::MissingHeader, result);
+}
+
 void testCombinedNullTokenReturnsInvalidCredentials() {
     WebAuthResult result = webAuthValidate("Bearer esp32wiimote_bearer_token_v1", nullptr);
     TEST_ASSERT_EQUAL(WebAuthResult::InvalidCredentials, result);
@@ -127,6 +138,7 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testBearerCaseInsensitiveScheme);
     RUN_TEST(testBearerMixedCaseScheme);
     RUN_TEST(testBearerLeadingWhitespace);
+    RUN_TEST(testBearerLeadingTabWhitespace);
     RUN_TEST(testBearerWhitespaceAfterScheme);
     RUN_TEST(testBearerNull);
     RUN_TEST(testBearerWrongScheme);
@@ -142,6 +154,7 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testCombinedUnsupportedScheme);
     RUN_TEST(testCombinedNull);
     RUN_TEST(testCombinedEmpty);
+    RUN_TEST(testCombinedWhitespaceOnly);
     RUN_TEST(testCombinedNullTokenReturnsInvalidCredentials);
 
     RUN_TEST(testBearerTokenWithLeadingTrailingWhitespace);

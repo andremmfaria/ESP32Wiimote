@@ -72,6 +72,13 @@ body {
   gap: 10px;
 }
 
+.field-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 10px;
+}
+
 .btn {
   border: 1px solid var(--line);
   color: var(--ink);
@@ -138,5 +145,9 @@ body {
 
   .panel {
     padding: 14px;
+  }
+
+  .field-grid {
+    grid-template-columns: 1fr;
   }
 }

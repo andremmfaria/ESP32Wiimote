@@ -756,7 +756,6 @@ Recovery contract:
 - `200` command/read accepted
 - `400` malformed or missing request body fields
 - `401` auth failed
-- `403` reserved for future policy restrictions
 - `403` policy-blocked mutations (for example, Wi-Fi API token updates when policy is disabled)
 - `409` command rejected by runtime guards
 

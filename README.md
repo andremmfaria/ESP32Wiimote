@@ -18,6 +18,8 @@ Due to ESP32 Bluetooth Classic HCI limitations, this project supports one active
 - ✅ Split runtime token model for Serial and Wi-Fi auth
 - ✅ Wi-Fi REST control API with Bearer auth
 - ✅ Runtime Wi-Fi station credentials (SSID/password) with async join lifecycle
+- ✅ Wi-Fi lifecycle control endpoints (`/api/wifi/control`, `/api/wifi/delivery-mode`, `/api/wifi/network`, `/api/wifi/restart`)
+- ✅ Policy-gated Wi-Fi API token mutation endpoint (`POST /api/wifi/token`)
 - ✅ Optional command queue status polling endpoint (`/api/commands/<id>/status`)
 - ✅ Optional split WebSocket event streams with sequence-based recovery
 - ✅ Static OpenAPI 3.0 document at `/openapi.json`
@@ -277,6 +279,9 @@ See [API Reference](docs/API.md#serial-control-interface) for command details.
 
 When Wi-Fi control is enabled and ready, you can use:
 
+- Authenticated API routes require `Authorization: Bearer <token>`
+- Static assets (`/`, `/app.js`, `/styles.css`, `/openapi.json`) are served without auth
+
 - REST snapshots:
   - `GET /api/wiimote/status`
   - `GET /api/wiimote/config`
@@ -312,10 +317,14 @@ Common targets:
 
 ```bash
 ./build.sh test:native
+./build.sh test:native:list
 ./build.sh test:coverage
 ./build.sh test:dev
 ./build.sh test:dev:build
+./build.sh build:dev
 ./build.sh release
+./build.sh clang:updatedb
+./build.sh clang:tidy
 ```
 
 Set serial port for hardware targets:
@@ -329,6 +338,13 @@ ESP32_PORT=/dev/ttyUSB0 ./build.sh upload:dev
 
 ```bash
 ./build.sh test:native
+```
+
+Run one native module directly:
+
+```bash
+./build.sh test:native:wifi_router
+./build.sh test:native:button_state
 ```
 
 Fast unit tests run on your PC in ~1.5 seconds. No ESP32 required!
@@ -350,10 +366,33 @@ Hardware tests with a real Wiimote.
 Coverage outputs are written under `coverage/`:
 
 - `coverage/gcovr-summary.txt`
+- `coverage/gcovr-covered-summary.txt`
+- `coverage/gcovr.csv`
 - `coverage/gcovr.xml`
 - `coverage/html-gcovr/index.html`
+- `coverage/src-coverage-status.txt`
 - `coverage/lcov.info`
 - `coverage/html-lcov/index.html`
+
+### Clang Tooling
+
+Refresh the compile database used by clang-based tools:
+
+```bash
+./build.sh clang:updatedb
+```
+
+Run `clang-tidy` on the default production file set:
+
+```bash
+./build.sh clang:tidy
+```
+
+Or target specific files:
+
+```bash
+./build.sh clang:tidy src/ESP32Wiimote.cpp src/wifi/web_api_router.cpp
+```
 
 See [Testing Guide](docs/TESTING.md) for complete instructions.
 

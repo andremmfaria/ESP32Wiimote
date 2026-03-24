@@ -1,4 +1,7 @@
 #include "ESP32Wiimote.h"
+#include "serial/serial_command_dispatcher.h"
+#include "serial/serial_command_parser.h"
+#include "serial/serial_command_session.h"
 
 #include <Arduino.h>
 
@@ -26,6 +29,67 @@
 
 ESP32Wiimote wiimote;
 bool connectionTested = false;
+
+struct EmbeddedSerialTarget : SerialCommandTarget {
+    bool allowWifiTokenMutation{false};
+
+    bool setLeds(uint8_t ledMask) override { return wiimote.setLeds(ledMask); }
+    bool setReportingMode(uint8_t mode, bool continuous) override {
+        return wiimote.setReportingMode(static_cast<ReportingMode>(mode), continuous);
+    }
+    bool setAccelerometerEnabled(bool enabled) override {
+        return wiimote.setAccelerometerEnabled(enabled);
+    }
+    bool requestStatus() override { return wiimote.requestStatus(); }
+    void setScanEnabled(bool enabled) override { wiimote.setScanEnabled(enabled); }
+    bool startDiscovery() override { return wiimote.startDiscovery(); }
+    bool stopDiscovery() override { return wiimote.stopDiscovery(); }
+    bool disconnectActiveController(uint8_t reason) override {
+        return wiimote.disconnectActiveController(
+            static_cast<ESP32Wiimote::DisconnectReason>(reason));
+    }
+    void setAutoReconnectEnabled(bool enabled) override {
+        wiimote.setAutoReconnectEnabled(enabled);
+    }
+    void clearReconnectCache() override { wiimote.clearReconnectCache(); }
+
+    bool setWifiControlEnabled(bool enabled) override {
+        wiimote.enableWifiControl(enabled, wiimote.getConfig().wifi.deliveryMode);
+        return wiimote.isWifiControlEnabled() == enabled;
+    }
+    bool setWifiDeliveryMode(uint8_t mode) override {
+        if (mode > static_cast<uint8_t>(WifiDeliveryMode::RestAndWebSocket)) {
+            return false;
+        }
+        return wiimote.setWifiDeliveryMode(static_cast<WifiDeliveryMode>(mode));
+    }
+    bool setWifiNetworkCredentials(const char *ssid, const char *password) override {
+        return wiimote.updateWifiNetworkCredentials(ssid, password);
+    }
+    bool restartWifiControl() override { return wiimote.restartWifiControl(); }
+    bool setWifiApiToken(const char *token) override { return wiimote.updateWifiApiToken(token); }
+    bool isWifiApiTokenMutationAllowed() const override { return allowWifiTokenMutation; }
+
+    bool isConnected() const override { return wiimote.isConnected(); }
+    uint8_t getBatteryLevel() const override { return wiimote.getBatteryLevel(); }
+};
+
+static SerialDispatchResult dispatchSerialLine(const char *line,
+                                               EmbeddedSerialTarget *target,
+                                               SerialCommandSession *session,
+                                               bool requireUnlock,
+                                               uint32_t nowMs) {
+    SerialParsedCommand parsed;
+    const SerialParseResult parseResult = serialCommandParse(line, &parsed);
+    TEST_ASSERT_EQUAL(SerialParseResult::Ok, parseResult);
+
+    SerialDispatchOptions options = {};
+    options.session = session;
+    options.privilegedCommandsRequireUnlock = requireUnlock;
+    options.nowMs = nowMs;
+
+    return serialCommandDispatch(parsed, target, options);
+}
 
 void setUp(void) {
     // Called before each test
@@ -187,6 +251,173 @@ void testConnectionStability() {
     TEST_ASSERT_TRUE_MESSAGE(stayedConnected, "Connection dropped during stability test");
 }
 
+// Test: Wi-Fi runtime command surface updates credentials/token and reports config
+void testWifiRuntimeConfigCommands() {
+    TEST_PRINT("\n=== WIFI RUNTIME CONFIG COMMANDS TEST ===");
+
+    ESP32WiimoteConfig cfg;
+    cfg.auth.serialPrivilegedToken = "serial_token_v1";
+    cfg.auth.wifiApiToken = "wifi_token_v1";
+    cfg.wifi.enabled = true;
+    cfg.wifi.deliveryMode = WifiDeliveryMode::RestOnly;
+    cfg.wifi.network = {"wifi_ssid_v1", "wifi_pass_v1"};
+
+    wiimote.configure(cfg);
+
+    TEST_ASSERT_TRUE_MESSAGE(wiimote.updateWifiNetworkCredentials("wifi_ssid_v2", "wifi_pass_v2"),
+                             "updateWifiNetworkCredentials should accept valid non-empty values");
+    TEST_ASSERT_EQUAL_STRING("wifi_ssid_v2", wiimote.getConfig().wifi.network.ssid);
+    TEST_ASSERT_EQUAL_STRING("wifi_pass_v2", wiimote.getConfig().wifi.network.password);
+
+    TEST_ASSERT_TRUE_MESSAGE(wiimote.updateWifiApiToken("wifi_token_v2"),
+                             "updateWifiApiToken should accept valid token");
+    TEST_ASSERT_TRUE_MESSAGE(wiimote.hasWifiApiToken(), "hasWifiApiToken should return true");
+    TEST_ASSERT_EQUAL_STRING("wifi_token_v2", wiimote.getConfig().auth.wifiApiToken);
+
+    TEST_ASSERT_FALSE_MESSAGE(wiimote.updateWifiNetworkCredentials("", "x"),
+                              "Empty SSID must be rejected");
+    TEST_ASSERT_FALSE_MESSAGE(wiimote.updateWifiApiToken(""),
+                              "Empty Wi-Fi API token must be rejected");
+}
+
+// Test: Wi-Fi runtime lifecycle command surface (mode switch + restart)
+void testWifiRuntimeLifecycleCommands() {
+    TEST_PRINT("\n=== WIFI RUNTIME LIFECYCLE COMMANDS TEST ===");
+
+    ESP32WiimoteConfig cfg;
+    cfg.auth.serialPrivilegedToken = "serial_token_lc";
+    cfg.auth.wifiApiToken = "wifi_token_lc";
+    cfg.wifi.enabled = true;
+    cfg.wifi.deliveryMode = WifiDeliveryMode::RestOnly;
+    cfg.wifi.network = {"wifi_ssid_lc", "wifi_pass_lc"};
+    wiimote.configure(cfg);
+
+    wiimote.enableWifiControl(true, WifiDeliveryMode::RestOnly);
+    TEST_ASSERT_TRUE_MESSAGE(wiimote.isWifiControlEnabled(), "Wi-Fi control should be enabled");
+
+    for (int i = 0; i < 6; ++i) {
+        wiimote.task();
+        delay(5);
+    }
+
+    ESP32Wiimote::WifiControlState state = wiimote.getWifiControlState();
+    TEST_ASSERT_TRUE_MESSAGE(state.ready, "Wi-Fi control should become ready in RestOnly mode");
+    TEST_ASSERT_FALSE_MESSAGE(state.websocketRoutesRegistered,
+                              "RestOnly mode should not register WebSocket routes");
+
+    TEST_ASSERT_TRUE_MESSAGE(wiimote.setWifiDeliveryMode(WifiDeliveryMode::RestAndWebSocket),
+                             "setWifiDeliveryMode should accept valid mode");
+    state = wiimote.getWifiControlState();
+    TEST_ASSERT_FALSE_MESSAGE(state.ready,
+                              "Mode switch should restart lifecycle and clear ready state");
+
+    for (int i = 0; i < 7; ++i) {
+        wiimote.task();
+        delay(5);
+    }
+
+    state = wiimote.getWifiControlState();
+    TEST_ASSERT_TRUE_MESSAGE(state.ready,
+                             "Wi-Fi control should become ready in RestAndWebSocket mode");
+    TEST_ASSERT_TRUE_MESSAGE(state.websocketRoutesRegistered,
+                             "RestAndWebSocket mode should register WebSocket routes");
+
+    TEST_ASSERT_TRUE_MESSAGE(wiimote.restartWifiControl(),
+                             "restartWifiControl should succeed when control is enabled");
+    state = wiimote.getWifiControlState();
+    TEST_ASSERT_FALSE_MESSAGE(state.ready,
+                              "Restart should clear ready state until lifecycle progresses again");
+}
+
+// Test: serial interface enforces unlock for privileged Wi-Fi mutation commands
+void testSerialInterfaceWifiCommandsRequireUnlock() {
+    TEST_PRINT("\n=== SERIAL INTERFACE LOCK MODEL TEST ===");
+
+    ESP32WiimoteConfig cfg;
+    cfg.auth.serialPrivilegedToken = "serial_unlock_token";
+    cfg.auth.wifiApiToken = "wifi_serial_token";
+    cfg.wifi.enabled = true;
+    cfg.wifi.deliveryMode = WifiDeliveryMode::RestOnly;
+    cfg.wifi.network = {"serial_wifi_ssid", "serial_wifi_pass"};
+    wiimote.configure(cfg);
+
+    EmbeddedSerialTarget target;
+    SerialCommandSession session;
+    session.setToken("serial_unlock_token");
+
+    TEST_ASSERT_EQUAL(SerialDispatchResult::Locked,
+                      dispatchSerialLine("wm wifi-control on", &target, &session, true, 1000U));
+
+    TEST_ASSERT_EQUAL(
+        SerialDispatchResult::Ok,
+        dispatchSerialLine("wm unlock serial_unlock_token 30", &target, &session, true, 1100U));
+
+    TEST_ASSERT_EQUAL(SerialDispatchResult::Ok,
+                      dispatchSerialLine("wm wifi-control on", &target, &session, true, 1200U));
+    TEST_ASSERT_TRUE_MESSAGE(wiimote.isWifiControlEnabled(),
+                             "Serial wifi-control on should enable Wi-Fi lifecycle");
+}
+
+// Test: serial interface updates Wi-Fi credentials through dispatcher
+void testSerialInterfaceWifiSetNetworkCommand() {
+    TEST_PRINT("\n=== SERIAL INTERFACE WIFI SET NETWORK TEST ===");
+
+    ESP32WiimoteConfig cfg;
+    cfg.auth.serialPrivilegedToken = "serial_unlock_token2";
+    cfg.auth.wifiApiToken = "wifi_serial_token2";
+    cfg.wifi.enabled = true;
+    cfg.wifi.deliveryMode = WifiDeliveryMode::RestOnly;
+    cfg.wifi.network = {"ssid_old", "pass_old"};
+    wiimote.configure(cfg);
+
+    EmbeddedSerialTarget target;
+    SerialCommandSession session;
+    session.setToken("serial_unlock_token2");
+
+    TEST_ASSERT_EQUAL(
+        SerialDispatchResult::Ok,
+        dispatchSerialLine("wm unlock serial_unlock_token2 30", &target, &session, true, 2000U));
+
+    TEST_ASSERT_EQUAL(SerialDispatchResult::Ok,
+                      dispatchSerialLine("wm wifi-set-network ssid_new pass_new", &target, &session,
+                                         true, 2100U));
+
+    TEST_ASSERT_EQUAL_STRING("ssid_new", wiimote.getConfig().wifi.network.ssid);
+    TEST_ASSERT_EQUAL_STRING("pass_new", wiimote.getConfig().wifi.network.password);
+}
+
+// Test: serial interface policy-gates Wi-Fi token mutation
+void testSerialInterfaceWifiTokenPolicy() {
+    TEST_PRINT("\n=== SERIAL INTERFACE WIFI TOKEN POLICY TEST ===");
+
+    ESP32WiimoteConfig cfg;
+    cfg.auth.serialPrivilegedToken = "serial_unlock_token3";
+    cfg.auth.wifiApiToken = "wifi_serial_token3";
+    cfg.wifi.enabled = true;
+    cfg.wifi.deliveryMode = WifiDeliveryMode::RestOnly;
+    cfg.wifi.network = {"ssid_policy", "pass_policy"};
+    wiimote.configure(cfg);
+
+    EmbeddedSerialTarget target;
+    SerialCommandSession session;
+    session.setToken("serial_unlock_token3");
+
+    TEST_ASSERT_EQUAL(
+        SerialDispatchResult::Ok,
+        dispatchSerialLine("wm unlock serial_unlock_token3 30", &target, &session, true, 3000U));
+
+    target.allowWifiTokenMutation = false;
+    TEST_ASSERT_EQUAL(
+        SerialDispatchResult::PolicyBlocked,
+        dispatchSerialLine("wm wifi-set-token blocked_token", &target, &session, true, 3100U));
+
+    target.allowWifiTokenMutation = true;
+    TEST_ASSERT_EQUAL(
+        SerialDispatchResult::Ok,
+        dispatchSerialLine("wm wifi-set-token allowed_token", &target, &session, true, 3200U));
+    TEST_ASSERT_EQUAL_STRING("allowed_token", wiimote.getConfig().auth.wifiApiToken);
+}
+
 void setup() {
     Serial.begin(115200);
     delay(2000);  // Wait for serial
@@ -206,6 +437,11 @@ void setup() {
     RUN_TEST(testButtonPress);
     RUN_TEST(testAccelerometerData);
     RUN_TEST(testConnectionStability);
+    RUN_TEST(testWifiRuntimeConfigCommands);
+    RUN_TEST(testWifiRuntimeLifecycleCommands);
+    RUN_TEST(testSerialInterfaceWifiCommandsRequireUnlock);
+    RUN_TEST(testSerialInterfaceWifiSetNetworkCommand);
+    RUN_TEST(testSerialInterfaceWifiTokenPolicy);
 
     UNITY_END();
 
