@@ -18,9 +18,6 @@
                 "security": [
                     {
                         "bearerAuth": []
-                    },
-                    {
-                        "basicAuth": []
                     }
                 ],
                 "responses": {
@@ -52,9 +49,6 @@
                 "security": [
                     {
                         "bearerAuth": []
-                    },
-                    {
-                        "basicAuth": []
                     }
                 ],
                 "responses": {
@@ -86,9 +80,6 @@
                 "security": [
                     {
                         "bearerAuth": []
-                    },
-                    {
-                        "basicAuth": []
                     }
                 ],
                 "requestBody": {
@@ -126,9 +117,6 @@
                 "security": [
                     {
                         "bearerAuth": []
-                    },
-                    {
-                        "basicAuth": []
                     }
                 ],
                 "requestBody": {
@@ -166,9 +154,6 @@
                 "security": [
                     {
                         "bearerAuth": []
-                    },
-                    {
-                        "basicAuth": []
                     }
                 ],
                 "requestBody": {
@@ -206,9 +191,6 @@
                 "security": [
                     {
                         "bearerAuth": []
-                    },
-                    {
-                        "basicAuth": []
                     }
                 ],
                 "requestBody": {
@@ -246,9 +228,6 @@
                 "security": [
                     {
                         "bearerAuth": []
-                    },
-                    {
-                        "basicAuth": []
                     }
                 ],
                 "requestBody": {
@@ -286,9 +265,6 @@
                 "security": [
                     {
                         "bearerAuth": []
-                    },
-                    {
-                        "basicAuth": []
                     }
                 ],
                 "requestBody": {
@@ -326,9 +302,6 @@
                 "security": [
                     {
                         "bearerAuth": []
-                    },
-                    {
-                        "basicAuth": []
                     }
                 ],
                 "requestBody": {
@@ -366,9 +339,6 @@
                 "security": [
                     {
                         "bearerAuth": []
-                    },
-                    {
-                        "basicAuth": []
                     }
                 ],
                 "requestBody": {
@@ -406,9 +376,6 @@
                 "security": [
                     {
                         "bearerAuth": []
-                    },
-                    {
-                        "basicAuth": []
                     }
                 ],
                 "responses": {
@@ -606,10 +573,6 @@
                 "type": "http",
                 "scheme": "bearer",
                 "bearerFormat": "Opaque"
-            },
-            "basicAuth": {
-                "type": "http",
-                "scheme": "basic"
             }
         },
         "responses": {

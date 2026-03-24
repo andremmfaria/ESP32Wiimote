@@ -62,15 +62,6 @@ WebAuthResult webAuthValidateBearer(const char *authHeaderValue, const char *wif
     return WebAuthResult::Ok;
 }
 
-// ===== Basic Auth Validation =====
-
-WebAuthResult webAuthValidateBasic(const char *authHeaderValue, const char * /*wifiApiToken*/) {
-    if (authHeaderValue == nullptr) {
-        return WebAuthResult::MissingHeader;
-    }
-    return WebAuthResult::UnsupportedScheme;
-}
-
 // ===== Combined Auth Entrypoint =====
 
 WebAuthResult webAuthValidate(const char *authHeaderValue, const char *wifiApiToken) {
@@ -84,11 +75,5 @@ WebAuthResult webAuthValidate(const char *authHeaderValue, const char *wifiApiTo
         return WebAuthResult::MissingHeader;
     }
 
-    // Try Bearer first
-    WebAuthResult bearerResult = webAuthValidateBearer(authHeaderValue, wifiApiToken);
-    if (bearerResult == WebAuthResult::Ok) {
-        return WebAuthResult::Ok;
-    }
-
-    return bearerResult;
+    return webAuthValidateBearer(authHeaderValue, wifiApiToken);
 }

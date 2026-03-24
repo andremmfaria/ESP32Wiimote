@@ -59,7 +59,7 @@ void testBearerNull() {
 }
 
 void testBearerWrongScheme() {
-    WebAuthResult result = webAuthValidateBearer("Basic dXNlcjpwYXNzd29yZA==", kTestToken);
+    WebAuthResult result = webAuthValidateBearer("Digest abc123", kTestToken);
     TEST_ASSERT_EQUAL(WebAuthResult::UnsupportedScheme, result);
 }
 
@@ -73,24 +73,9 @@ void testBearerCustomTokenMatch() {
     TEST_ASSERT_EQUAL(WebAuthResult::Ok, result);
 }
 
-void testBasicNull() {
-    WebAuthResult result = webAuthValidateBasic(nullptr, kTestToken);
-    TEST_ASSERT_EQUAL(WebAuthResult::MissingHeader, result);
-}
-
-void testBasicAnyHeaderIsUnsupported() {
-    WebAuthResult result = webAuthValidateBasic("Basic YWRtaW46cGFzc3dvcmQ=", kTestToken);
-    TEST_ASSERT_EQUAL(WebAuthResult::UnsupportedScheme, result);
-}
-
 void testCombinedValidBearer() {
     WebAuthResult result = webAuthValidate("Bearer esp32wiimote_bearer_token_v1", kTestToken);
     TEST_ASSERT_EQUAL(WebAuthResult::Ok, result);
-}
-
-void testCombinedBasicIsUnsupported() {
-    WebAuthResult result = webAuthValidate("Basic YWRtaW46cGFzc3dvcmQ=", kTestToken);
-    TEST_ASSERT_EQUAL(WebAuthResult::UnsupportedScheme, result);
 }
 
 void testCombinedInvalidBearer() {
@@ -145,11 +130,7 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testBearerNullTokenReturnsInvalidCredentials);
     RUN_TEST(testBearerCustomTokenMatch);
 
-    RUN_TEST(testBasicNull);
-    RUN_TEST(testBasicAnyHeaderIsUnsupported);
-
     RUN_TEST(testCombinedValidBearer);
-    RUN_TEST(testCombinedBasicIsUnsupported);
     RUN_TEST(testCombinedInvalidBearer);
     RUN_TEST(testCombinedUnsupportedScheme);
     RUN_TEST(testCombinedNull);

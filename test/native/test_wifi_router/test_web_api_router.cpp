@@ -7,7 +7,6 @@
 // ===== Valid Auth Token =====
 
 static const char *kValidBearer = "Bearer esp32wiimote_bearer_token_v1";
-static const char *kValidBasic = "Basic YWRtaW46cGFzc3dvcmQ=";
 static const char *kTestWifiToken = "esp32wiimote_bearer_token_v1";
 
 // ===== Mock State =====
@@ -217,9 +216,9 @@ void testValidBearerAuthPasses() {
     TEST_ASSERT_NOT_EQUAL(401, r.httpStatus);
 }
 
-void testValidBasicAuthPasses() {
+void testUnsupportedAuthSchemeReturns401() {
     WebApiContext ctx = makeCtx();
-    WebApiRouteResult r = callRoute(&ctx, "GET", "/api/wiimote/status", kValidBasic, nullptr);
+    WebApiRouteResult r = callRoute(&ctx, "GET", "/api/wiimote/status", "Digest abc123", nullptr);
     TEST_ASSERT_EQUAL(401, r.httpStatus);
 }
 
@@ -743,7 +742,7 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testMissingAuthReturns401);
     RUN_TEST(testInvalidAuthReturns401);
     RUN_TEST(testValidBearerAuthPasses);
-    RUN_TEST(testValidBasicAuthPasses);
+    RUN_TEST(testUnsupportedAuthSchemeReturns401);
     RUN_TEST(testNullCredentialsInCtxReturns401WithValidToken);
 
     RUN_TEST(testUnknownPathReturns404);
