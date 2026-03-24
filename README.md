@@ -240,6 +240,28 @@ Wi-Fi control serial commands:
 - `wm wifi-restart`
 - `wm wifi-set-token <token>` (policy-blocked by default)
 
+Serial script helpers are available under `scripts/serial/`:
+
+- `scripts/serial/send.sh` sends any single `wm ...` line and prints the response
+- `scripts/serial/listen.sh` listens to raw serial output with timed or infinite mode
+- `scripts/serial/examples/` contains runnable examples for all supported serial commands
+- `scripts/serial/examples/wm-diagnose-wifi.sh` runs a compact Wi-Fi lifecycle diagnosis flow
+
+Examples:
+
+```bash
+ESP32_PORT=/dev/ttyUSB0 scripts/serial/examples/wm-status.sh
+ESP32_PORT=/dev/ttyUSB0 SERIAL_TOKEN=esp32wiimote_serial_token_v1 scripts/serial/examples/wm-unlock.sh
+ESP32_PORT=/dev/ttyUSB0 scripts/serial/examples/wm-wifi-status.sh
+ESP32_PORT=/dev/ttyUSB0 scripts/serial/examples/wm-wifi-control.sh on
+ESP32_PORT=/dev/ttyUSB0 SERIAL_TOKEN=esp32wiimote_serial_token_v1 scripts/serial/examples/wm-diagnose-wifi.sh
+ESP32_PORT=/dev/ttyUSB0 scripts/serial/listen.sh --seconds 20
+ESP32_PORT=/dev/ttyUSB0 scripts/serial/listen.sh --forever
+```
+
+Note: serial commands are processed in `ESP32Wiimote::task()` and require serial control to be
+enabled in the running firmware.
+
 ### Runtime Wi-Fi/Auth Configuration
 
 Configure runtime auth tokens and Wi-Fi policy before startup:
