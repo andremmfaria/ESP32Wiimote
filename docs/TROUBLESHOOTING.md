@@ -234,6 +234,35 @@ For native tests, this is expected - tests provide setup/loop.
 
 ## Runtime Issues
 
+### Wi-Fi control reports `ready=false` forever
+
+**Symptoms:**
+
+- `wm wifi-status` keeps showing `ready=0`
+- `GET /api/wifi/control` reports `networkConnectFailed=true`
+
+**Solutions:**
+
+1. Ensure Wi-Fi runtime is enabled in config (`config.wifi.enabled = true`)
+2. Ensure SSID/password are configured (`wm wifi-set-network <ssid> <password>` or constructor config)
+3. Restart lifecycle after updates (`wm wifi-restart` or `POST /api/wifi/restart`)
+
+### Wi-Fi token update is blocked
+
+**Symptoms:**
+
+- Serial: `@wm: error policy_blocked` on `wm wifi-set-token ...`
+- REST: HTTP `403` on `POST /api/wifi/token`
+
+**Explanation:**
+
+Wi-Fi API token self-mutation is intentionally policy-gated and disabled by default.
+
+**Solution:**
+
+Use constructor/configuration paths for token changes, or explicitly enable mutation policy in the
+integration layer before exposing token mutation endpoints.
+
 ### No Serial Output
 
 **Symptoms:**

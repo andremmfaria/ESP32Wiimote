@@ -38,4 +38,13 @@ size_t serialFormatConfig(char *out,
                           uint32_t fastReconnectTtlMs,
                           bool serialControlEnabled);
 
+// Format "@wm: wifi enabled=<0|1> ready=<0|1> connected=<0|1> failed=<0|1> mode=<rest|rest-ws>"
+size_t serialFormatWifiStatus(char *out,
+                              size_t outSize,
+                              bool enabled,
+                              bool ready,
+                              bool connected,
+                              bool failed,
+                              bool restAndWebSocket);
+
 #endif  // ESP32_WIIMOTE_SERIAL_RESPONSE_FORMATTER_H

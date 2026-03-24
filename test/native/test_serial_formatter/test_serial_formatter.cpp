@@ -50,6 +50,9 @@ void testFormatDispatchResultMappings() {
 
     serialFormatDispatchResult(out, sizeof(out), SerialDispatchResult::Rejected);
     TEST_ASSERT_EQUAL_STRING("@wm: error rejected", out);
+
+    serialFormatDispatchResult(out, sizeof(out), SerialDispatchResult::PolicyBlocked);
+    TEST_ASSERT_EQUAL_STRING("@wm: error policy_blocked", out);
 }
 
 void testFormatParseResultMappings() {
@@ -89,6 +92,15 @@ void testFormatConfig() {
         kWritten);
 }
 
+void testFormatWifiStatus() {
+    char out[160];
+    const size_t kWritten =
+        serialFormatWifiStatus(out, sizeof(out), true, false, true, false, true);
+    TEST_ASSERT_EQUAL_STRING("@wm: wifi enabled=1 ready=0 connected=1 failed=0 mode=rest-ws", out);
+    TEST_ASSERT_EQUAL(strlen("@wm: wifi enabled=1 ready=0 connected=1 failed=0 mode=rest-ws"),
+                      kWritten);
+}
+
 void testBoundedWriteKeepsSentinelIntact() {
     struct GuardedBuf {
         char out[12];
@@ -122,6 +134,7 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testFormatParseResultMappings);
     RUN_TEST(testFormatStatus);
     RUN_TEST(testFormatConfig);
+    RUN_TEST(testFormatWifiStatus);
     RUN_TEST(testBoundedWriteKeepsSentinelIntact);
     RUN_TEST(testOutSizeOneAlwaysNullTerminated);
 

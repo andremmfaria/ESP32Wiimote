@@ -30,6 +30,7 @@ struct WebApiContext {
     // Read callbacks
     WebWiimoteStatusSnapshot (*getWiimoteStatus)(void *userData) = nullptr;
     WebConfigSnapshot (*getConfig)(void *userData) = nullptr;
+    WebWifiControlStateSnapshot (*getWifiControlState)(void *userData) = nullptr;
 
     // Command callbacks — return true on acceptance, false if driver rejects
     bool (*setLeds)(uint8_t ledMask, void *userData) = nullptr;
@@ -41,6 +42,14 @@ struct WebApiContext {
     bool (*stopDiscovery)(void *userData) = nullptr;
     bool (*disconnect)(uint8_t reason, void *userData) = nullptr;
     void (*setAutoReconnect)(bool enabled, void *userData) = nullptr;  // always succeeds
+
+    // Wi-Fi control callbacks
+    bool (*setWifiControlEnabled)(bool enabled, void *userData) = nullptr;
+    bool (*setWifiDeliveryMode)(bool restAndWebSocket, void *userData) = nullptr;
+    bool (*setWifiNetwork)(const char *ssid, const char *password, void *userData) = nullptr;
+    bool (*restartWifiControl)(void *userData) = nullptr;
+    bool (*setWifiApiToken)(const char *token, void *userData) = nullptr;
+    bool allowWifiApiTokenMutation = false;
 
     // Optional async queue. When set, write commands are enqueued and return HTTP 202.
     WebCommandQueue *commandQueue = nullptr;

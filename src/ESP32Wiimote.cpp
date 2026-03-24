@@ -69,6 +69,28 @@ class Esp32SerialCommandTarget : public SerialCommandTarget {
 
     void clearReconnectCache() override { device_->clearReconnectCache(); }
 
+    bool setWifiControlEnabled(bool enabled) override {
+        device_->enableWifiControl(enabled, device_->getConfig().wifi.deliveryMode);
+        return device_->isWifiControlEnabled() == enabled;
+    }
+
+    bool setWifiDeliveryMode(uint8_t mode) override {
+        if (mode > static_cast<uint8_t>(WifiDeliveryMode::RestAndWebSocket)) {
+            return false;
+        }
+        return device_->setWifiDeliveryMode(static_cast<WifiDeliveryMode>(mode));
+    }
+
+    bool setWifiNetworkCredentials(const char *ssid, const char *password) override {
+        return device_->updateWifiNetworkCredentials(ssid, password);
+    }
+
+    bool restartWifiControl() override { return device_->restartWifiControl(); }
+
+    bool setWifiApiToken(const char *token) override { return device_->updateWifiApiToken(token); }
+
+    bool isWifiApiTokenMutationAllowed() const override { return false; }
+
     bool isConnected() const override { return ESP32Wiimote::isConnected(); }
 
     uint8_t getBatteryLevel() const override { return ESP32Wiimote::getBatteryLevel(); }
@@ -215,12 +237,66 @@ void ESP32Wiimote::enableWifiControl(bool enabled, WifiDeliveryMode deliveryMode
     wifiControlInitializing_ = true;
 }
 
+bool ESP32Wiimote::updateWifiNetworkCredentials(const char *ssid, const char *password) {
+    if (ssid == nullptr || ssid[0] == '\0' || password == nullptr || password[0] == '\0') {
+        return false;
+    }
+
+    config_.wifi.network = WiimoteNetworkCredentials(ssid, password);
+    networkCredentials_ = config_.wifi.network;
+    wifiNetworkCredentialsConfigured_ = true;
+
+    if (wifiControlEnabled_) {
+        resetWifiLifecycleState();
+        wifiControlInitializing_ = true;
+    }
+
+    return true;
+}
+
+bool ESP32Wiimote::restartWifiControl() {
+    if (!wifiEnabled_ || !wifiControlEnabled_) {
+        return false;
+    }
+
+    resetWifiLifecycleState();
+    wifiControlInitializing_ = true;
+    return true;
+}
+
+bool ESP32Wiimote::updateWifiApiToken(const char *token) {
+    if (token == nullptr || token[0] == '\0') {
+        return false;
+    }
+
+    config_.auth.wifiApiToken = token;
+    wifiApiToken_ = token;
+    wifiTokenFallbackToSerial_ = false;
+    return true;
+}
+
+bool ESP32Wiimote::setWifiDeliveryMode(WifiDeliveryMode deliveryMode) {
+    config_.wifi.deliveryMode = deliveryMode;
+    wifiDeliveryMode_ = deliveryMode;
+
+    if (wifiControlEnabled_) {
+        resetWifiLifecycleState();
+        wifiControlInitializing_ = true;
+    }
+
+    return true;
+}
+
 bool ESP32Wiimote::isWifiControlEnabled() const {
     return wifiControlEnabled_;
 }
 
 bool ESP32Wiimote::isWifiControlReady() const {
     return wifiControlReady_;
+}
+
+bool ESP32Wiimote::hasWifiApiToken() const {
+    return wifiApiToken_ != nullptr && wifiApiToken_[0] != '\0';
 }
 
 ESP32Wiimote::WifiControlState ESP32Wiimote::getWifiControlState() const {
@@ -519,6 +595,15 @@ void ESP32Wiimote::processSerialCommandLine(const char *line) {
 
     if (kParseResult != SerialParseResult::Ok) {
         serialFormatParseResult(response, sizeof(response), kParseResult);
+        Serial.println(response);
+        return;
+    }
+
+    if (parsed.tokenCount >= 2U && strcmp(parsed.tokens[1], "wifi-status") == 0) {
+        const WifiControlState kWifiState = getWifiControlState();
+        serialFormatWifiStatus(response, sizeof(response), kWifiState.enabled, kWifiState.ready,
+                               kWifiState.networkConnected, kWifiState.networkConnectFailed,
+                               kWifiState.deliveryMode == WifiDeliveryMode::RestAndWebSocket);
         Serial.println(response);
         return;
     }

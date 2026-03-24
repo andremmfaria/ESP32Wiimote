@@ -31,7 +31,6 @@ Due to ESP32 Bluetooth Classic HCI limitations, this project supports one active
 - 🔧 **[Testing Guide](docs/TESTING.md)** - Run unit tests and integration tests
 - 📊 **[Logging System](docs/LOGGING.md)** - Configure debug output (4 levels)
 - 🏗️ **[Architecture](docs/ARCHITECTURE.md)** - System design and data flow
-- 🗺️ **[Roadmap](docs/ROADMAP.md)** - Delivery plan and control-surface scope
 - 🔍 **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 
 Canonical behavior documentation is maintained under `docs/`.
@@ -230,6 +229,15 @@ Privileged commands are locked by default and return `@wm: error locked` until a
 
 When a serial privileged token is configured, invalid unlock tokens return `@wm: error bad_credentials`.
 
+Wi-Fi control serial commands:
+
+- `wm wifi-status`
+- `wm wifi-control <on|off>`
+- `wm wifi-mode <rest|rest-ws>`
+- `wm wifi-set-network <ssid> <password>`
+- `wm wifi-restart`
+- `wm wifi-set-token <token>` (policy-blocked by default)
+
 ### Runtime Wi-Fi/Auth Configuration
 
 Configure runtime auth tokens and Wi-Fi policy before startup:
@@ -272,6 +280,13 @@ When Wi-Fi control is enabled and ready, you can use:
 - REST snapshots:
   - `GET /api/wiimote/status`
   - `GET /api/wiimote/config`
+  - `GET /api/wifi/control`
+- Wi-Fi control mutations:
+  - `POST /api/wifi/control`
+  - `POST /api/wifi/delivery-mode`
+  - `POST /api/wifi/network`
+  - `POST /api/wifi/restart`
+  - `POST /api/wifi/token` (policy-gated)
 - command queue status:
   - `GET /api/commands/<id>/status`
 - optional split event streams (when delivery mode is `RestAndWebSocket`):

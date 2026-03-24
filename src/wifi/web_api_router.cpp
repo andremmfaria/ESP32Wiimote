@@ -131,6 +131,53 @@ const char kStaticOpenApiJson[] =
     "\"403\":{\"description\":\"Forbidden\"},"
     "\"409\":{\"description\":\"Command rejected\"}"
     "}}},"
+    "\"/api/wifi/control\":{"
+    "\"get\":{"
+    "\"security\":[{\"bearerAuth\":[]},{\"basicAuth\":[]}],"
+    "\"responses\":{"
+    "\"200\":{\"description\":\"Wi-Fi control lifecycle state\"},"
+    "\"401\":{\"description\":\"Unauthorized\"}"
+    "}},"
+    "\"post\":{"
+    "\"security\":[{\"bearerAuth\":[]}],"
+    "\"responses\":{"
+    "\"200\":{\"description\":\"OK\"},"
+    "\"400\":{\"description\":\"Bad request\"},"
+    "\"401\":{\"description\":\"Unauthorized\"},"
+    "\"409\":{\"description\":\"Command rejected\"}"
+    "}}},"
+    "\"/api/wifi/delivery-mode\":{\"post\":{"
+    "\"security\":[{\"bearerAuth\":[]}],"
+    "\"responses\":{"
+    "\"200\":{\"description\":\"OK\"},"
+    "\"400\":{\"description\":\"Bad request\"},"
+    "\"401\":{\"description\":\"Unauthorized\"},"
+    "\"409\":{\"description\":\"Command rejected\"}"
+    "}}},"
+    "\"/api/wifi/network\":{\"post\":{"
+    "\"security\":[{\"bearerAuth\":[]}],"
+    "\"responses\":{"
+    "\"200\":{\"description\":\"OK\"},"
+    "\"400\":{\"description\":\"Bad request\"},"
+    "\"401\":{\"description\":\"Unauthorized\"},"
+    "\"409\":{\"description\":\"Command rejected\"}"
+    "}}},"
+    "\"/api/wifi/restart\":{\"post\":{"
+    "\"security\":[{\"bearerAuth\":[]}],"
+    "\"responses\":{"
+    "\"200\":{\"description\":\"OK\"},"
+    "\"401\":{\"description\":\"Unauthorized\"},"
+    "\"409\":{\"description\":\"Command rejected\"}"
+    "}}},"
+    "\"/api/wifi/token\":{\"post\":{"
+    "\"security\":[{\"bearerAuth\":[]}],"
+    "\"responses\":{"
+    "\"200\":{\"description\":\"OK\"},"
+    "\"400\":{\"description\":\"Bad request\"},"
+    "\"401\":{\"description\":\"Unauthorized\"},"
+    "\"403\":{\"description\":\"Policy blocked\"},"
+    "\"409\":{\"description\":\"Command rejected\"}"
+    "}}},"
     "\"/api/commands/{id}/status\":{\"get\":{"
     "\"security\":[{\"bearerAuth\":[]},{\"basicAuth\":[]}],"
     "\"responses\":{"
@@ -407,6 +454,21 @@ WebApiRouteResult handleGetConfig(const WebApiContext *ctx,
     return makeResult(200, "application/json");
 }
 
+WebApiRouteResult handleGetWifiControl(const WebApiContext *ctx,
+                                       const WebParsedCommand * /*cmd*/,
+                                       char *buf,
+                                       size_t size) {
+    if (ctx->getWifiControlState == nullptr) {
+        return errorResponse(buf, size, 500, "internal error");
+    }
+
+    const WebWifiControlStateSnapshot kState = ctx->getWifiControlState(ctx->userData);
+    if (serializeWifiControlState(buf, size, kState) != WebSerializeResult::Ok) {
+        return errorResponse(buf, size, 500, "internal error");
+    }
+    return makeResult(200, "application/json");
+}
+
 // ===== POST Handlers =====
 
 WebApiRouteResult handlePostLeds(const WebApiContext *ctx,
@@ -607,6 +669,119 @@ WebApiRouteResult handlePostReconnectPolicy(const WebApiContext *ctx,
     return makeResult(200, "application/json");
 }
 
+WebApiRouteResult handlePostWifiControl(const WebApiContext *ctx,
+                                        const WebParsedCommand *cmd,
+                                        char *buf,
+                                        size_t size) {
+    if (ctx->setWifiControlEnabled == nullptr) {
+        return errorResponse(buf, size, 500, "internal error");
+    }
+
+    const char *enabledVal = findField(*cmd, "enabled");
+    if (enabledVal == nullptr) {
+        return errorResponse(buf, size, 400, "missing field: enabled");
+    }
+    const bool kEnabled = parseBool(enabledVal);
+
+    if (!ctx->setWifiControlEnabled(kEnabled, ctx->userData)) {
+        return errorResponse(buf, size, 409, "command rejected");
+    }
+    serializeOk(buf, size);
+    return makeResult(200, "application/json");
+}
+
+WebApiRouteResult handlePostWifiMode(const WebApiContext *ctx,
+                                     const WebParsedCommand *cmd,
+                                     char *buf,
+                                     size_t size) {
+    if (ctx->setWifiDeliveryMode == nullptr) {
+        return errorResponse(buf, size, 500, "internal error");
+    }
+
+    const char *modeVal = findField(*cmd, "mode");
+    if (modeVal == nullptr) {
+        return errorResponse(buf, size, 400, "missing field: mode");
+    }
+
+    bool restAndWebSocket = false;
+    if (std::strcmp(modeVal, "rest") == 0) {
+        restAndWebSocket = false;
+    } else if (std::strcmp(modeVal, "rest-ws") == 0 ||
+               std::strcmp(modeVal, "rest-websocket") == 0) {
+        restAndWebSocket = true;
+    } else {
+        return errorResponse(buf, size, 400, "invalid field: mode");
+    }
+
+    if (!ctx->setWifiDeliveryMode(restAndWebSocket, ctx->userData)) {
+        return errorResponse(buf, size, 409, "command rejected");
+    }
+    serializeOk(buf, size);
+    return makeResult(200, "application/json");
+}
+
+WebApiRouteResult handlePostWifiNetwork(const WebApiContext *ctx,
+                                        const WebParsedCommand *cmd,
+                                        char *buf,
+                                        size_t size) {
+    if (ctx->setWifiNetwork == nullptr) {
+        return errorResponse(buf, size, 500, "internal error");
+    }
+
+    const char *ssid = findField(*cmd, "ssid");
+    const char *password = findField(*cmd, "password");
+    if (ssid == nullptr) {
+        return errorResponse(buf, size, 400, "missing field: ssid");
+    }
+    if (password == nullptr) {
+        return errorResponse(buf, size, 400, "missing field: password");
+    }
+
+    if (!ctx->setWifiNetwork(ssid, password, ctx->userData)) {
+        return errorResponse(buf, size, 409, "command rejected");
+    }
+    serializeOk(buf, size);
+    return makeResult(200, "application/json");
+}
+
+WebApiRouteResult handlePostWifiRestart(const WebApiContext *ctx,
+                                        const WebParsedCommand * /*cmd*/,
+                                        char *buf,
+                                        size_t size) {
+    if (ctx->restartWifiControl == nullptr) {
+        return errorResponse(buf, size, 500, "internal error");
+    }
+
+    if (!ctx->restartWifiControl(ctx->userData)) {
+        return errorResponse(buf, size, 409, "command rejected");
+    }
+    serializeOk(buf, size);
+    return makeResult(200, "application/json");
+}
+
+WebApiRouteResult handlePostWifiToken(const WebApiContext *ctx,
+                                      const WebParsedCommand *cmd,
+                                      char *buf,
+                                      size_t size) {
+    if (!ctx->allowWifiApiTokenMutation) {
+        return errorResponse(buf, size, 403, "policy blocked");
+    }
+    if (ctx->setWifiApiToken == nullptr) {
+        return errorResponse(buf, size, 500, "internal error");
+    }
+
+    const char *token = findField(*cmd, "token");
+    if (token == nullptr) {
+        return errorResponse(buf, size, 400, "missing field: token");
+    }
+
+    if (!ctx->setWifiApiToken(token, ctx->userData)) {
+        return errorResponse(buf, size, 409, "command rejected");
+    }
+    serializeOk(buf, size);
+    return makeResult(200, "application/json");
+}
+
 // ===== Route Table =====
 
 struct RouteEntry {
@@ -622,6 +797,7 @@ struct RouteEntry {
 const RouteEntry kRoutes[] = {
     {"GET", "/api/wiimote/status", handleGetStatus, false},
     {"GET", "/api/wiimote/config", handleGetConfig, false},
+    {"GET", "/api/wifi/control", handleGetWifiControl, false},
     {"POST", "/api/wiimote/commands/leds", handlePostLeds, true},
     {"POST", "/api/wiimote/commands/reporting-mode", handlePostReportingMode, true},
     {"POST", "/api/wiimote/commands/accelerometer", handlePostAccelerometer, true},
@@ -630,6 +806,11 @@ const RouteEntry kRoutes[] = {
     {"POST", "/api/wiimote/commands/discovery", handlePostDiscovery, true},
     {"POST", "/api/wiimote/commands/disconnect", handlePostDisconnect, true},
     {"POST", "/api/wiimote/commands/reconnect-policy", handlePostReconnectPolicy, true},
+    {"POST", "/api/wifi/control", handlePostWifiControl, true},
+    {"POST", "/api/wifi/delivery-mode", handlePostWifiMode, true},
+    {"POST", "/api/wifi/network", handlePostWifiNetwork, true},
+    {"POST", "/api/wifi/restart", handlePostWifiRestart, true},
+    {"POST", "/api/wifi/token", handlePostWifiToken, true},
 };
 
 }  // namespace

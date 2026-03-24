@@ -80,16 +80,34 @@ jobs:
           arduino-cli core update-index
           arduino-cli core install esp32:esp32
 
-      - name: Build AllFeaturesDemo
+      - name: Build all examples
         run: |
-          arduino-cli compile \
-            --fqbn esp32:esp32:esp32 \
-            --library . \
-            --output-dir dist \
-            examples/AllFeaturesDemo
+          set -euo pipefail
+          mkdir -p dist
+
+          for example_dir in examples/*; do
+            if [[ ! -d "$example_dir" ]]; then
+              continue
+            fi
+
+            example_name="$(basename "$example_dir")"
+            sketch_path="$example_dir/${example_name}.ino"
+
+            if [[ ! -f "$sketch_path" ]]; then
+              echo "::error::Expected sketch '$sketch_path' not found."
+              exit 1
+            fi
+
+            echo "Compiling $example_name"
+            arduino-cli compile \
+              --fqbn esp32:esp32:esp32 \
+              --library . \
+              --output-dir "dist/${example_name}" \
+              "$example_dir"
+          done
 
       - name: Upload firmware to release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          files: dist/AllFeaturesDemo.ino.bin
+          files: dist/**/*.bin

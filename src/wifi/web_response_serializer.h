@@ -60,6 +60,17 @@ struct WebConfigSnapshot {
     uint32_t fastReconnectTtlMs;
 };
 
+/** Snapshot of Wi-Fi control lifecycle state. */
+struct WebWifiControlStateSnapshot {
+    bool enabled;
+    bool ready;
+    bool networkCredentialsConfigured;
+    bool networkConnectAttempted;
+    bool networkConnected;
+    bool networkConnectFailed;
+    bool restAndWebSocket;
+};
+
 // ===== Serializer Interface =====
 
 /**
@@ -101,5 +112,12 @@ WebSerializeResult serializeControllerStatus(char *buf,
  * Fields: nunchukStickThreshold, txQueueSize, rxQueueSize, fastReconnectTtlMs
  */
 WebSerializeResult serializeConfig(char *buf, size_t size, const WebConfigSnapshot &cfg);
+
+/**
+ * Write Wi-Fi control lifecycle state as JSON.
+ */
+WebSerializeResult serializeWifiControlState(char *buf,
+                                             size_t size,
+                                             const WebWifiControlStateSnapshot &state);
 
 #endif  // WEB_RESPONSE_SERIALIZER_H

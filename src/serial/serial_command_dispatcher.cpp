@@ -53,6 +53,18 @@ bool serialParseUint16(const char *token, uint16_t *out) {
     return true;
 }
 
+static bool serialParseWifiDeliveryMode(const char *token, uint8_t *out) {
+    if (strcmp(token, "rest") == 0) {
+        *out = 0U;
+        return true;
+    }
+    if (strcmp(token, "rest-ws") == 0 || strcmp(token, "rest-websocket") == 0) {
+        *out = 1U;
+        return true;
+    }
+    return false;
+}
+
 // ---------------------------------------------------------------------------
 // Command handlers
 // ---------------------------------------------------------------------------
@@ -188,6 +200,70 @@ static SerialDispatchResult handleReconnect(const SerialParsedCommand &cmd,
     return SerialDispatchResult::Ok;
 }
 
+// wm wifi-control <on|off>
+static SerialDispatchResult handleWifiControl(const SerialParsedCommand &cmd,
+                                              SerialCommandTarget *target) {
+    if (cmd.tokenCount < 3) {
+        return SerialDispatchResult::MissingArgument;
+    }
+    bool enabled = false;
+    if (!serialParseBool(cmd.tokens[2], &enabled)) {
+        return SerialDispatchResult::BadArgument;
+    }
+    return target->setWifiControlEnabled(enabled) ? SerialDispatchResult::Ok
+                                                  : SerialDispatchResult::Rejected;
+}
+
+// wm wifi-mode <rest|rest-ws>
+static SerialDispatchResult handleWifiMode(const SerialParsedCommand &cmd,
+                                           SerialCommandTarget *target) {
+    if (cmd.tokenCount < 3) {
+        return SerialDispatchResult::MissingArgument;
+    }
+
+    uint8_t mode = 0U;
+    if (!serialParseWifiDeliveryMode(cmd.tokens[2], &mode)) {
+        return SerialDispatchResult::BadArgument;
+    }
+
+    return target->setWifiDeliveryMode(mode) ? SerialDispatchResult::Ok
+                                             : SerialDispatchResult::Rejected;
+}
+
+// wm wifi-set-network <ssid> <password>
+static SerialDispatchResult handleWifiSetNetwork(const SerialParsedCommand &cmd,
+                                                 SerialCommandTarget *target) {
+    if (cmd.tokenCount < 4) {
+        return SerialDispatchResult::MissingArgument;
+    }
+
+    const char *ssid = cmd.tokens[2];
+    const char *password = cmd.tokens[3];
+    return target->setWifiNetworkCredentials(ssid, password) ? SerialDispatchResult::Ok
+                                                             : SerialDispatchResult::Rejected;
+}
+
+// wm wifi-restart
+static SerialDispatchResult handleWifiRestart(const SerialParsedCommand & /*cmd*/,
+                                              SerialCommandTarget *target) {
+    return target->restartWifiControl() ? SerialDispatchResult::Ok : SerialDispatchResult::Rejected;
+}
+
+// wm wifi-set-token <token>
+static SerialDispatchResult handleWifiSetToken(const SerialParsedCommand &cmd,
+                                               SerialCommandTarget *target) {
+    if (cmd.tokenCount < 3) {
+        return SerialDispatchResult::MissingArgument;
+    }
+
+    if (!target->isWifiApiTokenMutationAllowed()) {
+        return SerialDispatchResult::PolicyBlocked;
+    }
+
+    return target->setWifiApiToken(cmd.tokens[2]) ? SerialDispatchResult::Ok
+                                                  : SerialDispatchResult::Rejected;
+}
+
 // wm unlock <token> [seconds]
 static SerialDispatchResult handleUnlock(const SerialParsedCommand &cmd,
                                          SerialCommandSession *session,
@@ -219,7 +295,10 @@ static SerialDispatchResult handleUnlock(const SerialParsedCommand &cmd,
 static bool serialCommandIsPrivileged(const char *verb) {
     return strcmp(verb, "led") == 0 || strcmp(verb, "mode") == 0 || strcmp(verb, "accel") == 0 ||
            strcmp(verb, "scan") == 0 || strcmp(verb, "discover") == 0 ||
-           strcmp(verb, "disconnect") == 0 || strcmp(verb, "reconnect") == 0;
+           strcmp(verb, "disconnect") == 0 || strcmp(verb, "reconnect") == 0 ||
+           strcmp(verb, "wifi-control") == 0 || strcmp(verb, "wifi-mode") == 0 ||
+           strcmp(verb, "wifi-set-network") == 0 || strcmp(verb, "wifi-restart") == 0 ||
+           strcmp(verb, "wifi-set-token") == 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -241,6 +320,11 @@ static const DispatchEntry kDispatchTable[] = {
     {"discover", handleDiscover},
     {"disconnect", handleDisconnect},
     {"reconnect", handleReconnect},
+    {"wifi-control", handleWifiControl},
+    {"wifi-mode", handleWifiMode},
+    {"wifi-set-network", handleWifiSetNetwork},
+    {"wifi-restart", handleWifiRestart},
+    {"wifi-set-token", handleWifiSetToken},
 };
 
 // ---------------------------------------------------------------------------

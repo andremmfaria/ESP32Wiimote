@@ -133,6 +133,22 @@ if (cfg.wifi.enabled) {
 
 Enables or disables Wi-Fi control lifecycle. Startup is asynchronous and progresses in `task()`.
 
+#### `bool updateWifiNetworkCredentials(const char *ssid, const char *password)`
+
+Updates runtime SSID/password. Returns `false` when either value is null/empty.
+
+#### `bool restartWifiControl()`
+
+Restarts Wi-Fi lifecycle using the current runtime config. Returns `false` when Wi-Fi control is disabled.
+
+#### `bool updateWifiApiToken(const char *token)`
+
+Updates runtime Wi-Fi API Bearer token. Returns `false` when token is null/empty.
+
+#### `bool setWifiDeliveryMode(WifiDeliveryMode deliveryMode)`
+
+Updates runtime delivery mode (`RestOnly` or `RestAndWebSocket`). When Wi-Fi control is enabled, lifecycle stages restart.
+
 #### `bool isWifiControlEnabled() const`
 
 Returns whether Wi-Fi lifecycle processing is enabled.
@@ -140,6 +156,10 @@ Returns whether Wi-Fi lifecycle processing is enabled.
 #### `bool isWifiControlReady() const`
 
 Returns whether Wi-Fi startup stages have completed.
+
+#### `bool hasWifiApiToken() const`
+
+Returns `true` when a Wi-Fi API token is currently configured.
 
 #### `WifiControlState getWifiControlState() const`
 
@@ -604,6 +624,12 @@ Returns whether serial command processing is enabled.
 - `wm discover <start|stop>`
 - `wm disconnect [reason]`
 - `wm reconnect <on|off|clear>`
+- `wm wifi-status`
+- `wm wifi-control <on|off>`
+- `wm wifi-mode <rest|rest-ws>`
+- `wm wifi-set-network <ssid> <password>`
+- `wm wifi-restart`
+- `wm wifi-set-token <token>`
 
 #### Response contract
 
@@ -621,6 +647,7 @@ Error examples:
 - `@wm: error locked`
 - `@wm: error bad_credentials`
 - `@wm: error line_too_long`
+- `@wm: error policy_blocked`
 
 #### Privileged-command lock model
 
@@ -633,6 +660,7 @@ Serial privileged commands are locked by default.
 - after expiry, privileged commands return `@wm: error locked`
 
 Privileged command set includes write/control operations such as `led`, `mode`, `accel`, `scan`, `discover`, `disconnect`, and `reconnect`.
+It also includes Wi-Fi mutation commands: `wifi-control`, `wifi-mode`, `wifi-set-network`, `wifi-restart`, and `wifi-set-token`.
 
 #### Controller Guard Semantics
 
@@ -681,6 +709,7 @@ Wi-Fi control is exposed as an authenticated REST API with a static OpenAPI docu
 
 - `GET /api/wiimote/status`
 - `GET /api/wiimote/config`
+- `GET /api/wifi/control`
 - `GET /api/commands/<id>/status`
 
 #### Optional WebSocket event endpoints
@@ -716,6 +745,11 @@ Recovery contract:
 - `POST /api/wiimote/commands/discovery`
 - `POST /api/wiimote/commands/disconnect`
 - `POST /api/wiimote/commands/reconnect-policy`
+- `POST /api/wifi/control`
+- `POST /api/wifi/delivery-mode`
+- `POST /api/wifi/network`
+- `POST /api/wifi/restart`
+- `POST /api/wifi/token` (policy-gated)
 
 #### HTTP result mapping
 
@@ -723,6 +757,7 @@ Recovery contract:
 - `400` malformed or missing request body fields
 - `401` auth failed
 - `403` reserved for future policy restrictions
+- `403` policy-blocked mutations (for example, Wi-Fi API token updates when policy is disabled)
 - `409` command rejected by runtime guards
 
 ---

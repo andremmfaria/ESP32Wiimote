@@ -37,6 +37,23 @@ struct MockTarget : SerialCommandTarget {
 
     bool clearReconnectCacheCalled{false};
 
+    bool setWifiControlCalledWith{false};
+    bool lastWifiControlEnabled{false};
+
+    bool setWifiModeCalledWith{false};
+    uint8_t lastWifiMode{0};
+
+    bool setWifiNetworkCalledWith{false};
+    const char *lastWifiSsid{nullptr};
+    const char *lastWifiPassword{nullptr};
+
+    bool restartWifiCalled{false};
+
+    bool setWifiTokenCalledWith{false};
+    const char *lastWifiToken{nullptr};
+
+    bool wifiApiTokenMutationAllowed{false};
+
     // Controllable state
     bool connected{true};
     uint8_t battery{75};
@@ -49,6 +66,11 @@ struct MockTarget : SerialCommandTarget {
     bool retStartDiscovery{true};
     bool retStopDiscovery{true};
     bool retDisconnect{true};
+    bool retSetWifiControl{true};
+    bool retSetWifiMode{true};
+    bool retSetWifiNetwork{true};
+    bool retRestartWifi{true};
+    bool retSetWifiToken{true};
 
     bool setLeds(uint8_t ledMask) override {
         setLedsCalledWith = true;
@@ -92,6 +114,32 @@ struct MockTarget : SerialCommandTarget {
         lastAutoReconnect = enabled;
     }
     void clearReconnectCache() override { clearReconnectCacheCalled = true; }
+    bool setWifiControlEnabled(bool enabled) override {
+        setWifiControlCalledWith = true;
+        lastWifiControlEnabled = enabled;
+        return retSetWifiControl;
+    }
+    bool setWifiDeliveryMode(uint8_t mode) override {
+        setWifiModeCalledWith = true;
+        lastWifiMode = mode;
+        return retSetWifiMode;
+    }
+    bool setWifiNetworkCredentials(const char *ssid, const char *password) override {
+        setWifiNetworkCalledWith = true;
+        lastWifiSsid = ssid;
+        lastWifiPassword = password;
+        return retSetWifiNetwork;
+    }
+    bool restartWifiControl() override {
+        restartWifiCalled = true;
+        return retRestartWifi;
+    }
+    bool setWifiApiToken(const char *token) override {
+        setWifiTokenCalledWith = true;
+        lastWifiToken = token;
+        return retSetWifiToken;
+    }
+    bool isWifiApiTokenMutationAllowed() const override { return wifiApiTokenMutationAllowed; }
     bool isConnected() const override { return connected; }
     uint8_t getBatteryLevel() const override { return battery; }
 };
@@ -576,6 +624,54 @@ void testStatusRemainsAvailableWhenPrivilegedGateEnabled() {
 }
 
 // ---------------------------------------------------------------------------
+// wm wifi-control / wifi-mode / wifi-set-network / wifi-restart / wifi-set-token
+// ---------------------------------------------------------------------------
+
+void testWifiControlOnCallsTarget() {
+    MockTarget t;
+    TEST_ASSERT_EQUAL(SerialDispatchResult::Ok, dispatch("wm wifi-control on", &t));
+    TEST_ASSERT_TRUE(t.setWifiControlCalledWith);
+    TEST_ASSERT_TRUE(t.lastWifiControlEnabled);
+}
+
+void testWifiModeRestWsCallsTarget() {
+    MockTarget t;
+    TEST_ASSERT_EQUAL(SerialDispatchResult::Ok, dispatch("wm wifi-mode rest-ws", &t));
+    TEST_ASSERT_TRUE(t.setWifiModeCalledWith);
+    TEST_ASSERT_EQUAL_UINT8(1U, t.lastWifiMode);
+}
+
+void testWifiSetNetworkCallsTarget() {
+    MockTarget t;
+    TEST_ASSERT_EQUAL(SerialDispatchResult::Ok, dispatch("wm wifi-set-network myssid mypass", &t));
+    TEST_ASSERT_TRUE(t.setWifiNetworkCalledWith);
+    TEST_ASSERT_EQUAL_STRING("myssid", t.lastWifiSsid);
+    TEST_ASSERT_EQUAL_STRING("mypass", t.lastWifiPassword);
+}
+
+void testWifiRestartCallsTarget() {
+    MockTarget t;
+    TEST_ASSERT_EQUAL(SerialDispatchResult::Ok, dispatch("wm wifi-restart", &t));
+    TEST_ASSERT_TRUE(t.restartWifiCalled);
+}
+
+void testWifiSetTokenPolicyBlockedWhenNotAllowed() {
+    MockTarget t;
+    t.wifiApiTokenMutationAllowed = false;
+    TEST_ASSERT_EQUAL(SerialDispatchResult::PolicyBlocked,
+                      dispatch("wm wifi-set-token secret", &t));
+    TEST_ASSERT_FALSE(t.setWifiTokenCalledWith);
+}
+
+void testWifiSetTokenAllowedCallsTarget() {
+    MockTarget t;
+    t.wifiApiTokenMutationAllowed = true;
+    TEST_ASSERT_EQUAL(SerialDispatchResult::Ok, dispatch("wm wifi-set-token secret", &t));
+    TEST_ASSERT_TRUE(t.setWifiTokenCalledWith);
+    TEST_ASSERT_EQUAL_STRING("secret", t.lastWifiToken);
+}
+
+// ---------------------------------------------------------------------------
 // main
 // ---------------------------------------------------------------------------
 
@@ -653,6 +749,13 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testPrivilegedCommandRunsWhenUnlocked);
     RUN_TEST(testPrivilegedCommandRelocksAfterExpiry);
     RUN_TEST(testStatusRemainsAvailableWhenPrivilegedGateEnabled);
+
+    RUN_TEST(testWifiControlOnCallsTarget);
+    RUN_TEST(testWifiModeRestWsCallsTarget);
+    RUN_TEST(testWifiSetNetworkCallsTarget);
+    RUN_TEST(testWifiRestartCallsTarget);
+    RUN_TEST(testWifiSetTokenPolicyBlockedWhenNotAllowed);
+    RUN_TEST(testWifiSetTokenAllowedCallsTarget);
 
     return UNITY_END();
 }

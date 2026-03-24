@@ -33,7 +33,7 @@ If you do not define it, the library uses this default internally:
 
 **Example output:**
 
-```
+```log
 [ERROR] HCI: Reset failed with status=0x05
 [ERROR] L2CAP: sendCallback is null
 [ERROR] Bluetooth controller initialization failed!
@@ -57,7 +57,7 @@ if (!initialized) {
 
 **Example output:**
 
-```
+```log
 [WARN] L2CAP: Connection table full, cannot add connection
 [WARN] HciCallback: Queue manager not set, cannot send packet
 [WARN] TinyWiimote: Cannot request battery update - not connected
@@ -80,7 +80,7 @@ if (queueFull) {
 
 **Example output:**
 
-```
+```log
 [INFO] ESP32Wiimote: Starting initialization...
 [INFO] HCI: Device initialized, starting inquiry
 [INFO] HCI: Wiimote detected! Requesting remote name...
@@ -106,7 +106,7 @@ LOG_INFO("Connection established to device 0x%04x\n", handle);
 
 **Example output:**
 
-```
+```log
 [DEBUG] TinyWiimote: Initializing TinyWiimote core...
 [DEBUG] TinyWiimote: Resetting wiimote state...
 [DEBUG] TinyWiimote: Setting up packet sender...
@@ -257,7 +257,7 @@ LOG_INFO("Battery level: %d%%\n", percentage);
 
 Minimal output, only critical failures:
 
-```
+```log
 [ERROR] Bluetooth controller initialization failed!
 ```
 
@@ -265,7 +265,7 @@ Minimal output, only critical failures:
 
 Adds warnings:
 
-```
+```log
 [WARN] HCI packet queue at 90% capacity
 [ERROR] Failed to allocate memory for packet
 ```
@@ -274,7 +274,7 @@ Adds warnings:
 
 Shows the story of what's happening:
 
-```
+```log
 [INFO] ESP32Wiimote: Starting initialization...
 [INFO] HCI: Device initialized, starting inquiry
 [INFO] HCI: Wiimote detected! Requesting remote name...
@@ -291,7 +291,7 @@ Shows the story of what's happening:
 
 All internal operations visible:
 
-```
+```log
 [DEBUG] TinyWiimote: Initializing TinyWiimote core...
 [DEBUG] TinyWiimote: Resetting wiimote state...
 [DEBUG] TinyWiimote: Setting up packet sender...
@@ -350,12 +350,12 @@ Include the header:
 
 ## Performance Impact
 
-| Level | Impact | Use Case |
-|-------|--------|----------|
-| 0 (ERROR) | Minimal | Production |
-| 1 (WARN) | Very Low | Production with monitoring |
-| 2 (INFO) | Low | Development, demos |
-| 3 (DEBUG) | Moderate | Deep debugging only |
+| Level     | Impact   | Use Case                   |
+| --------- | -------- | -------------------------- |
+| 0 (ERROR) | Minimal  | Production                 |
+| 1 (WARN)  | Very Low | Production with monitoring |
+| 2 (INFO)  | Low      | Development, demos         |
+| 3 (DEBUG) | Moderate | Deep debugging only        |
 
 **Notes:**
 

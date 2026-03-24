@@ -19,6 +19,62 @@ pio_cmd() {
     pio "$@"
 }
 
+run_clang_updatedb() {
+    # Generate compile database from the native environment and expose it at repo root.
+    pio_cmd run -e native -t compiledb "$@"
+
+    local native_db=".pio/build/native/compile_commands.json"
+    if [[ -f "$native_db" ]]; then
+        cp "$native_db" compile_commands.json
+    fi
+
+    if [[ ! -f compile_commands.json ]]; then
+        echo "Error: compile_commands.json was not generated." >&2
+        exit 1
+    fi
+
+    echo "Updated compile database: compile_commands.json"
+}
+
+run_clang_tidy() {
+    require_cmd clang-tidy
+
+    if [[ ! -f compile_commands.json ]]; then
+        echo "compile_commands.json not found; generating it first..."
+        run_clang_updatedb
+    fi
+
+    local files=()
+    if [[ "$#" -gt 0 ]]; then
+        files=("$@")
+    else
+        files=(
+            "src/ESP32Wiimote.cpp"
+            "src/serial/serial_command_dispatcher.cpp"
+            "src/serial/serial_response_formatter.cpp"
+            "src/wifi/web_api_router.cpp"
+            "src/wifi/web_response_serializer.cpp"
+        )
+    fi
+
+    local filtered=()
+    local file
+    for file in "${files[@]}"; do
+        if [[ -f "$file" ]]; then
+            filtered+=("$file")
+        else
+            echo "Warning: skipping missing file '$file'" >&2
+        fi
+    done
+
+    if [[ "${#filtered[@]}" -eq 0 ]]; then
+        echo "Error: no valid files to run clang-tidy on." >&2
+        exit 1
+    fi
+
+    clang-tidy -p . "${filtered[@]}"
+}
+
 run_coverage() {
     require_cmd gcovr
     require_cmd lcov
@@ -202,6 +258,8 @@ Targets:
   monitor:dev          Open serial monitor for esp32dev.
   clean                Clean all PlatformIO build artifacts.
   clean:coverage       Remove generated coverage artifacts.
+    clang:updatedb       Generate compile_commands.json for clang tools.
+    clang:tidy           Run clang-tidy (defaults to key production files).
 
 Environment Variables:
   ESP32_PORT           Serial port for hardware actions (example: /dev/ttyUSB0)
@@ -214,6 +272,9 @@ Examples:
   ESP32_PORT=/dev/ttyUSB0 ./build.sh test:dev
   ./build.sh test:coverage
   ./build.sh release
+    ./build.sh clang:updatedb
+    ./build.sh clang:tidy
+    ./build.sh clang:tidy src/ESP32Wiimote.cpp src/wifi/web_api_router.cpp
 EOF
 }
 
@@ -299,6 +360,14 @@ case "$TARGET" in
         rm -rf coverage
         rm -f ./*.gcov
         find . -name '*.gcda' -o -name '*.gcno' | xargs -r rm -f
+        ;;
+
+    clang:updatedb)
+        run_clang_updatedb "$@"
+        ;;
+
+    clang:tidy)
+        run_clang_tidy "$@"
         ;;
 
     *)

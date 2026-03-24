@@ -138,6 +138,30 @@ class ESP32Wiimote {
                            WifiDeliveryMode deliveryMode = WifiDeliveryMode::RestOnly);
 
     /**
+     * Update runtime Wi-Fi network credentials.
+     * Returns false when either field is null/empty.
+     */
+    bool updateWifiNetworkCredentials(const char *ssid, const char *password);
+
+    /**
+     * Restart Wi-Fi control lifecycle using current runtime configuration.
+     * Returns false when Wi-Fi capability is not configured or control is disabled.
+     */
+    bool restartWifiControl();
+
+    /**
+     * Update runtime Wi-Fi API token used for HTTP authorization.
+     * Returns false when token is null/empty.
+     */
+    bool updateWifiApiToken(const char *token);
+
+    /**
+     * Set runtime Wi-Fi delivery mode. If Wi-Fi control is currently enabled,
+     * the lifecycle is restarted to apply the new mode.
+     */
+    bool setWifiDeliveryMode(WifiDeliveryMode deliveryMode);
+
+    /**
      * Returns true when Wi-Fi control lifecycle is enabled.
      */
     bool isWifiControlEnabled() const;
@@ -146,6 +170,11 @@ class ESP32Wiimote {
      * Returns true when Wi-Fi lifecycle completed all startup stages.
      */
     bool isWifiControlReady() const;
+
+    /**
+     * Returns true when a Wi-Fi API token is configured.
+     */
+    bool hasWifiApiToken() const;
 
     /**
      * Returns a snapshot of Wi-Fi control lifecycle state.

@@ -19,6 +19,7 @@ enum class SerialDispatchResult : uint8_t {
     BadCredentials,   // Unlock credentials did not match configured session credentials
     MissingArgument,  // Required argument was absent
     Rejected,         // Command accepted but rejected by implementation (guard)
+    PolicyBlocked,    // Command blocked by runtime policy
 };
 
 struct SerialDispatchOptions {
@@ -47,6 +48,14 @@ struct SerialCommandTarget {
     virtual bool disconnectActiveController(uint8_t reason) = 0;
     virtual void setAutoReconnectEnabled(bool enabled) = 0;
     virtual void clearReconnectCache() = 0;
+
+    // Wi-Fi control commands
+    virtual bool setWifiControlEnabled(bool enabled) = 0;
+    virtual bool setWifiDeliveryMode(uint8_t mode) = 0;
+    virtual bool setWifiNetworkCredentials(const char *ssid, const char *password) = 0;
+    virtual bool restartWifiControl() = 0;
+    virtual bool setWifiApiToken(const char *token) = 0;
+    virtual bool isWifiApiTokenMutationAllowed() const = 0;
 
     // Query
     virtual bool isConnected() const = 0;

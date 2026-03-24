@@ -54,6 +54,10 @@ void setup() {
 
     Serial.println("Wi-Fi control enabled.");
     Serial.println("REST snapshots: GET /api/wiimote/status and /api/wiimote/config");
+    Serial.println("Wi-Fi control state: GET /api/wifi/control");
+    Serial.println(
+        "Wi-Fi control mutations: POST /api/wifi/control, /api/wifi/delivery-mode, "
+        "/api/wifi/network, /api/wifi/restart");
     Serial.println(
         "WebSocket streams (RestAndWebSocket): /api/wiimote/input/events and "
         "/api/wiimote/status/events");

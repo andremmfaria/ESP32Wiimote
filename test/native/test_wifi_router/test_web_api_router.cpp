@@ -36,6 +36,17 @@ static bool gDisconnectResult;
 static uint8_t gLastDisconnectReason;
 
 static bool gLastAutoReconnect;
+static WebWifiControlStateSnapshot gMockWifiControlState;
+static bool gSetWifiControlResult;
+static bool gLastWifiControlEnabled;
+static bool gSetWifiModeResult;
+static bool gLastWifiModeRestAndWebSocket;
+static bool gSetWifiNetworkResult;
+static const char *gLastWifiSsid;
+static const char *gLastWifiPassword;
+static bool gRestartWifiResult;
+static bool gSetWifiTokenResult;
+static const char *gLastWifiToken;
 static WebCommandQueue gCommandQueue;
 
 static char gBuf[512];
@@ -80,6 +91,29 @@ static bool mockDisconnect(uint8_t reason, void * /*userData*/) {
 static void mockSetAutoReconnect(bool enabled, void * /*userData*/) {
     gLastAutoReconnect = enabled;
 }
+static WebWifiControlStateSnapshot mockGetWifiControlState(void * /*userData*/) {
+    return gMockWifiControlState;
+}
+static bool mockSetWifiControl(bool enabled, void * /*userData*/) {
+    gLastWifiControlEnabled = enabled;
+    return gSetWifiControlResult;
+}
+static bool mockSetWifiMode(bool restAndWebSocket, void * /*userData*/) {
+    gLastWifiModeRestAndWebSocket = restAndWebSocket;
+    return gSetWifiModeResult;
+}
+static bool mockSetWifiNetwork(const char *ssid, const char *password, void * /*userData*/) {
+    gLastWifiSsid = ssid;
+    gLastWifiPassword = password;
+    return gSetWifiNetworkResult;
+}
+static bool mockRestartWifi(void * /*userData*/) {
+    return gRestartWifiResult;
+}
+static bool mockSetWifiToken(const char *token, void * /*userData*/) {
+    gLastWifiToken = token;
+    return gSetWifiTokenResult;
+}
 
 // ===== Context Factory =====
 
@@ -88,6 +122,7 @@ static WebApiContext makeCtx() {
     ctx.wifiApiToken = kTestWifiToken;
     ctx.getWiimoteStatus = mockGetStatus;
     ctx.getConfig = mockGetConfig;
+    ctx.getWifiControlState = mockGetWifiControlState;
     ctx.setLeds = mockSetLeds;
     ctx.setReportingMode = mockSetReportingMode;
     ctx.setAccelEnabled = mockSetAccelEnabled;
@@ -97,6 +132,12 @@ static WebApiContext makeCtx() {
     ctx.stopDiscovery = mockStopDiscovery;
     ctx.disconnect = mockDisconnect;
     ctx.setAutoReconnect = mockSetAutoReconnect;
+    ctx.setWifiControlEnabled = mockSetWifiControl;
+    ctx.setWifiDeliveryMode = mockSetWifiMode;
+    ctx.setWifiNetwork = mockSetWifiNetwork;
+    ctx.restartWifiControl = mockRestartWifi;
+    ctx.setWifiApiToken = mockSetWifiToken;
+    ctx.allowWifiApiTokenMutation = false;
     ctx.userData = nullptr;
     return ctx;
 }
@@ -131,6 +172,17 @@ void setUp() {
     gDisconnectResult = true;
     gLastDisconnectReason = 0;
     gLastAutoReconnect = false;
+    gMockWifiControlState = {};
+    gSetWifiControlResult = true;
+    gLastWifiControlEnabled = false;
+    gSetWifiModeResult = true;
+    gLastWifiModeRestAndWebSocket = false;
+    gSetWifiNetworkResult = true;
+    gLastWifiSsid = nullptr;
+    gLastWifiPassword = nullptr;
+    gRestartWifiResult = true;
+    gSetWifiTokenResult = true;
+    gLastWifiToken = nullptr;
     webCommandQueueInit(&gCommandQueue);
     std::memset(gBuf, 0, sizeof(gBuf));
 }
@@ -522,6 +574,70 @@ void testPostReconnectPolicyMissingEnabledReturns400() {
     TEST_ASSERT_EQUAL(400, r.httpStatus);
 }
 
+// ===== GET /api/wifi/control =====
+
+void testGetWifiControlReturns200() {
+    gMockWifiControlState.enabled = true;
+    gMockWifiControlState.restAndWebSocket = true;
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "GET", "/api/wifi/control", kValidBearer, nullptr);
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "\"enabled\":true"));
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "\"deliveryMode\":\"rest-ws\""));
+}
+
+// ===== POST /api/wifi/control =====
+
+void testPostWifiControlEnable() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wifi/control", kValidBearer,
+                                    "{\"command\":\"wifi_control\",\"enabled\":\"true\"}");
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+    TEST_ASSERT_TRUE(gLastWifiControlEnabled);
+}
+
+void testPostWifiModeRestWs() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wifi/delivery-mode", kValidBearer,
+                                    "{\"command\":\"wifi_mode\",\"mode\":\"rest-ws\"}");
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+    TEST_ASSERT_TRUE(gLastWifiModeRestAndWebSocket);
+}
+
+void testPostWifiNetworkUpdate() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r =
+        callRoute(&ctx, "POST", "/api/wifi/network", kValidBearer,
+                  "{\"command\":\"wifi_network\",\"ssid\":\"myssid\",\"password\":\"mypass\"}");
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+    TEST_ASSERT_EQUAL_STRING("myssid", gLastWifiSsid);
+    TEST_ASSERT_EQUAL_STRING("mypass", gLastWifiPassword);
+}
+
+void testPostWifiRestart() {
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wifi/restart", kValidBearer,
+                                    "{\"command\":\"wifi_restart\"}");
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+}
+
+void testPostWifiTokenPolicyBlockedReturns403() {
+    WebApiContext ctx = makeCtx();
+    ctx.allowWifiApiTokenMutation = false;
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wifi/token", kValidBearer,
+                                    "{\"command\":\"wifi_token\",\"token\":\"new_token\"}");
+    TEST_ASSERT_EQUAL(403, r.httpStatus);
+}
+
+void testPostWifiTokenAllowedReturns200() {
+    WebApiContext ctx = makeCtx();
+    ctx.allowWifiApiTokenMutation = true;
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wifi/token", kValidBearer,
+                                    "{\"command\":\"wifi_token\",\"token\":\"new_token\"}");
+    TEST_ASSERT_EQUAL(200, r.httpStatus);
+    TEST_ASSERT_EQUAL_STRING("new_token", gLastWifiToken);
+}
+
 // ===== GET /api/commands/<id>/status =====
 
 void testGetCommandStatusReturnsQueuedForEnqueuedCommand() {
@@ -673,6 +789,14 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testPostReconnectPolicyEnable);
     RUN_TEST(testPostReconnectPolicyDisable);
     RUN_TEST(testPostReconnectPolicyMissingEnabledReturns400);
+
+    RUN_TEST(testGetWifiControlReturns200);
+    RUN_TEST(testPostWifiControlEnable);
+    RUN_TEST(testPostWifiModeRestWs);
+    RUN_TEST(testPostWifiNetworkUpdate);
+    RUN_TEST(testPostWifiRestart);
+    RUN_TEST(testPostWifiTokenPolicyBlockedReturns403);
+    RUN_TEST(testPostWifiTokenAllowedReturns200);
 
     RUN_TEST(testGetCommandStatusReturnsQueuedForEnqueuedCommand);
     RUN_TEST(testGetCommandStatusReturnsUpdatedState);

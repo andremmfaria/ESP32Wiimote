@@ -12,6 +12,7 @@ ESP32Wiimote is designed with a layered architecture separating hardware interfa
 - [Controller Command State Machine](#controller-command-state-machine)
 - [Serial Command Pipeline](#serial-command-pipeline)
 - [Wi-Fi API Pipeline](#wi-fi-api-pipeline)
+- [Wi-Fi Control Capability Model](#wi-fi-control-capability-model)
 
 ---
 
@@ -338,6 +339,15 @@ Bounds and behavior:
 
 - Input line length bounded to 128 bytes
 - Token count bounded to 10
+
+Wi-Fi runtime commands currently available via Serial:
+
+- `wm wifi-status`
+- `wm wifi-control <on|off>`
+- `wm wifi-mode <rest|rest-ws>`
+- `wm wifi-set-network <ssid> <password>`
+- `wm wifi-restart`
+- `wm wifi-set-token <token>`
 - At most one completed command line is processed per `task()` call
 - Non-command lines are ignored
 - Line overflow returns `@wm: error line_too_long`
@@ -355,6 +365,24 @@ Integration note:
 ---
 
 ## Wi-Fi API Pipeline
+
+Authenticated routes now include Wi-Fi lifecycle operations (`/api/wifi/*`) in addition to
+Wiimote command operations (`/api/wiimote/commands/*`).
+
+## Wi-Fi Control Capability Model
+
+The runtime configuration object (`ESP32WiimoteConfig`) remains the canonical source of Wi-Fi policy.
+
+Capability parity:
+
+- Serial and REST both support lifecycle reads and controlled lifecycle mutations.
+- Sensitive token mutation is policy-gated (`wm wifi-set-token` and `POST /api/wifi/token`).
+
+Policy behaviors:
+
+- All mutation commands require privileged/authenticated access.
+- Invalid/malformed inputs are deterministically mapped to `bad_argument`/HTTP 400.
+- Policy-blocked token mutation maps to `@wm: error policy_blocked` (Serial) and HTTP 403 (REST).
 
 Wi-Fi runtime control is exposed through a static-plus-REST router in `src/wifi/web_api_router.cpp`.
 

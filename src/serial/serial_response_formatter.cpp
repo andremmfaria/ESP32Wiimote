@@ -44,6 +44,8 @@ size_t serialFormatDispatchResult(char *out, size_t outSize, SerialDispatchResul
             return serialFormatError(out, outSize, "missing_argument");
         case SerialDispatchResult::Rejected:
             return serialFormatError(out, outSize, "rejected");
+        case SerialDispatchResult::PolicyBlocked:
+            return serialFormatError(out, outSize, "policy_blocked");
         default:
             return serialFormatError(out, outSize, "internal");
     }
@@ -90,5 +92,19 @@ size_t serialFormatConfig(char *out,
                  "@wm: cfg auto_reconnect=%u fast_reconnect_ttl_ms=%lu serial_control=%u",
                  autoReconnectEnabled ? 1U : 0U, static_cast<unsigned long>(fastReconnectTtlMs),
                  serialControlEnabled ? 1U : 0U),
+        out, outSize);
+}
+
+size_t serialFormatWifiStatus(char *out,
+                              size_t outSize,
+                              bool enabled,
+                              bool ready,
+                              bool connected,
+                              bool failed,
+                              bool restAndWebSocket) {
+    return serialNormalizeWrite(
+        snprintf(out, outSize, "@wm: wifi enabled=%u ready=%u connected=%u failed=%u mode=%s",
+                 enabled ? 1U : 0U, ready ? 1U : 0U, connected ? 1U : 0U, failed ? 1U : 0U,
+                 restAndWebSocket ? "rest-ws" : "rest"),
         out, outSize);
 }

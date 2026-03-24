@@ -125,3 +125,30 @@ WebSerializeResult serializeConfig(char *buf, size_t size, const WebConfigSnapsh
     }
     return WebSerializeResult::Ok;
 }
+
+WebSerializeResult serializeWifiControlState(char *buf,
+                                             size_t size,
+                                             const WebWifiControlStateSnapshot &state) {
+    if (buf == nullptr || size == 0U) {
+        return WebSerializeResult::BufferTooSmall;
+    }
+
+    int n = std::snprintf(
+        buf, size,
+        "{"
+        "\"enabled\":%s,"
+        "\"ready\":%s,"
+        "\"networkCredentialsConfigured\":%s,"
+        "\"networkConnectAttempted\":%s,"
+        "\"networkConnected\":%s,"
+        "\"networkConnectFailed\":%s,"
+        "\"deliveryMode\":\"%s\""
+        "}",
+        boolStr(state.enabled), boolStr(state.ready), boolStr(state.networkCredentialsConfigured),
+        boolStr(state.networkConnectAttempted), boolStr(state.networkConnected),
+        boolStr(state.networkConnectFailed), state.restAndWebSocket ? "rest-ws" : "rest");
+    if (!snprintfFits(n, size)) {
+        return WebSerializeResult::BufferTooSmall;
+    }
+    return WebSerializeResult::Ok;
+}

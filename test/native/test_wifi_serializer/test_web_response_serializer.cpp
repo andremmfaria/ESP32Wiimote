@@ -262,6 +262,34 @@ void testSerializeConfigTinyBuffer() {
     TEST_ASSERT_EQUAL(WebSerializeResult::BufferTooSmall, r);
 }
 
+// ===== serializeWifiControlState =====
+
+void testSerializeWifiControlStateBasic() {
+    clearBuf();
+    WebWifiControlStateSnapshot state{};
+    state.enabled = true;
+    state.ready = false;
+    state.networkCredentialsConfigured = true;
+    state.networkConnectAttempted = true;
+    state.networkConnected = false;
+    state.networkConnectFailed = true;
+    state.restAndWebSocket = true;
+
+    WebSerializeResult r = serializeWifiControlState(buf, sizeof(buf), state);
+    TEST_ASSERT_EQUAL(WebSerializeResult::Ok, r);
+    TEST_ASSERT_EQUAL_STRING(
+        "{\"enabled\":true,\"ready\":false,\"networkCredentialsConfigured\":true,"
+        "\"networkConnectAttempted\":true,\"networkConnected\":false,"
+        "\"networkConnectFailed\":true,\"deliveryMode\":\"rest-ws\"}",
+        buf);
+}
+
+void testSerializeWifiControlStateNullBuffer() {
+    WebWifiControlStateSnapshot state{};
+    WebSerializeResult r = serializeWifiControlState(nullptr, 10U, state);
+    TEST_ASSERT_EQUAL(WebSerializeResult::BufferTooSmall, r);
+}
+
 // ===== Main =====
 
 int main(int /*argc*/, char ** /*argv*/) {
@@ -299,6 +327,9 @@ int main(int /*argc*/, char ** /*argv*/) {
     RUN_TEST(testSerializeConfigZeroes);
     RUN_TEST(testSerializeConfigNullBuf);
     RUN_TEST(testSerializeConfigTinyBuffer);
+
+    RUN_TEST(testSerializeWifiControlStateBasic);
+    RUN_TEST(testSerializeWifiControlStateNullBuffer);
 
     return UNITY_END();
 }
