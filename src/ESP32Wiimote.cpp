@@ -30,14 +30,16 @@ namespace {
 
 constexpr size_t kSerialResponseBufSize = 192U;
 constexpr const char *kWifiMockFailSsid = "__fail__";
+constexpr uint32_t kWifiConnectTimeoutMs = 15000U;
 
 enum WifiInitStage : uint8_t {
     KWifiInitStageStartWifi = 0U,
-    KWifiInitStageMountLittleFs = 1U,
-    KWifiInitStageRegisterStaticRoutes = 2U,
-    KWifiInitStageRegisterApiRoutes = 3U,
-    KWifiInitStageRegisterWebSocketRoutes = 4U,
-    KWifiInitStageReady = 5U,
+    KWifiInitStageWaitNetworkConnected = 1U,
+    KWifiInitStageMountLittleFs = 2U,
+    KWifiInitStageRegisterStaticRoutes = 3U,
+    KWifiInitStageRegisterApiRoutes = 4U,
+    KWifiInitStageRegisterWebSocketRoutes = 5U,
+    KWifiInitStageReady = 6U,
 };
 
 const char *wifiDeliveryModeToString(const WifiDeliveryMode mode) {
@@ -159,6 +161,7 @@ ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config)
     , wifiNetworkConnectAttempted_(false)
     , wifiNetworkConnected_(false)
     , wifiNetworkConnectFailed_(false)
+    , wifiNetworkConnectStartMs_(0U)
     , wifiDeliveryMode_(WifiDeliveryMode::RestOnly)
     , wifiInitStage_(KWifiInitStageStartWifi)
     , wifiLayerStarted_(false)
@@ -696,11 +699,45 @@ void ESP32Wiimote::processWifiControl() {
                 return;
             }
 
+#if defined(ARDUINO_ARCH_ESP32)
+            WiFi.mode(WIFI_STA);
+            WiFi.begin(networkCredentials_.ssid, networkCredentials_.password);
+            wifiNetworkConnectStartMs_ = static_cast<uint32_t>(millis());
+            wifiNetworkConnected_ = false;
+            wifiNetworkConnectFailed_ = false;
+            wifiLayerStarted_ = true;
+            LOG_INFO("ESP32Wiimote: wifi.startup connecting ssid=%s mode=%s timeout_ms=%lu\n",
+                     safeSsid(networkCredentials_), wifiDeliveryModeToString(wifiDeliveryMode_),
+                     static_cast<unsigned long>(kWifiConnectTimeoutMs));
+            wifiInitStage_ = KWifiInitStageWaitNetworkConnected;
+#else
             wifiNetworkConnected_ = true;
             wifiNetworkConnectFailed_ = false;
             wifiLayerStarted_ = true;
             logWifiConnectedDetails(networkCredentials_, wifiDeliveryMode_);
             wifiInitStage_ = KWifiInitStageMountLittleFs;
+#endif
+            break;
+        case KWifiInitStageWaitNetworkConnected:
+#if defined(ARDUINO_ARCH_ESP32)
+            if (WiFi.status() == WL_CONNECTED) {
+                wifiNetworkConnected_ = true;
+                wifiNetworkConnectFailed_ = false;
+                logWifiConnectedDetails(networkCredentials_, wifiDeliveryMode_);
+                wifiInitStage_ = KWifiInitStageMountLittleFs;
+                break;
+            }
+
+            if (static_cast<uint32_t>(millis()) - wifiNetworkConnectStartMs_ >=
+                kWifiConnectTimeoutMs) {
+                LOG_WARN("ESP32Wiimote: wifi.startup failed (timeout) ssid=%s status=%d\n",
+                         safeSsid(networkCredentials_), static_cast<int>(WiFi.status()));
+                wifiNetworkConnectFailed_ = true;
+                wifiControlEnabled_ = false;
+                wifiControlInitializing_ = false;
+                return;
+            }
+#endif
             break;
         case KWifiInitStageMountLittleFs:
             littleFsMounted_ = true;
@@ -743,6 +780,7 @@ void ESP32Wiimote::resetWifiLifecycleState() {
     wifiNetworkConnectAttempted_ = false;
     wifiNetworkConnected_ = false;
     wifiNetworkConnectFailed_ = false;
+    wifiNetworkConnectStartMs_ = 0U;
     wifiInitStage_ = KWifiInitStageStartWifi;
     wifiLayerStarted_ = false;
     littleFsMounted_ = false;

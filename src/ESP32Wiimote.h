@@ -388,6 +388,7 @@ class ESP32Wiimote {
     bool wifiNetworkConnectAttempted_;
     bool wifiNetworkConnected_;
     bool wifiNetworkConnectFailed_;
+    uint32_t wifiNetworkConnectStartMs_;
     WifiDeliveryMode wifiDeliveryMode_;
     uint8_t wifiInitStage_;
     bool wifiLayerStarted_;

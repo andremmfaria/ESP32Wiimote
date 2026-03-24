@@ -83,6 +83,20 @@ ESP32_PORT=/dev/ttyUSB0 ./build.sh test:dev
 - Wiimote for connection tests
 - Serial monitor at 115200 baud
 
+### 2.1 Non-Interactive Live Test (Hardware)
+
+Run the dedicated non-interactive embedded Wi-Fi suite and capture serial output to a log file:
+
+```bash
+ESP32_PORT=/dev/ttyUSB0 ./scripts/run-live-noninteractive.sh
+```
+
+Optional parameters:
+
+```bash
+./scripts/run-live-noninteractive.sh embedded/test_wifi_noninteractive artifacts/live-tests
+```
+
 ### 3. Build Only (No Tests)
 
 Compile for ESP32 without running tests:
