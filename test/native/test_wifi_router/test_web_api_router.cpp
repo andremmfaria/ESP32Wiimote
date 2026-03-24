@@ -502,6 +502,16 @@ void testPostRequestStatusRejectedReturns409() {
     TEST_ASSERT_EQUAL(409, r.httpStatus);
 }
 
+void testPostRequestStatusDisconnectedReturnsHelpful409() {
+    gMockStatus.connected = false;
+    gRequestStatusResult = false;
+    WebApiContext ctx = makeCtx();
+    WebApiRouteResult r = callRoute(&ctx, "POST", "/api/wiimote/commands/request-status",
+                                    kValidBearer, "{\"command\":\"request_status\"}");
+    TEST_ASSERT_EQUAL(409, r.httpStatus);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "wiimote not connected"));
+}
+
 // ===== POST /api/wiimote/commands/scan =====
 
 void testPostScanStart() {
@@ -817,6 +827,7 @@ int main(int /*argc*/, char ** /*argv*/) {
 
     RUN_TEST(testPostRequestStatusSuccess);
     RUN_TEST(testPostRequestStatusRejectedReturns409);
+    RUN_TEST(testPostRequestStatusDisconnectedReturnsHelpful409);
 
     RUN_TEST(testPostScanStart);
     RUN_TEST(testPostScanStop);

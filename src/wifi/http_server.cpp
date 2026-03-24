@@ -3,6 +3,7 @@
 #ifdef ARDUINO_ARCH_ESP32
 #include <WebServer.h>
 #include <cstring>
+#include <new>
 #endif
 
 namespace {
@@ -41,14 +42,21 @@ void WifiHttpServer::setHandler(wifi_http_request_handler_fn handler, void *user
 
 bool WifiHttpServer::begin(uint16_t port) {
     if (started_) {
+        lastStartError_ = WifiHttpServerStartError::None;
         return true;
     }
 
     if (handler_ == nullptr) {
+        lastStartError_ = WifiHttpServerStartError::MissingHandler;
         return false;
     }
 
-    WebServer *server = new WebServer(port);
+    WebServer *server = new (std::nothrow) WebServer(port);
+    if (server == nullptr) {
+        lastStartError_ = WifiHttpServerStartError::OutOfMemory;
+        return false;
+    }
+
     server->collectHeaders(kCollectedHeaders, kCollectedHeaderCount);
     impl_ = server;
 
@@ -83,6 +91,7 @@ bool WifiHttpServer::begin(uint16_t port) {
 
     started_ = true;
     port_ = port;
+    lastStartError_ = WifiHttpServerStartError::None;
     return true;
 }
 
@@ -114,6 +123,10 @@ bool WifiHttpServer::isStarted() const {
     return started_;
 }
 
+WifiHttpServerStartError WifiHttpServer::lastStartError() const {
+    return lastStartError_;
+}
+
 #else
 
 WifiHttpServer::WifiHttpServer() = default;
@@ -128,6 +141,7 @@ void WifiHttpServer::setHandler(wifi_http_request_handler_fn handler, void *user
 bool WifiHttpServer::begin(uint16_t /*port*/) {
     started_ = false;
     port_ = 0U;
+    lastStartError_ = WifiHttpServerStartError::BackendUnavailable;
     return false;
 }
 
@@ -140,6 +154,10 @@ void WifiHttpServer::poll() const {}
 
 bool WifiHttpServer::isStarted() const {
     return false;
+}
+
+WifiHttpServerStartError WifiHttpServer::lastStartError() const {
+    return lastStartError_;
 }
 
 #endif

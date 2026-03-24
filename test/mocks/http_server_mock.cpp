@@ -40,15 +40,18 @@ void WifiHttpServer::setHandler(wifi_http_request_handler_fn handler, void *user
 
 bool WifiHttpServer::begin(uint16_t port) {
     if (started_) {
+        lastStartError_ = WifiHttpServerStartError::None;
         return true;
     }
 
     if (handler_ == nullptr) {
+        lastStartError_ = WifiHttpServerStartError::MissingHandler;
         return false;
     }
 
     ++gWifiHttpServerMockBeginCallCount;
     if (!gWifiHttpServerMockBeginResult) {
+        lastStartError_ = WifiHttpServerStartError::BackendUnavailable;
         return false;
     }
 
@@ -57,6 +60,7 @@ bool WifiHttpServer::begin(uint16_t port) {
     gWifiHttpServerMockUserData = userData_;
     started_ = true;
     port_ = port;
+    lastStartError_ = WifiHttpServerStartError::None;
     return true;
 }
 
@@ -83,6 +87,10 @@ void WifiHttpServer::poll() const {
 
 bool WifiHttpServer::isStarted() const {
     return started_;
+}
+
+WifiHttpServerStartError WifiHttpServer::lastStartError() const {
+    return lastStartError_;
 }
 
 void wifiHttpServerMockReset() {

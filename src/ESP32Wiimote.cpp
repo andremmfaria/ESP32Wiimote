@@ -963,12 +963,15 @@ bool ESP32Wiimote::startWifiHttpServer() {
         return true;
     }
 
+    LOG_INFO("ESP32Wiimote: wifi.http starting port=%u\n",
+             static_cast<unsigned int>(kWifiHttpPort));
     httpServer_.setHandler(handleWifiHttpRequest, this);
     if (!httpServer_.begin(kWifiHttpPort)) {
         serverBindFailed_ = true;
         serverStarted_ = false;
-        LOG_WARN("ESP32Wiimote: wifi.http start failed port=%u\n",
-                 static_cast<unsigned int>(kWifiHttpPort));
+        const unsigned int kErrorCode = static_cast<unsigned int>(httpServer_.lastStartError());
+        LOG_WARN("ESP32Wiimote: wifi.http start failed port=%u error_code=%u\n",
+                 static_cast<unsigned int>(kWifiHttpPort), kErrorCode);
         return false;
     }
 

@@ -602,6 +602,10 @@ WebApiRouteResult handlePostRequestStatus(const WebApiContext *ctx,
     }
 
     if (!ctx->requestStatus(ctx->userData)) {
+        const WebWiimoteStatusSnapshot status = ctx->getWiimoteStatus(ctx->userData);
+        if (!status.connected) {
+            return errorResponse(buf, size, 409, "wiimote not connected");
+        }
         return errorResponse(buf, size, 409, "command rejected");
     }
     serializeOk(buf, size);

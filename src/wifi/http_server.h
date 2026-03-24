@@ -10,6 +10,13 @@ enum class WifiHttpMethod : uint8_t {
     Unsupported = 2,
 };
 
+enum class WifiHttpServerStartError : uint8_t {
+    None = 0,
+    MissingHandler = 1,
+    OutOfMemory = 2,
+    BackendUnavailable = 3,
+};
+
 struct WifiHttpRequest {
     WifiHttpMethod method;
     const char *path;
@@ -39,12 +46,14 @@ class WifiHttpServer {
     void end();
     void poll() const;
     bool isStarted() const;
+    WifiHttpServerStartError lastStartError() const;
 
    private:
     wifi_http_request_handler_fn handler_ = nullptr;
     void *userData_ = nullptr;
     bool started_ = false;
     uint16_t port_ = 0U;
+    WifiHttpServerStartError lastStartError_ = WifiHttpServerStartError::None;
     void *impl_ = nullptr;
 };
 
