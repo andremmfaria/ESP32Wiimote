@@ -111,6 +111,10 @@ Connection model note: due to Bluetooth Classic HCI limitations, this library is
 
 ![Wiimote LED1 on](./resources/remocon_led1_on.png)
 
+Web control UI preview:
+
+![Wi-Fi control webpage](./resources/wifi_control_webpage.png)
+
 ## Connection Test
 
 Use `isConnected()` to check connection status at runtime.
