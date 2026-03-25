@@ -71,6 +71,7 @@ struct WebWifiControlStateSnapshot {
     bool restAndWebSocket;
     bool serverStarted;
     bool serverBindFailed;
+    bool hasToken;
 };
 
 // ===== Serializer Interface =====

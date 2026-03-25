@@ -215,6 +215,7 @@ WebWifiControlStateSnapshot webGetWifiControlState(void *userData) {
     snapshot.restAndWebSocket = kState.deliveryMode == WifiDeliveryMode::RestAndWebSocket;
     snapshot.serverStarted = kState.serverStarted;
     snapshot.serverBindFailed = kState.serverBindFailed;
+    snapshot.hasToken = device->hasWifiApiToken();
     return snapshot;
 }
 

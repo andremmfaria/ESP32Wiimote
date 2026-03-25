@@ -133,23 +133,25 @@ WebSerializeResult serializeWifiControlState(char *buf,
         return WebSerializeResult::BufferTooSmall;
     }
 
-    int n = std::snprintf(
-        buf, size,
-        "{"
-        "\"enabled\":%s,"
-        "\"ready\":%s,"
-        "\"networkCredentialsConfigured\":%s,"
-        "\"networkConnectAttempted\":%s,"
-        "\"networkConnected\":%s,"
-        "\"networkConnectFailed\":%s,"
-        "\"serverStarted\":%s,"
-        "\"serverBindFailed\":%s,"
-        "\"deliveryMode\":\"%s\""
-        "}",
-        boolStr(state.enabled), boolStr(state.ready), boolStr(state.networkCredentialsConfigured),
-        boolStr(state.networkConnectAttempted), boolStr(state.networkConnected),
-        boolStr(state.networkConnectFailed), boolStr(state.serverStarted),
-        boolStr(state.serverBindFailed), state.restAndWebSocket ? "rest-ws" : "rest");
+    int n = std::snprintf(buf, size,
+                          "{"
+                          "\"enabled\":%s,"
+                          "\"ready\":%s,"
+                          "\"networkCredentialsConfigured\":%s,"
+                          "\"networkConnectAttempted\":%s,"
+                          "\"networkConnected\":%s,"
+                          "\"networkConnectFailed\":%s,"
+                          "\"serverStarted\":%s,"
+                          "\"serverBindFailed\":%s,"
+                          "\"deliveryMode\":\"%s\","
+                          "\"hasToken\":%s"
+                          "}",
+                          boolStr(state.enabled), boolStr(state.ready),
+                          boolStr(state.networkCredentialsConfigured),
+                          boolStr(state.networkConnectAttempted), boolStr(state.networkConnected),
+                          boolStr(state.networkConnectFailed), boolStr(state.serverStarted),
+                          boolStr(state.serverBindFailed),
+                          state.restAndWebSocket ? "rest-ws" : "rest", boolStr(state.hasToken));
     if (!snprintfFits(n, size)) {
         return WebSerializeResult::BufferTooSmall;
     }
