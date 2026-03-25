@@ -29,36 +29,12 @@ static constexpr uint8_t kWiimoteLogDebug = static_cast<uint8_t>(WiimoteLogLevel
 
 uint8_t wiimoteGetLogLevel();
 void wiimoteSetLogLevel(uint8_t level);
-void wiimoteLogVPrint(uint8_t level, const char *prefix, const char *format, va_list args);
 void wiimoteLogPrint(uint8_t level, const char *prefix, const char *format, ...);
 
-inline void wiimoteLogError(const char *format, ...) {
-    va_list args;
-    va_start(args, format);
-    wiimoteLogVPrint(kWiimoteLogError, "[ERROR] ", format, args);
-    va_end(args);
-}
-
-inline void wiimoteLogWarn(const char *format, ...) {
-    va_list args;
-    va_start(args, format);
-    wiimoteLogVPrint(kWiimoteLogWarning, "[WARN] ", format, args);
-    va_end(args);
-}
-
-inline void wiimoteLogInfo(const char *format, ...) {
-    va_list args;
-    va_start(args, format);
-    wiimoteLogVPrint(kWiimoteLogInfo, "[INFO] ", format, args);
-    va_end(args);
-}
-
-inline void wiimoteLogDebug(const char *format, ...) {
-    va_list args;
-    va_start(args, format);
-    wiimoteLogVPrint(kWiimoteLogDebug, "[DEBUG] ", format, args);
-    va_end(args);
-}
+#define wiimoteLogError(...) wiimoteLogPrint(kWiimoteLogError, "[ERROR] ", __VA_ARGS__)
+#define wiimoteLogWarn(...) wiimoteLogPrint(kWiimoteLogWarning, "[WARN] ", __VA_ARGS__)
+#define wiimoteLogInfo(...) wiimoteLogPrint(kWiimoteLogInfo, "[INFO] ", __VA_ARGS__)
+#define wiimoteLogDebug(...) wiimoteLogPrint(kWiimoteLogDebug, "[DEBUG] ", __VA_ARGS__)
 
 #define LOG_ERROR(...) wiimoteLogError(__VA_ARGS__)
 #define LOG_WARN(...) wiimoteLogWarn(__VA_ARGS__)

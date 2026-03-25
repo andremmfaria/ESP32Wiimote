@@ -19,6 +19,28 @@ pio_cmd() {
     pio "$@"
 }
 
+is_project_source_file() {
+    local path="$1"
+    path="${path#./}"
+
+    if [[ "$path" == "$ROOT_DIR"/* ]]; then
+        path="${path#"$ROOT_DIR"/}"
+    fi
+
+    if [[ "$path" == test/mocks/* ]]; then
+        return 1
+    fi
+
+    case "$path" in
+        src/*|test/*|examples/*)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 run_clang_updatedb() {
     # Generate compile database from the native environment and expose it at repo root.
     pio_cmd run -e native -t compiledb "$@"
@@ -48,18 +70,22 @@ run_clang_tidy() {
     if [[ "$#" -gt 0 ]]; then
         files=("$@")
     else
-        files=(
-            "src/ESP32Wiimote.cpp"
-            "src/serial/serial_command_dispatcher.cpp"
-            "src/serial/serial_response_formatter.cpp"
-            "src/wifi/web_api_router.cpp"
-            "src/wifi/web_response_serializer.cpp"
+        mapfile -t files < <(
+            rg --no-filename '"file": "[^"]+"' compile_commands.json \
+                | sed -E 's/.*"file": "([^"]+)".*/\1/' \
+                | sort -u
         )
     fi
 
     local filtered=()
+    local clang_tidy_args=()
     local file
     for file in "${files[@]}"; do
+        if ! is_project_source_file "$file"; then
+            echo "Info: skipping non-project file '$file'" >&2
+            continue
+        fi
+
         if [[ -f "$file" ]]; then
             filtered+=("$file")
         else
@@ -72,7 +98,13 @@ run_clang_tidy() {
         exit 1
     fi
 
-    clang-tidy -p . "${filtered[@]}"
+    if [[ -d ".pio/libdeps/native/Unity/src" ]]; then
+        clang_tidy_args+=("--extra-arg=-I${ROOT_DIR}/.pio/libdeps/native/Unity/src")
+    elif [[ -d ".pio/libdeps/native-coverage/Unity/src" ]]; then
+        clang_tidy_args+=("--extra-arg=-I${ROOT_DIR}/.pio/libdeps/native-coverage/Unity/src")
+    fi
+
+    clang-tidy -p . "${clang_tidy_args[@]}" "${filtered[@]}"
 }
 
 run_coverage() {
@@ -259,7 +291,7 @@ Targets:
   clean                Clean all PlatformIO build artifacts.
   clean:coverage       Remove generated coverage artifacts.
   clang:updatedb       Generate compile_commands.json for clang tools.
-  clang:tidy           Run clang-tidy (defaults to key production files).
+  clang:tidy           Run clang-tidy (defaults to all files in compile_commands.json).
 
 Environment Variables:
   ESP32_PORT           Serial port for hardware actions (example: /dev/ttyUSB0)

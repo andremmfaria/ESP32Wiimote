@@ -1,11 +1,178 @@
 #include "../../../src/ESP32Wiimote.h"
 #include "../../../src/config/runtime_config_store.h"
-#include "../../mocks/http_server_mock.h"
 #include "../../mocks/test_mocks.h"
 
 #include <cstring>
 #include <type_traits>
 #include <unity.h>
+
+namespace {
+
+class FakeWifiHttpServer : public WifiHttpServer {
+   public:
+    void reset() {
+        beginResult_ = true;
+        beginCallCount_ = 0;
+        endCallCount_ = 0;
+        pollCallCount_ = 0;
+        started_ = false;
+        handler_ = nullptr;
+        userData_ = nullptr;
+        lastStartError_ = WifiHttpServerStartError::None;
+    }
+
+    void setBeginResult(bool result) { beginResult_ = result; }
+
+    int beginCallCount() const { return beginCallCount_; }
+
+    int endCallCount() const { return endCallCount_; }
+
+    int pollCallCount() const { return pollCallCount_; }
+
+    bool dispatchRequest(const char *method,
+                         const char *path,
+                         const char *authHeader,
+                         const char *body,
+                         int *status,
+                         const char **contentType,
+                         char *responseBuf,
+                         size_t responseBufSize) {
+        if (!started_ || handler_ == nullptr || responseBuf == nullptr || responseBufSize == 0U) {
+            return false;
+        }
+
+        WifiHttpResponse response = {};
+        const WifiHttpRequest request = {parseMethod(method), path, authHeader, body,
+                                         body != nullptr ? std::strlen(body) : 0U};
+        handler_(&request, responseBuf, responseBufSize, &response, userData_);
+
+        if (status != nullptr) {
+            *status = response.status;
+        }
+        if (contentType != nullptr) {
+            *contentType = response.contentType;
+        }
+
+        return true;
+    }
+
+    void setHandler(wifi_http_request_handler_fn handler, void *userData) override {
+        handler_ = handler;
+        userData_ = userData;
+    }
+
+    bool begin(uint16_t /*port*/) override {
+        if (started_) {
+            lastStartError_ = WifiHttpServerStartError::None;
+            return true;
+        }
+
+        if (handler_ == nullptr) {
+            lastStartError_ = WifiHttpServerStartError::MissingHandler;
+            return false;
+        }
+
+        ++beginCallCount_;
+        if (!beginResult_) {
+            lastStartError_ = WifiHttpServerStartError::BackendUnavailable;
+            return false;
+        }
+
+        started_ = true;
+        lastStartError_ = WifiHttpServerStartError::None;
+        return true;
+    }
+
+    void end() override {
+        if (!started_) {
+            return;
+        }
+
+        ++endCallCount_;
+        started_ = false;
+        handler_ = nullptr;
+        userData_ = nullptr;
+    }
+
+    void poll() const override {
+        if (!started_) {
+            return;
+        }
+
+        ++pollCallCount_;
+    }
+
+    bool isStarted() const override { return started_; }
+
+    WifiHttpServerStartError lastStartError() const override { return lastStartError_; }
+
+   private:
+    static WifiHttpMethod parseMethod(const char *method) {
+        if (method == nullptr) {
+            return WifiHttpMethod::Unsupported;
+        }
+        if (std::strcmp(method, "GET") == 0) {
+            return WifiHttpMethod::Get;
+        }
+        if (std::strcmp(method, "POST") == 0) {
+            return WifiHttpMethod::Post;
+        }
+        return WifiHttpMethod::Unsupported;
+    }
+
+    wifi_http_request_handler_fn handler_ = nullptr;
+    void *userData_ = nullptr;
+    mutable int pollCallCount_ = 0;
+    int beginCallCount_ = 0;
+    int endCallCount_ = 0;
+    bool beginResult_ = true;
+    bool started_ = false;
+    WifiHttpServerStartError lastStartError_ = WifiHttpServerStartError::None;
+};
+
+FakeWifiHttpServer gFakeWifiHttpServer;
+
+class TestESP32Wiimote : public ::ESP32Wiimote {
+   public:
+    TestESP32Wiimote() : ::ESP32Wiimote(ESP32WiimoteConfig(), &gFakeWifiHttpServer) {}
+
+    explicit TestESP32Wiimote(const ESP32WiimoteConfig &config)
+        : ::ESP32Wiimote(config, &gFakeWifiHttpServer) {}
+};
+
+void wifiHttpServerMockReset() {
+    gFakeWifiHttpServer.reset();
+}
+
+void wifiHttpServerMockSetBeginResult(bool result) {
+    gFakeWifiHttpServer.setBeginResult(result);
+}
+
+int wifiHttpServerMockGetBeginCallCount() {
+    return gFakeWifiHttpServer.beginCallCount();
+}
+
+int wifiHttpServerMockGetEndCallCount() {
+    return gFakeWifiHttpServer.endCallCount();
+}
+
+int wifiHttpServerMockGetPollCallCount() {
+    return gFakeWifiHttpServer.pollCallCount();
+}
+
+bool wifiHttpServerMockDispatchRequest(const char *method,
+                                       const char *path,
+                                       const char *authHeader,
+                                       const char *body,
+                                       int *status,
+                                       const char **contentType,
+                                       char *responseBuf,
+                                       size_t responseBufSize) {
+    return gFakeWifiHttpServer.dispatchRequest(method, path, authHeader, body, status, contentType,
+                                               responseBuf, responseBufSize);
+}
+
+}  // namespace
 
 void setUp(void) {
     RuntimeConfigStore nvsReset;
@@ -76,7 +243,7 @@ void setUp(void) {
 void tearDown(void) {}
 
 void testESP32WiimoteDefaultConstructorBuilds() {
-    ESP32Wiimote device;
+    TestESP32Wiimote device;
     ESP32Wiimote::setLogLevel(kWiimoteLogError);
     TEST_ASSERT_EQUAL_UINT8(kWiimoteLogError, ESP32Wiimote::getLogLevel());
 }
@@ -89,7 +256,7 @@ void testESP32WiimoteGetConfigReflectsRuntimeAuthAndWifiSettings() {
     config.wifi.deliveryMode = WifiDeliveryMode::RestAndWebSocket;
     config.wifi.network = {"ssid", "password"};
 
-    ESP32Wiimote device;
+    TestESP32Wiimote device;
     device.configure(config);
 
     const ESP32WiimoteConfig &current = device.getConfig();
@@ -110,7 +277,7 @@ void testESP32WiimoteConfigurePartialConfigPreservesPreviousAuthAndWifiValues() 
     initial.wifi.deliveryMode = WifiDeliveryMode::RestAndWebSocket;
     initial.wifi.network = {"ssid_old", "password_old"};
 
-    ESP32Wiimote device(initial);
+    TestESP32Wiimote device(initial);
 
     ESP32WiimoteConfig partial;
     partial.auth.serialPrivilegedToken = "serial_new";
@@ -129,7 +296,7 @@ void testESP32WiimoteConfigurePartialConfigPreservesPreviousAuthAndWifiValues() 
 void testESP32WiimoteInitFailureDoesNotSetFastReconnectTtl() {
     ESP32WiimoteConfig config;
     config.fastReconnectTtlMs = 1234U;
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
 
     mockBtStartResult = false;
 
@@ -140,7 +307,7 @@ void testESP32WiimoteInitFailureDoesNotSetFastReconnectTtl() {
 void testESP32WiimoteInitSuccessProcessesQueuesDuringTask() {
     ESP32WiimoteConfig config;
     config.fastReconnectTtlMs = 3210U;
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
 
     TEST_ASSERT_TRUE(device.init());
     TEST_ASSERT_EQUAL_UINT32(config.fastReconnectTtlMs, mockLastFastReconnectTtlMs);
@@ -157,7 +324,7 @@ void testESP32WiimoteInitSuccessProcessesQueuesDuringTask() {
 }
 
 void testESP32WiimoteTaskSkipsQueuesWhenControllerStopped() {
-    ESP32Wiimote device;
+    TestESP32Wiimote device;
 
     device.task();
 
@@ -166,7 +333,7 @@ void testESP32WiimoteTaskSkipsQueuesWhenControllerStopped() {
 }
 
 void testESP32WiimoteAvailableAndStateAccessorsUseDataParser() {
-    ESP32Wiimote device;
+    TestESP32Wiimote device;
 
     mockHasData = true;
     mockData.len = 7;
@@ -192,7 +359,7 @@ void testESP32WiimoteAvailableAndStateAccessorsUseDataParser() {
 }
 
 void testESP32WiimoteStaticDelegationMethodsCallTinyWiimoteLayer() {
-    ESP32Wiimote device;
+    TestESP32Wiimote device;
     mockTinyWiimoteConnected = true;
     mockBatteryLevel = 87;
 
@@ -207,7 +374,7 @@ void testESP32WiimoteStaticDelegationMethodsCallTinyWiimoteLayer() {
 }
 
 void testESP32WiimoteAddFilterUpdatesParserAndAccelRequest() {
-    ESP32Wiimote device;
+    TestESP32Wiimote device;
 
     device.addFilter(FilterAction::Ignore, kFilterButton);
     TEST_ASSERT_EQUAL(0, mockReqAccelerometerCallCount);
@@ -241,7 +408,7 @@ void testESP32WiimotePublicControllerTypesHaveExpectedShape() {
 }
 
 void testESP32WiimoteOutputMethodsDelegateAndPropagateResults() {
-    ESP32Wiimote device;
+    TestESP32Wiimote device;
 
     mockSetLedsResult = true;
     TEST_ASSERT_TRUE(device.setLeds(0x0A));
@@ -280,7 +447,7 @@ void testESP32WiimoteOutputMethodsDelegateAndPropagateResults() {
 }
 
 void testESP32WiimoteControllerMethodsDelegateAndMapState() {
-    ESP32Wiimote device;
+    TestESP32Wiimote device;
 
     device.setScanEnabled(true);
     TEST_ASSERT_EQUAL(1, mockSetScanEnabledCallCount);
@@ -319,7 +486,7 @@ void testESP32WiimoteControllerMethodsDelegateAndMapState() {
 }
 
 void testESP32WiimoteSerialControlDisabledByDefaultAndOptIn() {
-    ESP32Wiimote device;
+    TestESP32Wiimote device;
 
     TEST_ASSERT_FALSE(device.isSerialControlEnabled());
 
@@ -335,7 +502,7 @@ void testESP32WiimoteSerialControlProcessesOneLinePerTaskCall() {
     config.wifi.enabled = false;
     config.auth.serialPrivilegedToken = "token";
     config.auth.wifiApiToken = "token";
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
     mockBtStarted = true;
     mockTinyWiimoteConnected = true;
     mockSetLedsResult = true;
@@ -354,7 +521,7 @@ void testESP32WiimoteSerialControlProcessesOneLinePerTaskCall() {
 }
 
 void testESP32WiimoteSerialControlPrivilegedCommandIsLockedByDefault() {
-    ESP32Wiimote device;
+    TestESP32Wiimote device;
     mockBtStarted = true;
     mockTinyWiimoteConnected = true;
     mockSetLedsResult = true;
@@ -373,7 +540,7 @@ void testESP32WiimoteSerialControlUnlockExpiresByTime() {
     config.wifi.enabled = false;
     config.auth.serialPrivilegedToken = "token";
     config.auth.wifiApiToken = "token";
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
     mockBtStarted = true;
     mockTinyWiimoteConnected = true;
     mockSetLedsResult = true;
@@ -404,7 +571,7 @@ void testESP32WiimoteConfigureWithWifiDisabledRejectsBadCredentials() {
     config.wifi.enabled = false;
     config.auth.serialPrivilegedToken = "token";
     config.auth.wifiApiToken = "token";
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
 
     mockBtStarted = true;
     device.enableSerialControl(true);
@@ -420,7 +587,7 @@ void testESP32WiimoteConfigurePropagatesCredentialsToSerialUnlock() {
     config.wifi.enabled = false;
     config.auth.serialPrivilegedToken = "token";
     config.auth.wifiApiToken = "token";
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
 
     mockBtStarted = true;
     mockTinyWiimoteConnected = true;
@@ -436,7 +603,7 @@ void testESP32WiimoteConfigurePropagatesCredentialsToSerialUnlock() {
 }
 
 void testESP32WiimoteWifiControlDisabledByDefault() {
-    ESP32Wiimote device;
+    TestESP32Wiimote device;
 
     TEST_ASSERT_FALSE(device.isWifiControlEnabled());
     TEST_ASSERT_FALSE(device.isWifiControlReady());
@@ -458,7 +625,7 @@ void testESP32WiimoteWifiControlCanBeEnabledAtRuntimeWhenConfigStartsDisabled() 
     config.wifi.enabled = false;
     config.auth.serialPrivilegedToken = "token";
     config.auth.wifiApiToken = "token";
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
 
     device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
 
@@ -473,7 +640,7 @@ void testESP32WiimoteWifiControlAsyncLifecycleRestOnly() {
     config.auth.wifiApiToken = "token";
     config.wifi.network.ssid = "ssid";
     config.wifi.network.password = "wifi_password";
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
 
     device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
 
@@ -511,7 +678,7 @@ void testESP32WiimoteWifiControlStartsHttpServerAndRoutesRequests() {
     config.auth.wifiApiToken = "token";
     config.wifi.network.ssid = "ssid";
     config.wifi.network.password = "wifi_password";
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
 
     device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
 
@@ -559,7 +726,7 @@ void testESP32WiimoteWifiControlHttpBridgePreservesUnauthorizedContract() {
     config.auth.wifiApiToken = "token";
     config.wifi.network.ssid = "ssid";
     config.wifi.network.password = "wifi_password";
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
 
     device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
     for (int i = 0; i < 5; ++i) {
@@ -586,7 +753,7 @@ void testESP32WiimoteWifiControlHttpBridgeMapsUnsupportedMethodToNotFound() {
     config.auth.wifiApiToken = "token";
     config.wifi.network.ssid = "ssid";
     config.wifi.network.password = "wifi_password";
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
 
     device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
     for (int i = 0; i < 5; ++i) {
@@ -612,7 +779,7 @@ void testESP32WiimoteWifiControlReportsHttpBindFailure() {
     config.auth.wifiApiToken = "token";
     config.wifi.network.ssid = "ssid";
     config.wifi.network.password = "wifi_password";
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
 
     wifiHttpServerMockSetBeginResult(false);
     device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
@@ -636,7 +803,7 @@ void testESP32WiimoteDisablingWifiStopsHttpServer() {
     config.auth.wifiApiToken = "token";
     config.wifi.network.ssid = "ssid";
     config.wifi.network.password = "wifi_password";
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
 
     device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
     for (int i = 0; i < 5; ++i) {
@@ -658,7 +825,7 @@ void testESP32WiimoteWifiControlRestAndWebSocketAddsWebSocketStage() {
     config.auth.wifiApiToken = "token";
     config.wifi.network.ssid = "ssid";
     config.wifi.network.password = "wifi_password";
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
 
     device.enableWifiControl(true, WifiDeliveryMode::RestAndWebSocket);
 
@@ -681,7 +848,7 @@ void testESP32WiimoteWifiControlModeSwitchRestToWebSocketRestartsLifecycle() {
     config.auth.wifiApiToken = "token";
     config.wifi.network.ssid = "ssid";
     config.wifi.network.password = "wifi_password";
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
 
     device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
 
@@ -716,7 +883,7 @@ void testESP32WiimoteWifiControlModeSwitchWebSocketToRestDisablesWebSocketStage(
     config.auth.wifiApiToken = "token";
     config.wifi.network.ssid = "ssid";
     config.wifi.network.password = "wifi_password";
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
 
     device.enableWifiControl(true, WifiDeliveryMode::RestAndWebSocket);
 
@@ -749,7 +916,7 @@ void testESP32WiimoteWifiControlFailsWithoutNetworkCredentials() {
     config.wifi.enabled = true;
     config.auth.serialPrivilegedToken = "token";
     config.auth.wifiApiToken = "token";
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
 
     device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
 
@@ -772,7 +939,7 @@ void testESP32WiimoteWifiControlFailsWhenJoinFails() {
     config.auth.wifiApiToken = "token";
     config.wifi.network.ssid = "__fail__";
     config.wifi.network.password = "wifi_password";
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
 
     device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
     device.task();
@@ -792,7 +959,7 @@ void testESP32WiimoteUpdateWifiNetworkCredentialsChangesConfig() {
     config.wifi.enabled = true;
     config.auth.serialPrivilegedToken = "token";
     config.auth.wifiApiToken = "token";
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
 
     TEST_ASSERT_TRUE(device.updateWifiNetworkCredentials("ssid_new", "pass_new"));
     TEST_ASSERT_EQUAL_STRING("ssid_new", device.getConfig().wifi.network.ssid);
@@ -804,11 +971,41 @@ void testESP32WiimoteUpdateWifiApiTokenChangesConfig() {
     config.wifi.enabled = true;
     config.auth.serialPrivilegedToken = "token";
     config.auth.wifiApiToken = "old_token";
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
 
     TEST_ASSERT_TRUE(device.updateWifiApiToken("new_token"));
     TEST_ASSERT_EQUAL_STRING("new_token", device.getConfig().auth.wifiApiToken);
     TEST_ASSERT_TRUE(device.hasWifiApiToken());
+}
+
+void testESP32WiimoteWifiTokenFallsBackToSerialTokenWhenConfigured() {
+    ESP32WiimoteConfig config;
+    config.auth.serialPrivilegedToken = "serial_token";
+    config.auth.wifiApiToken = nullptr;
+    config.auth.wifiTokenFallbackToSerial = true;
+    TestESP32Wiimote device(config);
+
+    TEST_ASSERT_TRUE(device.hasWifiApiToken());
+    TEST_ASSERT_TRUE(device.init());
+    TEST_ASSERT_NOT_NULL(
+        std::strstr(mockSerialGetOutput(), "wifi_api_token_missing_using_serial_token"));
+}
+
+void testESP32WiimoteUpdateWifiNetworkCredentialsRejectsEmptyValues() {
+    TestESP32Wiimote device;
+
+    TEST_ASSERT_FALSE(device.updateWifiNetworkCredentials(nullptr, "password"));
+    TEST_ASSERT_FALSE(device.updateWifiNetworkCredentials("", "password"));
+    TEST_ASSERT_FALSE(device.updateWifiNetworkCredentials("ssid", nullptr));
+    TEST_ASSERT_FALSE(device.updateWifiNetworkCredentials("ssid", ""));
+}
+
+void testESP32WiimoteUpdateWifiApiTokenRejectsEmptyValues() {
+    TestESP32Wiimote device;
+
+    TEST_ASSERT_FALSE(device.updateWifiApiToken(nullptr));
+    TEST_ASSERT_FALSE(device.updateWifiApiToken(""));
+    TEST_ASSERT_FALSE(device.hasWifiApiToken());
 }
 
 void testESP32WiimoteRestartWifiControlRequiresEnabledControl() {
@@ -818,11 +1015,171 @@ void testESP32WiimoteRestartWifiControlRequiresEnabledControl() {
     config.auth.wifiApiToken = "token";
     config.wifi.network.ssid = "ssid";
     config.wifi.network.password = "wifi_password";
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
 
     TEST_ASSERT_FALSE(device.restartWifiControl());
     device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
     TEST_ASSERT_TRUE(device.restartWifiControl());
+}
+
+void testESP32WiimoteSerialCommandsExerciseWifiAndControllerWrappers() {
+    ESP32WiimoteConfig config;
+    config.auth.serialPrivilegedToken = "token";
+    config.auth.wifiApiToken = "token";
+    TestESP32Wiimote device(config);
+
+    mockBtStarted = true;
+    mockTinyWiimoteConnected = true;
+    mockSetLedsResult = true;
+    mockSetReportingModeResult = true;
+    mockRequestStatusResult = true;
+    mockStartDiscoveryResult = true;
+    mockStopDiscoveryResult = true;
+
+    device.enableSerialControl(true);
+    mockSerialSetInput(
+        "wm unlock token 60\n"
+        "wm wifi-set-network ssid_new pass_new\n"
+        "wm wifi-control on\n"
+        "wm wifi-mode rest-ws\n"
+        "wm wifi-restart\n"
+        "wm reconnect on\n"
+        "wm reconnect clear\n"
+        "wm scan on\n"
+        "wm discover start\n"
+        "wm discover stop\n"
+        "wm request-status\n"
+        "wm accel on\n"
+        "wm mode 0x31 1\n"
+        "wm led 0x01\n");
+
+    for (int i = 0; i < 14; ++i) {
+        device.task();
+    }
+
+    TEST_ASSERT_TRUE(device.isWifiControlEnabled());
+    TEST_ASSERT_EQUAL_UINT8(static_cast<uint8_t>(WifiDeliveryMode::RestAndWebSocket),
+                            static_cast<uint8_t>(device.getWifiControlState().deliveryMode));
+    TEST_ASSERT_EQUAL_STRING("ssid_new", device.getConfig().wifi.network.ssid);
+    TEST_ASSERT_EQUAL_STRING("pass_new", device.getConfig().wifi.network.password);
+    TEST_ASSERT_EQUAL(1, mockSetAutoReconnectEnabledCallCount);
+    TEST_ASSERT_TRUE(mockLastAutoReconnectEnabled);
+    TEST_ASSERT_EQUAL(1, mockClearReconnectCacheCallCount);
+    TEST_ASSERT_EQUAL(1, mockSetScanEnabledCallCount);
+    TEST_ASSERT_TRUE(mockLastScanEnabled);
+    TEST_ASSERT_EQUAL(1, mockStartDiscoveryCallCount);
+    TEST_ASSERT_EQUAL(1, mockStopDiscoveryCallCount);
+    TEST_ASSERT_EQUAL(1, mockRequestStatusCallCount);
+    TEST_ASSERT_EQUAL(1, mockReqAccelerometerCallCount);
+    TEST_ASSERT_TRUE(mockLastReqAccelerometerUse);
+    TEST_ASSERT_EQUAL(1, mockSetReportingModeCallCount);
+    TEST_ASSERT_EQUAL(1, mockSetLedsCallCount);
+}
+
+void testESP32WiimoteHttpRoutesExerciseStatusAndMutationWrappers() {
+    static const size_t kResponseBufSize = 2048U;
+    ESP32WiimoteConfig config;
+    config.wifi.enabled = true;
+    config.auth.serialPrivilegedToken = "token";
+    config.auth.wifiApiToken = "token";
+    config.wifi.network.ssid = "ssid";
+    config.wifi.network.password = "wifi_password";
+    TestESP32Wiimote device(config);
+
+    mockTinyWiimoteConnected = true;
+    mockBatteryLevel = 66;
+    mockSetLedsResult = true;
+    mockSetReportingModeResult = true;
+    mockRequestStatusResult = true;
+    mockStartDiscoveryResult = true;
+    mockStopDiscoveryResult = true;
+    mockDisconnectResult = true;
+
+    device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
+    for (int i = 0; i < 5; ++i) {
+        device.task();
+    }
+
+    char responseBuf[kResponseBufSize] = {0};
+    int status = 0;
+    const char *contentType = nullptr;
+
+    TEST_ASSERT_TRUE(wifiHttpServerMockDispatchRequest("GET", "/api/wiimote/status", "Bearer token",
+                                                       nullptr, &status, &contentType, responseBuf,
+                                                       sizeof(responseBuf)));
+    TEST_ASSERT_EQUAL(200, status);
+    TEST_ASSERT_NOT_NULL(std::strstr(responseBuf, "\"batteryLevel\":66"));
+
+    memset(responseBuf, 0, sizeof(responseBuf));
+    TEST_ASSERT_TRUE(wifiHttpServerMockDispatchRequest("GET", "/api/wiimote/config", "Bearer token",
+                                                       nullptr, &status, &contentType, responseBuf,
+                                                       sizeof(responseBuf)));
+    TEST_ASSERT_EQUAL(200, status);
+
+    memset(responseBuf, 0, sizeof(responseBuf));
+    TEST_ASSERT_TRUE(
+        wifiHttpServerMockDispatchRequest("POST", "/api/wiimote/commands/leds", "Bearer token",
+                                          "{\"command\":\"set_leds\",\"mask\":\"3\"}", &status,
+                                          &contentType, responseBuf, sizeof(responseBuf)));
+    TEST_ASSERT_EQUAL(200, status);
+
+    memset(responseBuf, 0, sizeof(responseBuf));
+    TEST_ASSERT_TRUE(wifiHttpServerMockDispatchRequest(
+        "POST", "/api/wiimote/commands/reporting-mode", "Bearer token",
+        "{\"command\":\"set_reporting_mode\",\"mode\":\"49\",\"continuous\":\"true\"}", &status,
+        &contentType, responseBuf, sizeof(responseBuf)));
+    TEST_ASSERT_EQUAL(200, status);
+
+    memset(responseBuf, 0, sizeof(responseBuf));
+    TEST_ASSERT_TRUE(wifiHttpServerMockDispatchRequest(
+        "POST", "/api/wiimote/commands/accelerometer", "Bearer token",
+        "{\"command\":\"set_accelerometer\",\"enabled\":\"true\"}", &status, &contentType,
+        responseBuf, sizeof(responseBuf)));
+    TEST_ASSERT_EQUAL(200, status);
+
+    memset(responseBuf, 0, sizeof(responseBuf));
+    TEST_ASSERT_TRUE(
+        wifiHttpServerMockDispatchRequest("POST", "/api/wiimote/commands/request-status",
+                                          "Bearer token", "{\"command\":\"request_status\"}",
+                                          &status, &contentType, responseBuf, sizeof(responseBuf)));
+    TEST_ASSERT_EQUAL(200, status);
+
+    memset(responseBuf, 0, sizeof(responseBuf));
+    TEST_ASSERT_TRUE(
+        wifiHttpServerMockDispatchRequest("POST", "/api/wiimote/commands/discovery", "Bearer token",
+                                          "{\"command\":\"discovery_start\"}", &status,
+                                          &contentType, responseBuf, sizeof(responseBuf)));
+    TEST_ASSERT_EQUAL(200, status);
+
+    memset(responseBuf, 0, sizeof(responseBuf));
+    TEST_ASSERT_TRUE(
+        wifiHttpServerMockDispatchRequest("POST", "/api/wiimote/commands/discovery", "Bearer token",
+                                          "{\"command\":\"discovery_stop\"}", &status, &contentType,
+                                          responseBuf, sizeof(responseBuf)));
+    TEST_ASSERT_EQUAL(200, status);
+
+    memset(responseBuf, 0, sizeof(responseBuf));
+    TEST_ASSERT_TRUE(wifiHttpServerMockDispatchRequest(
+        "POST", "/api/wiimote/commands/disconnect", "Bearer token",
+        "{\"command\":\"disconnect\",\"reason\":\"22\"}", &status, &contentType, responseBuf,
+        sizeof(responseBuf)));
+    TEST_ASSERT_EQUAL(200, status);
+
+    memset(responseBuf, 0, sizeof(responseBuf));
+    TEST_ASSERT_TRUE(wifiHttpServerMockDispatchRequest(
+        "POST", "/api/wiimote/commands/reconnect-policy", "Bearer token",
+        "{\"command\":\"set_reconnect_policy\",\"enabled\":\"true\"}", &status, &contentType,
+        responseBuf, sizeof(responseBuf)));
+    TEST_ASSERT_EQUAL(200, status);
+
+    TEST_ASSERT_EQUAL(1, mockSetLedsCallCount);
+    TEST_ASSERT_EQUAL(1, mockSetReportingModeCallCount);
+    TEST_ASSERT_EQUAL(1, mockReqAccelerometerCallCount);
+    TEST_ASSERT_EQUAL(1, mockRequestStatusCallCount);
+    TEST_ASSERT_EQUAL(1, mockStartDiscoveryCallCount);
+    TEST_ASSERT_EQUAL(1, mockStopDiscoveryCallCount);
+    TEST_ASSERT_EQUAL(1, mockDisconnectCallCount);
+    TEST_ASSERT_EQUAL(1, mockSetAutoReconnectEnabledCallCount);
 }
 
 void testESP32WiimoteSerialWifiStatusCommandPrintsWifiState() {
@@ -832,7 +1189,7 @@ void testESP32WiimoteSerialWifiStatusCommandPrintsWifiState() {
     config.auth.wifiApiToken = "token";
     config.wifi.network.ssid = "ssid";
     config.wifi.network.password = "wifi_password";
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
 
     mockBtStarted = true;
     device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
@@ -845,7 +1202,7 @@ void testESP32WiimoteSerialWifiStatusCommandPrintsWifiState() {
 }
 
 void testESP32WiimoteSerialControlIgnoresNonCommandInput() {
-    ESP32Wiimote device;
+    TestESP32Wiimote device;
     mockBtStarted = true;
 
     device.enableSerialControl(true);
@@ -858,7 +1215,7 @@ void testESP32WiimoteSerialControlIgnoresNonCommandInput() {
 }
 
 void testESP32WiimoteSerialControlReportsLineTooLong() {
-    ESP32Wiimote device;
+    TestESP32Wiimote device;
     mockBtStarted = true;
 
     char line[kSerialMaxLineLength + 8U];
@@ -880,7 +1237,7 @@ void testESP32WiimoteSerialControlReportsLineTooLong() {
 void testESP32WiimoteInitPersistsDefaultRuntimeConfigSnapshot() {
     ESP32WiimoteConfig config;
     config.fastReconnectTtlMs = 54321U;
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
 
     TEST_ASSERT_TRUE(device.init());
 
@@ -898,7 +1255,7 @@ void testESP32WiimoteInitPersistsDefaultRuntimeConfigSnapshot() {
 }
 
 void testESP32WiimotePersistsRuntimePolicyUpdates() {
-    ESP32Wiimote device;
+    TestESP32Wiimote device;
 
     TEST_ASSERT_TRUE(device.init());
 
@@ -924,7 +1281,7 @@ void testESP32WiimotePersistsRuntimePolicyUpdates() {
 }
 
 void testESP32WiimoteRejectedOutputCommandsDoNotPersist() {
-    ESP32Wiimote device;
+    TestESP32Wiimote device;
     TEST_ASSERT_TRUE(device.init());
 
     mockSetLedsResult = false;
@@ -947,7 +1304,7 @@ void testESP32WiimoteRejectedOutputCommandsDoNotPersist() {
 void testESP32WiimoteInitRestoresPersistedFieldsFromStore() {
     // First boot: persist non-default values via API calls.
     {
-        ESP32Wiimote first;
+        TestESP32Wiimote first;
         TEST_ASSERT_TRUE(first.init());
         first.setAutoReconnectEnabled(true);
     }
@@ -957,7 +1314,7 @@ void testESP32WiimoteInitRestoresPersistedFieldsFromStore() {
     mockLastAutoReconnectEnabled = false;
     mockSetAutoReconnectEnabledCallCount = 0;
 
-    ESP32Wiimote second;
+    TestESP32Wiimote second;
     TEST_ASSERT_TRUE(second.init());
 
     // autoReconnectEnabled was persisted as true and must be re-applied.
@@ -981,7 +1338,7 @@ void testESP32WiimoteInitWithNoPersistedDataUsesConfigDefaults() {
 
     ESP32WiimoteConfig config;
     config.fastReconnectTtlMs = 99000U;
-    ESP32Wiimote device(config);
+    TestESP32Wiimote device(config);
     TEST_ASSERT_TRUE(device.init());
 
     // Defaults applied: fastReconnectTtlMs from config, no extra autoReconnect apply.
@@ -1001,7 +1358,7 @@ void testESP32WiimoteInitRestoresFastReconnectTtlFromStore() {
     // First boot: call init with a specific ttl, then persist a different ttl
     // by directly saving to the store (simulating a prior runtime update path).
     {
-        ESP32Wiimote first;
+        TestESP32Wiimote first;
         TEST_ASSERT_TRUE(first.init());
         // Manually patch the store with a custom TTL to simulate persisted state.
         RuntimeConfigStore store;
@@ -1015,7 +1372,7 @@ void testESP32WiimoteInitRestoresFastReconnectTtlFromStore() {
     // Second boot restores the custom TTL.
     mockLastFastReconnectTtlMs = 0U;
 
-    ESP32Wiimote second;
+    TestESP32Wiimote second;
     TEST_ASSERT_TRUE(second.init());
 
     TEST_ASSERT_EQUAL_UINT32(77777U, mockLastFastReconnectTtlMs);
@@ -1058,7 +1415,12 @@ int main(int argc, char **argv) {
     RUN_TEST(testESP32WiimoteWifiControlFailsWhenJoinFails);
     RUN_TEST(testESP32WiimoteUpdateWifiNetworkCredentialsChangesConfig);
     RUN_TEST(testESP32WiimoteUpdateWifiApiTokenChangesConfig);
+    RUN_TEST(testESP32WiimoteWifiTokenFallsBackToSerialTokenWhenConfigured);
+    RUN_TEST(testESP32WiimoteUpdateWifiNetworkCredentialsRejectsEmptyValues);
+    RUN_TEST(testESP32WiimoteUpdateWifiApiTokenRejectsEmptyValues);
     RUN_TEST(testESP32WiimoteRestartWifiControlRequiresEnabledControl);
+    RUN_TEST(testESP32WiimoteSerialCommandsExerciseWifiAndControllerWrappers);
+    RUN_TEST(testESP32WiimoteHttpRoutesExerciseStatusAndMutationWrappers);
     RUN_TEST(testESP32WiimoteSerialWifiStatusCommandPrintsWifiState);
     RUN_TEST(testESP32WiimoteSerialControlIgnoresNonCommandInput);
     RUN_TEST(testESP32WiimoteSerialControlReportsLineTooLong);
@@ -1108,7 +1470,12 @@ void setup() {
     RUN_TEST(testESP32WiimoteWifiControlFailsWhenJoinFails);
     RUN_TEST(testESP32WiimoteUpdateWifiNetworkCredentialsChangesConfig);
     RUN_TEST(testESP32WiimoteUpdateWifiApiTokenChangesConfig);
+    RUN_TEST(testESP32WiimoteWifiTokenFallsBackToSerialTokenWhenConfigured);
+    RUN_TEST(testESP32WiimoteUpdateWifiNetworkCredentialsRejectsEmptyValues);
+    RUN_TEST(testESP32WiimoteUpdateWifiApiTokenRejectsEmptyValues);
     RUN_TEST(testESP32WiimoteRestartWifiControlRequiresEnabledControl);
+    RUN_TEST(testESP32WiimoteSerialCommandsExerciseWifiAndControllerWrappers);
+    RUN_TEST(testESP32WiimoteHttpRoutesExerciseStatusAndMutationWrappers);
     RUN_TEST(testESP32WiimoteSerialWifiStatusCommandPrintsWifiState);
     RUN_TEST(testESP32WiimoteSerialControlIgnoresNonCommandInput);
     RUN_TEST(testESP32WiimoteSerialControlReportsLineTooLong);

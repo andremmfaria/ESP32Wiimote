@@ -30,7 +30,7 @@ void wiimoteSetLogLevel(uint8_t level) {
     gWiimoteLogLevel = sanitizeLogLevel(level);
 }
 
-void wiimoteLogVPrint(uint8_t level, const char *prefix, const char *format, va_list args) {
+void wiimoteLogPrint(uint8_t level, const char *prefix, const char *format, ...) {
     if (format == nullptr || prefix == nullptr || level > gWiimoteLogLevel) {
         return;
     }
@@ -38,21 +38,14 @@ void wiimoteLogVPrint(uint8_t level, const char *prefix, const char *format, va_
     Serial.print(prefix);
 
     char buffer[256];
-    va_list argsCopy;
-    va_copy(argsCopy, args);
-    const int kWritten = vsnprintf(buffer, sizeof(buffer), format, argsCopy);
-    va_end(argsCopy);
+    va_list args;
+    va_start(args, format);
+    const int kWritten = vsnprintf(buffer, sizeof(buffer), format, args);
+    va_end(args);
 
     if (kWritten <= 0) {
         return;
     }
 
     Serial.printf("%s", buffer);
-}
-
-void wiimoteLogPrint(uint8_t level, const char *prefix, const char *format, ...) {
-    va_list args;
-    va_start(args, format);
-    wiimoteLogVPrint(level, prefix, format, args);
-    va_end(args);
 }

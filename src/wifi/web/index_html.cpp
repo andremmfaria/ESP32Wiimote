@@ -95,4 +95,12 @@ const char kIndexHtml[] = R"HTML(<!doctype html>
 
 const size_t kIndexHtmlLen = sizeof(kIndexHtml) - 1U;
 
+const char *indexHtml() {
+    return kIndexHtml;
+}
+
+size_t indexHtmlLen() {
+    return kIndexHtmlLen;
+}
+
 }  // namespace web_assets

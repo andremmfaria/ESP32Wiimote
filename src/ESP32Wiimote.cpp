@@ -51,6 +51,20 @@ const char *safeSsid(const WiimoteNetworkCredentials &network) {
     return (network.ssid != nullptr && network.ssid[0] != '\0') ? network.ssid : "<unset>";
 }
 
+const char *copyOwnedString(char *dst, size_t dstSize, const char *src) {
+    if (dst == nullptr || dstSize == 0U) {
+        return nullptr;
+    }
+
+    dst[0] = '\0';
+    if (src == nullptr || src[0] == '\0') {
+        return nullptr;
+    }
+
+    snprintf(dst, dstSize, "%s", src);
+    return dst;
+}
+
 void logWifiConnectedDetails(const WiimoteNetworkCredentials &network,
                              const WifiDeliveryMode kMode) {
 #if defined(ARDUINO_ARCH_ESP32)
@@ -334,14 +348,20 @@ void handleWifiHttpRequest(const WifiHttpRequest *request,
 /**
  * Constructor - Initialize all component managers
  */
-ESP32Wiimote::ESP32Wiimote() : ESP32Wiimote(ESP32WiimoteConfig()) {}
+ESP32Wiimote::ESP32Wiimote() : ESP32Wiimote(ESP32WiimoteConfig(), nullptr) {}
 
-ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config)
+ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config) : ESP32Wiimote(config, nullptr) {}
+
+ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config, WifiHttpServer *httpServer)
     : config_(config)
     , serialPrivilegedToken_(nullptr)
     , wifiApiToken_(nullptr)
     , wifiEnabled_(false)
     , wifiTokenFallbackToSerial_(false)
+    , serialPrivilegedTokenStorage_{0}
+    , wifiApiTokenStorage_{0}
+    , wifiSsidStorage_{0}
+    , wifiPasswordStorage_{0}
     , runtimeConfigStoreReady_(false)
     , runtimeConfigSnapshot_()
     , serialControlEnabled_(false)
@@ -364,7 +384,8 @@ ESP32Wiimote::ESP32Wiimote(const ESP32WiimoteConfig &config)
     , apiRoutesRegistered_(false)
     , websocketRoutesRegistered_(false)
     , serverStarted_(false)
-    , serverBindFailed_(false) {
+    , serverBindFailed_(false)
+    , httpServer_(httpServer != nullptr ? httpServer : &ownedHttpServer_) {
     hciCallbacks_ = new HciCallbacksHandler();
     queueManager_ = new HciQueueManager(config_.txQueueSize, config_.rxQueueSize);
     buttonState_ = new ButtonStateManager();
@@ -398,11 +419,14 @@ void ESP32Wiimote::applyRuntimeConfig(const ESP32WiimoteConfig &config, bool log
         config.wifi.network.password != nullptr && config.wifi.network.password[0] != '\0';
 
     if (kHasSerialToken) {
-        config_.auth.serialPrivilegedToken = config.auth.serialPrivilegedToken;
+        config_.auth.serialPrivilegedToken =
+            copyOwnedString(serialPrivilegedTokenStorage_, sizeof(serialPrivilegedTokenStorage_),
+                            config.auth.serialPrivilegedToken);
     }
 
     if (kHasWifiApiToken) {
-        config_.auth.wifiApiToken = config.auth.wifiApiToken;
+        config_.auth.wifiApiToken = copyOwnedString(
+            wifiApiTokenStorage_, sizeof(wifiApiTokenStorage_), config.auth.wifiApiToken);
     }
 
     if (kHasSerialToken || kHasWifiApiToken || !config.auth.wifiTokenFallbackToSerial) {
@@ -418,7 +442,10 @@ void ESP32Wiimote::applyRuntimeConfig(const ESP32WiimoteConfig &config, bool log
     }
 
     if (kHasWifiNetwork) {
-        config_.wifi.network = config.wifi.network;
+        config_.wifi.network = WiimoteNetworkCredentials(
+            copyOwnedString(wifiSsidStorage_, sizeof(wifiSsidStorage_), config.wifi.network.ssid),
+            copyOwnedString(wifiPasswordStorage_, sizeof(wifiPasswordStorage_),
+                            config.wifi.network.password));
     }
 
     wifiEnabled_ = config_.wifi.enabled;
@@ -479,7 +506,9 @@ bool ESP32Wiimote::updateWifiNetworkCredentials(const char *ssid, const char *pa
         return false;
     }
 
-    config_.wifi.network = WiimoteNetworkCredentials(ssid, password);
+    config_.wifi.network = WiimoteNetworkCredentials(
+        copyOwnedString(wifiSsidStorage_, sizeof(wifiSsidStorage_), ssid),
+        copyOwnedString(wifiPasswordStorage_, sizeof(wifiPasswordStorage_), password));
     networkCredentials_ = config_.wifi.network;
     wifiNetworkCredentialsConfigured_ = true;
 
@@ -506,8 +535,9 @@ bool ESP32Wiimote::updateWifiApiToken(const char *token) {
         return false;
     }
 
-    config_.auth.wifiApiToken = token;
-    wifiApiToken_ = token;
+    config_.auth.wifiApiToken =
+        copyOwnedString(wifiApiTokenStorage_, sizeof(wifiApiTokenStorage_), token);
+    wifiApiToken_ = config_.auth.wifiApiToken;
     wifiTokenFallbackToSerial_ = false;
     return true;
 }
@@ -606,7 +636,7 @@ bool ESP32Wiimote::init() {
 void ESP32Wiimote::task() {
     if (!BluetoothController::isStarted()) {
         processWifiControl();
-        httpServer_.poll();
+        httpServer_->poll();
         return;
     }
 
@@ -619,7 +649,7 @@ void ESP32Wiimote::task() {
     }
 
     processWifiControl();
-    httpServer_.poll();
+    httpServer_->poll();
 }
 
 /**
@@ -772,6 +802,7 @@ void ESP32Wiimote::setLogLevel(uint8_t level) {
 uint8_t ESP32Wiimote::getLogLevel() {
     return wiimoteGetLogLevel();
 }
+
 /**
  * Add filter to ignore certain data types
  */
@@ -998,11 +1029,11 @@ bool ESP32Wiimote::startWifiHttpServer() {
 
     LOG_INFO("ESP32Wiimote: wifi.http starting port=%u\n",
              static_cast<unsigned int>(kWifiHttpPort));
-    httpServer_.setHandler(handleWifiHttpRequest, this);
-    if (!httpServer_.begin(kWifiHttpPort)) {
+    httpServer_->setHandler(handleWifiHttpRequest, this);
+    if (!httpServer_->begin(kWifiHttpPort)) {
         serverBindFailed_ = true;
         serverStarted_ = false;
-        const unsigned int kErrorCode = static_cast<unsigned int>(httpServer_.lastStartError());
+        const unsigned int kErrorCode = static_cast<unsigned int>(httpServer_->lastStartError());
         LOG_WARN("ESP32Wiimote: wifi.http start failed port=%u error_code=%u\n",
                  static_cast<unsigned int>(kWifiHttpPort), kErrorCode);
         return false;
@@ -1015,11 +1046,11 @@ bool ESP32Wiimote::startWifiHttpServer() {
 }
 
 void ESP32Wiimote::stopWifiHttpServer() {
-    if (!httpServer_.isStarted()) {
+    if (!httpServer_->isStarted()) {
         return;
     }
 
-    httpServer_.end();
+    httpServer_->end();
     if (serverStarted_) {
         LOG_INFO("ESP32Wiimote: wifi.http stopped port=%u\n",
                  static_cast<unsigned int>(kWifiHttpPort));

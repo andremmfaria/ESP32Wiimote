@@ -19,12 +19,12 @@ static const char *trimLeading(const char *str) {
 static bool startsWithCaseInsensitive(const char *str, const char *prefix) {
     while (*prefix != 0) {
         char s = *str;
-        const char p = *prefix;
+        const char kPrefixChar = *prefix;
         // Prefix is passed in lowercase by callers, so only normalize input.
         if (s >= 'A' && s <= 'Z') {
             s = static_cast<char>(s - 'A' + 'a');
         }
-        if (s != p) {
+        if (s != kPrefixChar) {
             return false;
         }
         ++str;

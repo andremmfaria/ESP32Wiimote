@@ -39,14 +39,14 @@ using wifi_http_request_handler_fn = void (*)(const WifiHttpRequest *request,
 class WifiHttpServer {
    public:
     WifiHttpServer();
-    ~WifiHttpServer();
+    virtual ~WifiHttpServer();
 
-    void setHandler(wifi_http_request_handler_fn handler, void *userData);
-    bool begin(uint16_t port);
-    void end();
-    void poll() const;
-    bool isStarted() const;
-    WifiHttpServerStartError lastStartError() const;
+    virtual void setHandler(wifi_http_request_handler_fn handler, void *userData);
+    virtual bool begin(uint16_t port);
+    virtual void end();
+    virtual void poll() const;
+    virtual bool isStarted() const;
+    virtual WifiHttpServerStartError lastStartError() const;
 
    private:
     wifi_http_request_handler_fn handler_ = nullptr;

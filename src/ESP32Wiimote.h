@@ -121,6 +121,12 @@ class ESP32Wiimote {
     explicit ESP32Wiimote(const ESP32WiimoteConfig &config);
 
     /**
+     * Create ESP32Wiimote instance with explicit config and injected HTTP server.
+     * When httpServer is null, the default owned server instance is used.
+     */
+    ESP32Wiimote(const ESP32WiimoteConfig &config, WifiHttpServer *httpServer);
+
+    /**
      * Configure runtime auth and Wi-Fi policy from the unified config object.
      * This configuration is independent from initialization and can be
      * applied before init() to define token and Wi-Fi behavior.
@@ -359,12 +365,18 @@ class ESP32Wiimote {
     void addFilter(FilterAction action, int filter);
 
    private:
+    static constexpr size_t kStoredConfigStringCapacity = kSerialMaxLineLength + 1U;
+
     ESP32WiimoteConfig config_;
     const char *serialPrivilegedToken_;
     const char *wifiApiToken_;
     WiimoteNetworkCredentials networkCredentials_;
     bool wifiEnabled_;
     bool wifiTokenFallbackToSerial_;
+    char serialPrivilegedTokenStorage_[kStoredConfigStringCapacity];
+    char wifiApiTokenStorage_[kStoredConfigStringCapacity];
+    char wifiSsidStorage_[kStoredConfigStringCapacity];
+    char wifiPasswordStorage_[kStoredConfigStringCapacity];
     RuntimeConfigStore runtimeConfigStore_;
     bool runtimeConfigStoreReady_;
     RuntimeConfigSnapshot runtimeConfigSnapshot_;
@@ -409,7 +421,8 @@ class ESP32Wiimote {
     void stopWifiHttpServer();
     void persistRuntimeConfigSnapshot();
 
-    WifiHttpServer httpServer_;
+    WifiHttpServer ownedHttpServer_;
+    WifiHttpServer *httpServer_;
 };
 
 #endif  // ESP32_WIIMOTE_ES_P32_WIIMOTE_H

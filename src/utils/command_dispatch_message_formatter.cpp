@@ -25,8 +25,8 @@ bool commandDispatchFormatMessage(CommandDispatchMessageTemplate tmpl,
             return false;
     }
 
-    const int written = std::snprintf(out, outSize, format, field);
-    return written >= 0 && static_cast<size_t>(written) < outSize;
+    const int kWritten = std::snprintf(out, outSize, format, field);
+    return kWritten >= 0 && static_cast<size_t>(kWritten) < outSize;
 }
 
 const char *commandDispatchMessageText(CommandDispatchMessageTemplate tmpl) {

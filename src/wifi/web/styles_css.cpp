@@ -161,4 +161,12 @@ body {
 
 const size_t kStylesCssLen = sizeof(kStylesCss) - 1U;
 
+const char *stylesCss() {
+    return kStylesCss;
+}
+
+size_t stylesCssLen() {
+    return kStylesCssLen;
+}
+
 }  // namespace web_assets

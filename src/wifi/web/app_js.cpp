@@ -163,4 +163,12 @@ refreshWifiControl();
 
 const size_t kAppJsLen = sizeof(kAppJs) - 1U;
 
+const char *appJs() {
+    return kAppJs;
+}
+
+size_t appJsLen() {
+    return kAppJsLen;
+}
+
 }  // namespace web_assets
