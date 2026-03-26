@@ -27,11 +27,24 @@ body {
 }
 
 .shell {
-  width: min(960px, 92vw);
+  width: min(1800px, 96vw);
   margin: 24px auto;
   display: grid;
   gap: 16px;
   animation: fade-in 300ms ease-out;
+}
+
+.content-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(100ch, 100ch);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.controls-stack {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
 }
 
 .hero h1 {
@@ -130,6 +143,40 @@ body {
   padding: 12px;
   overflow: auto;
   font-size: 0.85rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-inline-size: none;
+}
+
+.logs-sidebar {
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(8, 14, 24, 0.9);
+  backdrop-filter: blur(6px);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  position: sticky;
+  top: 24px;
+  height: calc(100vh - 48px);
+}
+
+.logs-sidebar h2 {
+  margin: 0;
+  color: var(--accent);
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+}
+
+#api-log {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
 }
 
 @keyframes fade-in {
@@ -149,12 +196,23 @@ body {
     gap: 12px;
   }
 
+  .content-layout {
+    grid-template-columns: 1fr;
+  }
+
   .panel {
     padding: 14px;
   }
 
   .field-grid {
     grid-template-columns: 1fr;
+  }
+
+  .logs-sidebar {
+    min-height: 45vh;
+    border: 1px solid var(--line);
+    position: static;
+    height: auto;
   }
 }
 )ESP32WIIMOTE_CSS";

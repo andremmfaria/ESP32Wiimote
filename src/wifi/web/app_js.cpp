@@ -4,12 +4,19 @@
 
 namespace web_assets {
 
-const char kAppJs[] = R"ESP32WIIMOTE_JS(const logEl = document.getElementById('log');
+const char kAppJs[] = R"ESP32WIIMOTE_JS(const logEl = document.getElementById('api-log');
 const authInput = document.getElementById('auth-input');
+const kMaxLogMessages = 1000;
+let gApiMessages = [];
 
 function appendLog(line) {
   const stamp = new Date().toISOString().slice(11, 19);
-  logEl.textContent = `[${stamp}] ${line}\n` + logEl.textContent;
+  gApiMessages.push(`[${stamp}] ${line}`);
+  if (gApiMessages.length > kMaxLogMessages) {
+    gApiMessages = gApiMessages.slice(gApiMessages.length - kMaxLogMessages);
+  }
+  logEl.textContent = gApiMessages.join('\n');
+  logEl.scrollTop = logEl.scrollHeight;
 }
 
 function authHeader() {
