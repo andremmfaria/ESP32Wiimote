@@ -46,6 +46,7 @@ class WifiHttpServer {
     virtual void end();
     virtual void poll() const;
     virtual bool isStarted() const;
+    virtual bool isDispatchingRequest() const;
     virtual WifiHttpServerStartError lastStartError() const;
 
    private:
@@ -54,6 +55,7 @@ class WifiHttpServer {
     bool started_ = false;
     uint16_t port_ = 0U;
     WifiHttpServerStartError lastStartError_ = WifiHttpServerStartError::None;
+    bool dispatchingRequest_ = false;
     void *impl_ = nullptr;
 };
 

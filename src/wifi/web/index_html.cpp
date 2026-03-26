@@ -42,12 +42,12 @@ const char kIndexHtml[] = R"HTML(<!doctype html>
           <input id="auth-input" class="input" type="text" placeholder="Authorization header value">
         </section>
         <section class="panel" aria-label="Controller actions">
-          <h2>Actions</h2>
+          <h2>Bluetooth Actions</h2>
           <div class="actions">
-            <button id="scan-start" class="btn">Start Scan</button>
-            <button id="scan-stop" class="btn">Stop Scan</button>
-            <button id="request-status" class="btn">Request Status</button>
-            <button id="disconnect" class="btn danger">Disconnect</button>
+            <button id="scan-start" class="btn">Scan for Wiimote</button>
+            <button id="scan-stop" class="btn">Stop Scanning</button>
+            <button id="request-status" class="btn">Poll Wiimote Status</button>
+            <button id="disconnect" class="btn danger">Disconnect Wiimote</button>
           </div>
         </section>
         <section class="panel" aria-label="Wi-Fi control">
@@ -69,21 +69,21 @@ const char kIndexHtml[] = R"HTML(<!doctype html>
           <br>
           <div class="actions">
             <button id="refresh-wifi-control" class="btn primary">Refresh Wi-Fi Status</button>
-            <button id="wifi-enable" class="btn">Enable Wi-Fi Control</button>
-            <button id="wifi-disable" class="btn danger">Disable Wi-Fi Control</button>
-            <button id="wifi-mode-rest" class="btn">Mode: REST</button>
-            <button id="wifi-mode-rest-ws" class="btn">Mode: REST + WS</button>
+            <button id="wifi-enable" class="btn">Enable Wi-Fi</button>
+            <button id="wifi-disable" class="btn danger">Disable Wi-Fi</button>
+            <button id="wifi-mode-rest" class="btn">Switch to REST Only</button>
+            <button id="wifi-mode-rest-ws" class="btn">Switch to REST + WebSocket</button>
             <button id="wifi-restart" class="btn">Restart Wi-Fi</button>
           </div>
           <br>
           <div class="field-grid">
             <input id="wifi-ssid" class="input" type="text" placeholder="Wi-Fi SSID">
-            <input id="wifi-password" class="input" type="text" placeholder="Wi-Fi Password">
-            <button id="wifi-set-network" class="btn">Set Network</button>
+            <input id="wifi-password" class="input" type="password" placeholder="Wi-Fi Password">
+            <button id="wifi-set-network" class="btn">Update Network</button>
           </div>
           <div class="field-grid">
-            <input id="wifi-token" class="input" type="text" placeholder="New API token">
-            <button id="wifi-set-token" class="btn">Set API Token</button>
+            <input id="wifi-token" class="input" type="password" placeholder="New API token">
+            <button id="wifi-set-token" class="btn">Update API Token</button>
           </div>
         </section>
       </div>

@@ -411,10 +411,14 @@ class ESP32Wiimote {
     bool websocketRoutesRegistered_;
     bool serverStarted_;
     bool serverBindFailed_;
+    bool wifiLifecycleStopPending_;
+    bool wifiLifecycleRestartPending_;
 
     void processSerialControl();
     void processSerialCommandLine(const char *line);
     void applyRuntimeConfig(const ESP32WiimoteConfig &config, bool logValidationErrors);
+    void queueWifiLifecycleAction(bool restart);
+    void applyQueuedWifiLifecycleAction();
     void processWifiControl();
     void resetWifiLifecycleState();
     bool startWifiHttpServer();

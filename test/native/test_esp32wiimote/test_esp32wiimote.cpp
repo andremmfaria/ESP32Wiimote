@@ -14,8 +14,10 @@ class FakeWifiHttpServer : public WifiHttpServer {
         beginResult_ = true;
         beginCallCount_ = 0;
         endCallCount_ = 0;
+        endDuringDispatchCallCount_ = 0;
         pollCallCount_ = 0;
         started_ = false;
+        dispatchingRequest_ = false;
         handler_ = nullptr;
         userData_ = nullptr;
         lastStartError_ = WifiHttpServerStartError::None;
@@ -26,6 +28,8 @@ class FakeWifiHttpServer : public WifiHttpServer {
     int beginCallCount() const { return beginCallCount_; }
 
     int endCallCount() const { return endCallCount_; }
+
+    int endDuringDispatchCallCount() const { return endDuringDispatchCallCount_; }
 
     int pollCallCount() const { return pollCallCount_; }
 
@@ -42,9 +46,11 @@ class FakeWifiHttpServer : public WifiHttpServer {
         }
 
         WifiHttpResponse response = {};
-        const WifiHttpRequest request = {parseMethod(method), path, authHeader, body,
-                                         body != nullptr ? std::strlen(body) : 0U};
-        handler_(&request, responseBuf, responseBufSize, &response, userData_);
+        const WifiHttpRequest kRequest = {parseMethod(method), path, authHeader, body,
+                                          body != nullptr ? std::strlen(body) : 0U};
+        dispatchingRequest_ = true;
+        handler_(&kRequest, responseBuf, responseBufSize, &response, userData_);
+        dispatchingRequest_ = false;
 
         if (status != nullptr) {
             *status = response.status;
@@ -88,6 +94,9 @@ class FakeWifiHttpServer : public WifiHttpServer {
             return;
         }
 
+        if (dispatchingRequest_) {
+            ++endDuringDispatchCallCount_;
+        }
         ++endCallCount_;
         started_ = false;
         handler_ = nullptr;
@@ -103,6 +112,8 @@ class FakeWifiHttpServer : public WifiHttpServer {
     }
 
     bool isStarted() const override { return started_; }
+
+    bool isDispatchingRequest() const override { return dispatchingRequest_; }
 
     WifiHttpServerStartError lastStartError() const override { return lastStartError_; }
 
@@ -125,8 +136,10 @@ class FakeWifiHttpServer : public WifiHttpServer {
     mutable int pollCallCount_ = 0;
     int beginCallCount_ = 0;
     int endCallCount_ = 0;
+    int endDuringDispatchCallCount_ = 0;
     bool beginResult_ = true;
     bool started_ = false;
+    bool dispatchingRequest_ = false;
     WifiHttpServerStartError lastStartError_ = WifiHttpServerStartError::None;
 };
 
@@ -154,6 +167,10 @@ int wifiHttpServerMockGetBeginCallCount() {
 
 int wifiHttpServerMockGetEndCallCount() {
     return gFakeWifiHttpServer.endCallCount();
+}
+
+int wifiHttpServerMockGetEndDuringDispatchCallCount() {
+    return gFakeWifiHttpServer.endDuringDispatchCallCount();
 }
 
 int wifiHttpServerMockGetPollCallCount() {
@@ -1182,6 +1199,162 @@ void testESP32WiimoteHttpRoutesExerciseStatusAndMutationWrappers() {
     TEST_ASSERT_EQUAL(1, mockSetAutoReconnectEnabledCallCount);
 }
 
+void testESP32WiimoteHttpModeSwitchDefersServerStopUntilAfterDispatch() {
+    static const size_t kResponseBufSize = 512U;
+    ESP32WiimoteConfig config;
+    config.wifi.enabled = true;
+    config.auth.serialPrivilegedToken = "token";
+    config.auth.wifiApiToken = "token";
+    config.wifi.network.ssid = "ssid";
+    config.wifi.network.password = "wifi_password";
+    TestESP32Wiimote device(config);
+
+    device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
+    for (int i = 0; i < 5; ++i) {
+        device.task();
+    }
+    TEST_ASSERT_TRUE(device.isWifiControlReady());
+
+    char responseBuf[kResponseBufSize] = {0};
+    int status = 0;
+    const char *contentType = nullptr;
+    TEST_ASSERT_TRUE(
+        wifiHttpServerMockDispatchRequest("POST", "/api/wifi/delivery-mode", "Bearer token",
+                                          "{\"command\":\"set_wifi_mode\",\"mode\":\"rest-ws\"}",
+                                          &status, &contentType, responseBuf, sizeof(responseBuf)));
+    TEST_ASSERT_EQUAL(200, status);
+    TEST_ASSERT_EQUAL(0, wifiHttpServerMockGetEndDuringDispatchCallCount());
+
+    // Deferred restart executes in the next loop iteration.
+    device.task();
+    TEST_ASSERT_EQUAL(1, wifiHttpServerMockGetEndCallCount());
+    TEST_ASSERT_FALSE(device.isWifiControlReady());
+}
+
+void testESP32WiimoteHttpModeSwitchToRestDefersServerStopUntilAfterDispatch() {
+    static const size_t kResponseBufSize = 512U;
+    ESP32WiimoteConfig config;
+    config.wifi.enabled = true;
+    config.auth.serialPrivilegedToken = "token";
+    config.auth.wifiApiToken = "token";
+    config.wifi.network.ssid = "ssid";
+    config.wifi.network.password = "wifi_password";
+    TestESP32Wiimote device(config);
+
+    device.enableWifiControl(true, WifiDeliveryMode::RestAndWebSocket);
+    for (int i = 0; i < 6; ++i) {
+        device.task();
+    }
+    TEST_ASSERT_TRUE(device.isWifiControlReady());
+
+    char responseBuf[kResponseBufSize] = {0};
+    int status = 0;
+    const char *contentType = nullptr;
+    TEST_ASSERT_TRUE(
+        wifiHttpServerMockDispatchRequest("POST", "/api/wifi/delivery-mode", "Bearer token",
+                                          "{\"command\":\"set_wifi_mode\",\"mode\":\"rest\"}",
+                                          &status, &contentType, responseBuf, sizeof(responseBuf)));
+    TEST_ASSERT_EQUAL(200, status);
+    TEST_ASSERT_EQUAL(0, wifiHttpServerMockGetEndDuringDispatchCallCount());
+
+    device.task();
+    TEST_ASSERT_EQUAL(1, wifiHttpServerMockGetEndCallCount());
+    TEST_ASSERT_FALSE(device.isWifiControlReady());
+}
+
+void testESP32WiimoteHttpRestartDefersServerStopUntilAfterDispatch() {
+    static const size_t kResponseBufSize = 512U;
+    ESP32WiimoteConfig config;
+    config.wifi.enabled = true;
+    config.auth.serialPrivilegedToken = "token";
+    config.auth.wifiApiToken = "token";
+    config.wifi.network.ssid = "ssid";
+    config.wifi.network.password = "wifi_password";
+    TestESP32Wiimote device(config);
+
+    device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
+    for (int i = 0; i < 5; ++i) {
+        device.task();
+    }
+    TEST_ASSERT_TRUE(device.isWifiControlReady());
+
+    char responseBuf[kResponseBufSize] = {0};
+    int status = 0;
+    const char *contentType = nullptr;
+    TEST_ASSERT_TRUE(wifiHttpServerMockDispatchRequest(
+        "POST", "/api/wifi/restart", "Bearer token", "{\"command\":\"restart_wifi\"}", &status,
+        &contentType, responseBuf, sizeof(responseBuf)));
+    TEST_ASSERT_EQUAL(200, status);
+    TEST_ASSERT_EQUAL(0, wifiHttpServerMockGetEndDuringDispatchCallCount());
+
+    device.task();
+    TEST_ASSERT_EQUAL(1, wifiHttpServerMockGetEndCallCount());
+    TEST_ASSERT_FALSE(device.isWifiControlReady());
+}
+
+void testESP32WiimoteHttpSetNetworkDefersServerStopUntilAfterDispatch() {
+    static const size_t kResponseBufSize = 512U;
+    ESP32WiimoteConfig config;
+    config.wifi.enabled = true;
+    config.auth.serialPrivilegedToken = "token";
+    config.auth.wifiApiToken = "token";
+    config.wifi.network.ssid = "ssid";
+    config.wifi.network.password = "wifi_password";
+    TestESP32Wiimote device(config);
+
+    device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
+    for (int i = 0; i < 5; ++i) {
+        device.task();
+    }
+    TEST_ASSERT_TRUE(device.isWifiControlReady());
+
+    char responseBuf[kResponseBufSize] = {0};
+    int status = 0;
+    const char *contentType = nullptr;
+    TEST_ASSERT_TRUE(wifiHttpServerMockDispatchRequest(
+        "POST", "/api/wifi/network", "Bearer token",
+        "{\"command\":\"set_wifi_network\",\"ssid\":\"ssid_new\",\"password\":\"pass_new\"}",
+        &status, &contentType, responseBuf, sizeof(responseBuf)));
+    TEST_ASSERT_EQUAL(200, status);
+    TEST_ASSERT_EQUAL(0, wifiHttpServerMockGetEndDuringDispatchCallCount());
+
+    device.task();
+    TEST_ASSERT_EQUAL(1, wifiHttpServerMockGetEndCallCount());
+    TEST_ASSERT_FALSE(device.isWifiControlReady());
+}
+
+void testESP32WiimoteHttpControlDisableDefersServerStopUntilAfterDispatch() {
+    static const size_t kResponseBufSize = 512U;
+    ESP32WiimoteConfig config;
+    config.wifi.enabled = true;
+    config.auth.serialPrivilegedToken = "token";
+    config.auth.wifiApiToken = "token";
+    config.wifi.network.ssid = "ssid";
+    config.wifi.network.password = "wifi_password";
+    TestESP32Wiimote device(config);
+
+    device.enableWifiControl(true, WifiDeliveryMode::RestOnly);
+    for (int i = 0; i < 5; ++i) {
+        device.task();
+    }
+    TEST_ASSERT_TRUE(device.isWifiControlReady());
+
+    char responseBuf[kResponseBufSize] = {0};
+    int status = 0;
+    const char *contentType = nullptr;
+    TEST_ASSERT_TRUE(wifiHttpServerMockDispatchRequest(
+        "POST", "/api/wifi/control", "Bearer token",
+        "{\"command\":\"set_wifi_control\",\"enabled\":\"false\"}", &status, &contentType,
+        responseBuf, sizeof(responseBuf)));
+    TEST_ASSERT_EQUAL(200, status);
+    TEST_ASSERT_EQUAL(0, wifiHttpServerMockGetEndDuringDispatchCallCount());
+    TEST_ASSERT_FALSE(device.isWifiControlEnabled());
+
+    device.task();
+    TEST_ASSERT_EQUAL(1, wifiHttpServerMockGetEndCallCount());
+    TEST_ASSERT_FALSE(device.isWifiControlReady());
+}
+
 void testESP32WiimoteSerialWifiStatusCommandPrintsWifiState() {
     ESP32WiimoteConfig config;
     config.wifi.enabled = true;
@@ -1421,6 +1594,11 @@ int main(int argc, char **argv) {
     RUN_TEST(testESP32WiimoteRestartWifiControlRequiresEnabledControl);
     RUN_TEST(testESP32WiimoteSerialCommandsExerciseWifiAndControllerWrappers);
     RUN_TEST(testESP32WiimoteHttpRoutesExerciseStatusAndMutationWrappers);
+    RUN_TEST(testESP32WiimoteHttpModeSwitchDefersServerStopUntilAfterDispatch);
+    RUN_TEST(testESP32WiimoteHttpModeSwitchToRestDefersServerStopUntilAfterDispatch);
+    RUN_TEST(testESP32WiimoteHttpRestartDefersServerStopUntilAfterDispatch);
+    RUN_TEST(testESP32WiimoteHttpSetNetworkDefersServerStopUntilAfterDispatch);
+    RUN_TEST(testESP32WiimoteHttpControlDisableDefersServerStopUntilAfterDispatch);
     RUN_TEST(testESP32WiimoteSerialWifiStatusCommandPrintsWifiState);
     RUN_TEST(testESP32WiimoteSerialControlIgnoresNonCommandInput);
     RUN_TEST(testESP32WiimoteSerialControlReportsLineTooLong);
@@ -1476,6 +1654,11 @@ void setup() {
     RUN_TEST(testESP32WiimoteRestartWifiControlRequiresEnabledControl);
     RUN_TEST(testESP32WiimoteSerialCommandsExerciseWifiAndControllerWrappers);
     RUN_TEST(testESP32WiimoteHttpRoutesExerciseStatusAndMutationWrappers);
+    RUN_TEST(testESP32WiimoteHttpModeSwitchDefersServerStopUntilAfterDispatch);
+    RUN_TEST(testESP32WiimoteHttpModeSwitchToRestDefersServerStopUntilAfterDispatch);
+    RUN_TEST(testESP32WiimoteHttpRestartDefersServerStopUntilAfterDispatch);
+    RUN_TEST(testESP32WiimoteHttpSetNetworkDefersServerStopUntilAfterDispatch);
+    RUN_TEST(testESP32WiimoteHttpControlDisableDefersServerStopUntilAfterDispatch);
     RUN_TEST(testESP32WiimoteSerialWifiStatusCommandPrintsWifiState);
     RUN_TEST(testESP32WiimoteSerialControlIgnoresNonCommandInput);
     RUN_TEST(testESP32WiimoteSerialControlReportsLineTooLong);

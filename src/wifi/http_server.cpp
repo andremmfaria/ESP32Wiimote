@@ -80,8 +80,15 @@ bool WifiHttpServer::begin(uint16_t port) {
             static_cast<size_t>(kBody.length()),
         };
 
+        dispatchingRequest_ = true;
         handler_(&kRequest, responseBuf, sizeof(responseBuf), &response, userData_);
-        currentServer->send(
+        dispatchingRequest_ = false;
+
+        WebServer *activeServer = static_cast<WebServer *>(impl_);
+        if (activeServer == nullptr) {
+            return;
+        }
+        activeServer->send(
             response.status,
             response.contentType != nullptr ? response.contentType : "application/json",
             responseBuf);
@@ -123,6 +130,10 @@ bool WifiHttpServer::isStarted() const {
     return started_;
 }
 
+bool WifiHttpServer::isDispatchingRequest() const {
+    return dispatchingRequest_;
+}
+
 WifiHttpServerStartError WifiHttpServer::lastStartError() const {
     return lastStartError_;
 }
@@ -153,6 +164,10 @@ void WifiHttpServer::end() {
 void WifiHttpServer::poll() const {}
 
 bool WifiHttpServer::isStarted() const {
+    return false;
+}
+
+bool WifiHttpServer::isDispatchingRequest() const {
     return false;
 }
 
