@@ -51,7 +51,7 @@ static void hciSend(struct HciEventContext *ctx, uint16_t len) {
 
 static void logCommandCompleteError(uint16_t cmdOpcode, uint8_t status) {
     wiimoteLogError("HCI: %s (0x%04x) failed, status=0x%02x (%s)\n", hciOpcodeToString(cmdOpcode),
-              cmdOpcode, status, hciStatusCodeToString(status));
+                    cmdOpcode, status, hciStatusCodeToString(status));
 }
 
 static uint32_t nowMs(struct HciEventContext *ctx) {
@@ -208,11 +208,13 @@ static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *da
 
         case kHciOpcodeWriteScanEnable: {
             if (kStatus == 0x00) {
-                if (ctx->autoReconnectEnabled && isFastReconnectCacheValid(ctx)) {
-                    wiimoteLogInfo("HCI: Fast reconnect: trying cached Wiimote address\n");
-                    startCreateConnection(ctx, ctx->lastWiimote, true);
-                } else {
-                    startInquiry(ctx);
+                if (ctx->scanningEnabled || !ctx->deviceInited) {
+                    if (ctx->autoReconnectEnabled && isFastReconnectCacheValid(ctx)) {
+                        wiimoteLogInfo("HCI: Fast reconnect: trying cached Wiimote address\n");
+                        startCreateConnection(ctx, ctx->lastWiimote, true);
+                    } else {
+                        startInquiry(ctx);
+                    }
                 }
                 ctx->deviceInited = true;
             } else {
@@ -227,8 +229,8 @@ static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *da
         default:
             if (kStatus != 0x00) {
                 wiimoteLogWarn("HCI: %s (0x%04x) completed with error status=0x%02x (%s)\n",
-                         hciOpcodeToString(kCmdOpcode), kCmdOpcode, kStatus,
-                         hciStatusCodeToString(kStatus));
+                               hciOpcodeToString(kCmdOpcode), kCmdOpcode, kStatus,
+                               hciStatusCodeToString(kStatus));
             }
             break;
     }
@@ -241,8 +243,8 @@ static void handleCommandStatus(struct HciEventContext *ctx, const uint8_t *data
 
     if (kStatus != 0x00) {
         wiimoteLogWarn("HCI: Command status for %s (0x%04x): status=0x%02x (%s), numPackets=%u\n",
-                 hciOpcodeToString(kCmdOpcode), kCmdOpcode, kStatus, hciStatusCodeToString(kStatus),
-                 kNumHciCommandPackets);
+                       hciOpcodeToString(kCmdOpcode), kCmdOpcode, kStatus,
+                       hciStatusCodeToString(kStatus), kNumHciCommandPackets);
 
         if (kCmdOpcode == kHciOpcodeCreateConnection) {
             fallbackFromFastReconnectToInquiry(ctx);
@@ -321,7 +323,7 @@ static void handleConnectionComplete(struct HciEventContext *ctx, uint8_t *data)
     const uint8_t kStatus = data[0];
     if (kStatus != 0x00) {
         wiimoteLogWarn("HCI: Connection complete with status=0x%02x (%s)\n", kStatus,
-                 hciStatusCodeToString(kStatus));
+                       hciStatusCodeToString(kStatus));
         fallbackFromFastReconnectToInquiry(ctx);
         return;
     }
@@ -332,7 +334,8 @@ static void handleConnectionComplete(struct HciEventContext *ctx, uint8_t *data)
     if (ctx->hasCurrentConnectTarget) {
         if (ctx->hasLastWiimote &&
             !isSameBdAddr(ctx->lastWiimote.bdAddr, ctx->currentConnectTarget.bdAddr)) {
-            wiimoteLogInfo("HCI: Connected to a different Wiimote, replacing fast reconnect cache\n");
+            wiimoteLogInfo(
+                "HCI: Connected to a different Wiimote, replacing fast reconnect cache\n");
             ctx->hasLastWiimote = false;
             ctx->lastWiimoteSeenMs = 0;
         }
@@ -354,7 +357,7 @@ static void handleDisconnectionComplete(struct HciEventContext *ctx, const uint8
     const uint8_t kReason = data[3];
 
     wiimoteLogInfo("HCI: Disconnection complete! Handle: 0x%04x, Reason: 0x%02x (%s)\n",
-             kConnectionHandle, kReason, hciDisconnectionReasonToString(kReason));
+                   kConnectionHandle, kReason, hciDisconnectionReasonToString(kReason));
 
     if (ctx->onDisconnected != nullptr) {
         ctx->onDisconnected(kConnectionHandle, kReason, ctx->userData);
@@ -399,7 +402,7 @@ void hciEventsHandleEvent(struct HciEventContext *ctx, const HciEventPacket &pac
 
         default:
             wiimoteLogDebug("HCI: Unhandled event 0x%02x (%s)\n", packet.eventCode,
-                      hciEventCodeToString(packet.eventCode));
+                            hciEventCodeToString(packet.eventCode));
             break;
     }
 }

@@ -536,6 +536,8 @@ void testPostScanStart() {
                                     "{\"command\":\"scan_start\"}");
     TEST_ASSERT_EQUAL(200, r.httpStatus);
     TEST_ASSERT_TRUE(gLastScanEnabled);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "\"command\":\"scan_start\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "\"scanEnabled\":true"));
 }
 
 void testPostScanStop() {
@@ -545,6 +547,8 @@ void testPostScanStop() {
                                     "{\"command\":\"scan_stop\"}");
     TEST_ASSERT_EQUAL(200, r.httpStatus);
     TEST_ASSERT_FALSE(gLastScanEnabled);
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "\"command\":\"scan_stop\""));
+    TEST_ASSERT_NOT_NULL(std::strstr(gBuf, "\"scanEnabled\":false"));
 }
 
 void testPostScanUnknownVerbReturns400() {

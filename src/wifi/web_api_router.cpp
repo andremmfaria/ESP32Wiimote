@@ -426,6 +426,21 @@ WebApiRouteResult acceptedResponse(char *buf, size_t size, uint32_t commandId) {
                       "application/json");
 }
 
+WebApiRouteResult scanCommandResponse(char *buf,
+                                      size_t size,
+                                      const char *command,
+                                      bool scanEnabled) {
+    const int written =
+        std::snprintf(buf, size, "{\"status\":\"ok\",\"command\":\"%s\",\"scanEnabled\":%s}",
+                      command, scanEnabled ? "true" : "false");
+    if (written < 0 || static_cast<size_t>(written) >= size) {
+        return reasonResponse(
+            buf, size, CommandDispatchReason::InternalError,
+            commandDispatchMessageText(CommandDispatchMessageTemplate::ResponseBufferTooSmall));
+    }
+    return makeResult(200, "application/json");
+}
+
 bool enqueueCommandIfConfigured(const WebApiContext *ctx,
                                 const char *path,
                                 const WebParsedCommand *cmd,
@@ -775,8 +790,7 @@ WebApiRouteResult handlePostScan(const WebApiContext *ctx,
             return queueResult;
         }
         ctx->setScanEnabled(true, ctx->userData);
-        serializeOk(buf, size);
-        return makeResult(200, "application/json");
+        return scanCommandResponse(buf, size, "scan_start", true);
     }
     if (std::strcmp(cmd->verb, "scan_stop") == 0) {
         if (enqueueCommandIfConfigured(ctx, "/api/wiimote/commands/scan", cmd, buf, size,
@@ -784,8 +798,7 @@ WebApiRouteResult handlePostScan(const WebApiContext *ctx,
             return queueResult;
         }
         ctx->setScanEnabled(false, ctx->userData);
-        serializeOk(buf, size);
-        return makeResult(200, "application/json");
+        return scanCommandResponse(buf, size, "scan_stop", false);
     }
     return invalidVerbResponse(
         buf, size, commandDispatchMessageText(CommandDispatchMessageTemplate::UnknownScanVerb));
