@@ -18,10 +18,14 @@ enum class WiimoteLogLevel : uint8_t {
     Debug = 3,
 };
 
-static constexpr uint8_t kWiimoteLogError = static_cast<uint8_t>(WiimoteLogLevel::Error);
-static constexpr uint8_t kWiimoteLogWarning = static_cast<uint8_t>(WiimoteLogLevel::Warning);
-static constexpr uint8_t kWiimoteLogInfo = static_cast<uint8_t>(WiimoteLogLevel::Info);
-static constexpr uint8_t kWiimoteLogDebug = static_cast<uint8_t>(WiimoteLogLevel::Debug);
+constexpr uint8_t wiimoteLogLevelValue(const WiimoteLogLevel level) {
+    return static_cast<uint8_t>(level);
+}
+
+constexpr uint8_t kWiimoteLogError = wiimoteLogLevelValue(WiimoteLogLevel::Error);
+constexpr uint8_t kWiimoteLogWarning = wiimoteLogLevelValue(WiimoteLogLevel::Warning);
+constexpr uint8_t kWiimoteLogInfo = wiimoteLogLevelValue(WiimoteLogLevel::Info);
+constexpr uint8_t kWiimoteLogDebug = wiimoteLogLevelValue(WiimoteLogLevel::Debug);
 
 #ifndef WIIMOTE_VERBOSE
 #define WIIMOTE_VERBOSE 2
@@ -29,16 +33,12 @@ static constexpr uint8_t kWiimoteLogDebug = static_cast<uint8_t>(WiimoteLogLevel
 
 uint8_t wiimoteGetLogLevel();
 void wiimoteSetLogLevel(uint8_t level);
+void wiimoteVLogPrint(uint8_t level, const char *prefix, const char *format, va_list args);
+
 void wiimoteLogPrint(uint8_t level, const char *prefix, const char *format, ...);
-
-#define wiimoteLogError(...) wiimoteLogPrint(kWiimoteLogError, "[ERROR] ", __VA_ARGS__)
-#define wiimoteLogWarn(...) wiimoteLogPrint(kWiimoteLogWarning, "[WARN] ", __VA_ARGS__)
-#define wiimoteLogInfo(...) wiimoteLogPrint(kWiimoteLogInfo, "[INFO] ", __VA_ARGS__)
-#define wiimoteLogDebug(...) wiimoteLogPrint(kWiimoteLogDebug, "[DEBUG] ", __VA_ARGS__)
-
-#define LOG_ERROR(...) wiimoteLogError(__VA_ARGS__)
-#define LOG_WARN(...) wiimoteLogWarn(__VA_ARGS__)
-#define LOG_INFO(...) wiimoteLogInfo(__VA_ARGS__)
-#define LOG_DEBUG(...) wiimoteLogDebug(__VA_ARGS__)
+void wiimoteLogError(const char *format, ...);
+void wiimoteLogWarn(const char *format, ...);
+void wiimoteLogInfo(const char *format, ...);
+void wiimoteLogDebug(const char *format, ...);
 
 #endif  // ESP32_WIIMOTE_UTILS_SERIAL_LOGGING_H

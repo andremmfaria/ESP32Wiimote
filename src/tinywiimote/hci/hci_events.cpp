@@ -50,7 +50,7 @@ static void hciSend(struct HciEventContext *ctx, uint16_t len) {
 }
 
 static void logCommandCompleteError(uint16_t cmdOpcode, uint8_t status) {
-    LOG_ERROR("HCI: %s (0x%04x) failed, status=0x%02x (%s)\n", hciOpcodeToString(cmdOpcode),
+    wiimoteLogError("HCI: %s (0x%04x) failed, status=0x%02x (%s)\n", hciOpcodeToString(cmdOpcode),
               cmdOpcode, status, hciStatusCodeToString(status));
 }
 
@@ -75,7 +75,7 @@ static bool isFastReconnectCacheValid(struct HciEventContext *ctx) {
 }
 
 static void startInquiry(struct HciEventContext *ctx) {
-    LOG_INFO("HCI: Device initialized, starting inquiry\n");
+    wiimoteLogInfo("HCI: Device initialized, starting inquiry\n");
     clearScannedDevices(ctx);
     HciInquiryParams inquiryParams = {0x9E8B33, 0x05, 0x00};
     const uint16_t kTxLen = makeCmdInquiry(gHciTxBuffer, inquiryParams);
@@ -101,7 +101,7 @@ static void fallbackFromFastReconnectToInquiry(struct HciEventContext *ctx) {
         return;
     }
 
-    LOG_WARN("HCI: Fast reconnect failed, falling back to inquiry\n");
+    wiimoteLogWarn("HCI: Fast reconnect failed, falling back to inquiry\n");
     ctx->pendingFastReconnect = false;
     startInquiry(ctx);
 }
@@ -164,7 +164,7 @@ static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *da
     switch (kCmdOpcode) {
         case kHciOpcodeReset: {
             if (kStatus == 0x00) {
-                LOG_DEBUG("HCI: Reset successful\n");
+                wiimoteLogDebug("HCI: Reset successful\n");
                 const uint16_t kTxLen = makeCmdReadBdAddr(gHciTxBuffer);
                 hciSend(ctx, kTxLen);
             } else {
@@ -209,7 +209,7 @@ static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *da
         case kHciOpcodeWriteScanEnable: {
             if (kStatus == 0x00) {
                 if (ctx->autoReconnectEnabled && isFastReconnectCacheValid(ctx)) {
-                    LOG_INFO("HCI: Fast reconnect: trying cached Wiimote address\n");
+                    wiimoteLogInfo("HCI: Fast reconnect: trying cached Wiimote address\n");
                     startCreateConnection(ctx, ctx->lastWiimote, true);
                 } else {
                     startInquiry(ctx);
@@ -226,7 +226,7 @@ static void handleCommandComplete(struct HciEventContext *ctx, const uint8_t *da
 
         default:
             if (kStatus != 0x00) {
-                LOG_WARN("HCI: %s (0x%04x) completed with error status=0x%02x (%s)\n",
+                wiimoteLogWarn("HCI: %s (0x%04x) completed with error status=0x%02x (%s)\n",
                          hciOpcodeToString(kCmdOpcode), kCmdOpcode, kStatus,
                          hciStatusCodeToString(kStatus));
             }
@@ -240,7 +240,7 @@ static void handleCommandStatus(struct HciEventContext *ctx, const uint8_t *data
     const uint16_t kCmdOpcode = readUInt16Le(data + 2);
 
     if (kStatus != 0x00) {
-        LOG_WARN("HCI: Command status for %s (0x%04x): status=0x%02x (%s), numPackets=%u\n",
+        wiimoteLogWarn("HCI: Command status for %s (0x%04x): status=0x%02x (%s), numPackets=%u\n",
                  hciOpcodeToString(kCmdOpcode), kCmdOpcode, kStatus, hciStatusCodeToString(kStatus),
                  kNumHciCommandPackets);
 
@@ -257,7 +257,7 @@ static void handleInquiryComplete(struct HciEventContext *ctx, const uint8_t *da
 
 static void handleInquiryResult(struct HciEventContext *ctx, const uint8_t *data) {
     const uint8_t kNum = data[0];
-    LOG_DEBUG("HCI: Inquiry result: found %d device(s)\n", kNum);
+    wiimoteLogDebug("HCI: Inquiry result: found %d device(s)\n", kNum);
 
     for (int i = 0; i < kNum; i++) {
         const int kPos = 1 + ((6 + 1 + 2 + 3 + 2) * i);
@@ -282,7 +282,7 @@ static void handleInquiryResult(struct HciEventContext *ctx, const uint8_t *data
 
         // Filter for Wiimote class-of-device: [04 25 00]
         if (data[kPos + 9] == 0x04 && data[kPos + 10] == 0x25 && data[kPos + 11] == 0x00) {
-            LOG_INFO("HCI: Wiimote detected! Requesting remote name...\n");
+            wiimoteLogInfo("HCI: Wiimote detected! Requesting remote name...\n");
             HciRemoteNameRequestParams remoteNameParams = {
                 scanned.bdAddr,
                 scanned.psrm,
@@ -300,7 +300,7 @@ static void handleRemoteNameRequestComplete(struct HciEventContext *ctx, uint8_t
 
     char *name = (char *)(data + 7);
 
-    LOG_DEBUG("HCI: Remote name: %s\n", name);
+    wiimoteLogDebug("HCI: Remote name: %s\n", name);
 
     const int kIdx = findScannedDevice(ctx, bdAddr);
     if (kIdx < 0) {
@@ -308,7 +308,7 @@ static void handleRemoteNameRequestComplete(struct HciEventContext *ctx, uint8_t
     }
 
     if (strcmp("Nintendo RVL-CNT-01", name) == 0) {
-        LOG_INFO("HCI: Nintendo Wiimote confirmed! Initiating connection...\n");
+        wiimoteLogInfo("HCI: Nintendo Wiimote confirmed! Initiating connection...\n");
         const uint16_t kCancelLen = makeCmdInquiryCancel(gHciTxBuffer);
         hciSend(ctx, kCancelLen);
 
@@ -320,19 +320,19 @@ static void handleRemoteNameRequestComplete(struct HciEventContext *ctx, uint8_t
 static void handleConnectionComplete(struct HciEventContext *ctx, uint8_t *data) {
     const uint8_t kStatus = data[0];
     if (kStatus != 0x00) {
-        LOG_WARN("HCI: Connection complete with status=0x%02x (%s)\n", kStatus,
+        wiimoteLogWarn("HCI: Connection complete with status=0x%02x (%s)\n", kStatus,
                  hciStatusCodeToString(kStatus));
         fallbackFromFastReconnectToInquiry(ctx);
         return;
     }
 
     const uint16_t kConnectionHandle = readUInt16Le(data + 1);
-    LOG_INFO("HCI: Connection complete! Handle: 0x%04x\n", kConnectionHandle);
+    wiimoteLogInfo("HCI: Connection complete! Handle: 0x%04x\n", kConnectionHandle);
 
     if (ctx->hasCurrentConnectTarget) {
         if (ctx->hasLastWiimote &&
             !isSameBdAddr(ctx->lastWiimote.bdAddr, ctx->currentConnectTarget.bdAddr)) {
-            LOG_INFO("HCI: Connected to a different Wiimote, replacing fast reconnect cache\n");
+            wiimoteLogInfo("HCI: Connected to a different Wiimote, replacing fast reconnect cache\n");
             ctx->hasLastWiimote = false;
             ctx->lastWiimoteSeenMs = 0;
         }
@@ -353,7 +353,7 @@ static void handleDisconnectionComplete(struct HciEventContext *ctx, const uint8
     const uint16_t kConnectionHandle = readUInt16Le(data + 1);
     const uint8_t kReason = data[3];
 
-    LOG_INFO("HCI: Disconnection complete! Handle: 0x%04x, Reason: 0x%02x (%s)\n",
+    wiimoteLogInfo("HCI: Disconnection complete! Handle: 0x%04x, Reason: 0x%02x (%s)\n",
              kConnectionHandle, kReason, hciDisconnectionReasonToString(kReason));
 
     if (ctx->onDisconnected != nullptr) {
@@ -398,7 +398,7 @@ void hciEventsHandleEvent(struct HciEventContext *ctx, const HciEventPacket &pac
             break;
 
         default:
-            LOG_DEBUG("HCI: Unhandled event 0x%02x (%s)\n", packet.eventCode,
+            wiimoteLogDebug("HCI: Unhandled event 0x%02x (%s)\n", packet.eventCode,
                       hciEventCodeToString(packet.eventCode));
             break;
     }

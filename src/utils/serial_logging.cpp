@@ -30,7 +30,7 @@ void wiimoteSetLogLevel(uint8_t level) {
     gWiimoteLogLevel = sanitizeLogLevel(level);
 }
 
-void wiimoteLogPrint(uint8_t level, const char *prefix, const char *format, ...) {
+void wiimoteVLogPrint(uint8_t level, const char *prefix, const char *format, va_list args) {
     if (format == nullptr || prefix == nullptr || level > gWiimoteLogLevel) {
         return;
     }
@@ -38,14 +38,46 @@ void wiimoteLogPrint(uint8_t level, const char *prefix, const char *format, ...)
     Serial.print(prefix);
 
     char buffer[256];
-    va_list args;
-    va_start(args, format);
     const int kWritten = vsnprintf(buffer, sizeof(buffer), format, args);
-    va_end(args);
 
     if (kWritten <= 0) {
         return;
     }
 
     Serial.printf("%s", buffer);
+}
+
+void wiimoteLogPrint(uint8_t level, const char *prefix, const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    wiimoteVLogPrint(level, prefix, format, args);
+    va_end(args);
+}
+
+void wiimoteLogError(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    wiimoteVLogPrint(wiimoteLogLevelValue(WiimoteLogLevel::Error), "[ERROR] ", format, args);
+    va_end(args);
+}
+
+void wiimoteLogWarn(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    wiimoteVLogPrint(wiimoteLogLevelValue(WiimoteLogLevel::Warning), "[WARN] ", format, args);
+    va_end(args);
+}
+
+void wiimoteLogInfo(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    wiimoteVLogPrint(wiimoteLogLevelValue(WiimoteLogLevel::Info), "[INFO] ", format, args);
+    va_end(args);
+}
+
+void wiimoteLogDebug(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    wiimoteVLogPrint(wiimoteLogLevelValue(WiimoteLogLevel::Debug), "[DEBUG] ", format, args);
+    va_end(args);
 }

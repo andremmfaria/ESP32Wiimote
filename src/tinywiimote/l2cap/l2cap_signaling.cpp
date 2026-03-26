@@ -14,11 +14,11 @@ void L2capSignaling::init(L2capConnectionTable *connectionTable, L2capPacketSend
 
 void L2capSignaling::sendConnectionRequest(uint16_t ch, uint16_t psm, uint16_t cid) {
     if (sender_ == nullptr) {
-        LOG_ERROR("L2CAP: sendConnectionRequest failed: sender is null\n");
+        wiimoteLogError("L2CAP: sendConnectionRequest failed: sender is null\n");
         return;
     }
 
-    LOG_DEBUG("L2CAP: Sending %s on CID=0x%04x: ch=0x%04x psm=0x%04x cid=0x%04x\n",
+    wiimoteLogDebug("L2CAP: Sending %s on CID=0x%04x: ch=0x%04x psm=0x%04x cid=0x%04x\n",
               l2capSignalCodeToString((uint8_t)L2capSignalingCode::ConnectionRequest),
               (uint16_t)L2capCid::SIGNALING, ch, psm, cid);
 
@@ -34,24 +34,24 @@ void L2capSignaling::sendConnectionRequest(uint16_t ch, uint16_t psm, uint16_t c
 
 void L2capSignaling::handleConnectionResponse(uint16_t ch, uint8_t *data, uint16_t len) {
     if (len < 12) {
-        LOG_DEBUG("L2CAP: Connection response too short: len=%d\n", len);
+        wiimoteLogDebug("L2CAP: Connection response too short: len=%d\n", len);
         return;
     }
 
     if (connections_ == nullptr || sender_ == nullptr) {
-        LOG_ERROR("L2CAP: Connection response failed: null objects\n");
+        wiimoteLogError("L2CAP: Connection response failed: null objects\n");
         return;
     }
 
     uint16_t dstCID = readUInt16Le(data + 4);
     uint16_t result = readUInt16Le(data + 8);
 
-    LOG_DEBUG("L2CAP: %s: ch=0x%04x dstCID=0x%04x result=0x%04x (%s)\n",
+    wiimoteLogDebug("L2CAP: %s: ch=0x%04x dstCID=0x%04x result=0x%04x (%s)\n",
               l2capSignalCodeToString((uint8_t)L2capSignalingCode::ConnectionResponse), ch, dstCID,
               result, l2capSignalingResultToString(result));
 
     if (result != (uint16_t)L2capSignalingResult::SUCCESS) {
-        LOG_WARN("L2CAP: Connection failed with result=0x%04x (%s)\n", result,
+        wiimoteLogWarn("L2CAP: Connection failed with result=0x%04x (%s)\n", result,
                  l2capSignalingResultToString(result));
         return;
     }
@@ -59,11 +59,11 @@ void L2capSignaling::handleConnectionResponse(uint16_t ch, uint8_t *data, uint16
     L2capConnection::Endpoint endpoint = {ch, dstCID};
     const L2capConnection kConnection(endpoint);
     if (connections_->addConnection(kConnection) < 0) {
-        LOG_ERROR("L2CAP: Failed to add connection to table\n");
+        wiimoteLogError("L2CAP: Failed to add connection to table\n");
         return;
     }
 
-    LOG_INFO("L2CAP: Connection established successfully\n");
+    wiimoteLogInfo("L2CAP: Connection established successfully\n");
 
     PayloadBuilder pb(payload_, sizeof(payload_));
     pb.append((uint8_t)L2capSignalingCode::ConfigurationRequest);
@@ -80,12 +80,12 @@ void L2capSignaling::handleConnectionResponse(uint16_t ch, uint8_t *data, uint16
 
 void L2capSignaling::handleConfigurationRequest(uint16_t ch, uint8_t *data, uint16_t len) {
     if (len < 12) {
-        LOG_DEBUG("L2CAP: Config request too short: len=%d\n", len);
+        wiimoteLogDebug("L2CAP: Config request too short: len=%d\n", len);
         return;
     }
 
     if (connections_ == nullptr || sender_ == nullptr) {
-        LOG_ERROR("L2CAP: Config request failed: null objects\n");
+        wiimoteLogError("L2CAP: Config request failed: null objects\n");
         return;
     }
 
@@ -100,11 +100,11 @@ void L2capSignaling::handleConfigurationRequest(uint16_t ch, uint8_t *data, uint
     uint16_t mtu = readUInt16Le(data + 10);
     uint16_t remoteCID = 0;
     if (connections_->getRemoteCid(ch, &remoteCID) != 0) {
-        LOG_DEBUG("L2CAP: Failed to get remote CID for ch=0x%04x\n", ch);
+        wiimoteLogDebug("L2CAP: Failed to get remote CID for ch=0x%04x\n", ch);
         return;
     }
 
-    LOG_DEBUG("L2CAP: %s: ch=0x%04x mtu=%d remoteCID=0x%04x\n",
+    wiimoteLogDebug("L2CAP: %s: ch=0x%04x mtu=%d remoteCID=0x%04x\n",
               l2capSignalCodeToString((uint8_t)L2capSignalingCode::ConfigurationRequest), ch, mtu,
               remoteCID);
 

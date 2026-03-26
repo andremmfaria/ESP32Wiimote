@@ -31,11 +31,11 @@ int L2capConnectionTable::findConnection(uint16_t ch) const {
 
 int L2capConnectionTable::addConnection(const L2capConnection &connection) {
     if (size_ >= L2CAP_CONNECTION_LIST_SIZE) {
-        LOG_WARN("L2CAP: Connection table full, cannot add connection\n");
+        wiimoteLogWarn("L2CAP: Connection table full, cannot add connection\n");
         return -1;
     }
 
-    LOG_DEBUG("L2CAP: Adding connection: ch=0x%04x remoteCID=0x%04x\n", connection.ch,
+    wiimoteLogDebug("L2CAP: Adding connection: ch=0x%04x remoteCID=0x%04x\n", connection.ch,
               connection.remoteCID);
     list_[size_++] = connection;
     return size_;

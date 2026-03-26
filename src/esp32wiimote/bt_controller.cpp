@@ -28,67 +28,67 @@ bool BluetoothController::initialized = false;
 BluetoothController::BluetoothController() = default;
 
 bool BluetoothController::init(HciCallbacksHandler *hciCallbacks, HciQueueManager *queueManager) {
-    LOG_DEBUG("BtController: Starting Bluetooth controller initialization...\n");
+    wiimoteLogDebug("BtController: Starting Bluetooth controller initialization...\n");
 
     if ((hciCallbacks == nullptr) || (queueManager == nullptr)) {
-        LOG_ERROR("BtController: Invalid parameters!\n");
+        wiimoteLogError("BtController: Invalid parameters!\n");
         return false;
     }
 
     // Start Bluetooth controller FIRST (must be done before VHCI registration)
-    LOG_DEBUG("BtController: About to initialize Bluetooth controller...\n");
-    LOG_DEBUG("BtController: Free heap before init: %d bytes\n", ESP.getFreeHeap());
+    wiimoteLogDebug("BtController: About to initialize Bluetooth controller...\n");
+    wiimoteLogDebug("BtController: Free heap before init: %d bytes\n", ESP.getFreeHeap());
 
     // Get and display detailed status info
     esp_bt_controller_status_t status = esp_bt_controller_get_status();
-    LOG_DEBUG("BtController: Initial controller status: %d (%s)\n", status,
+    wiimoteLogDebug("BtController: Initial controller status: %d (%s)\n", status,
               btControllerStatusToString((uint8_t)status));
 
     // Initialize Bluetooth controller using Arduino core function
-    LOG_DEBUG("BtController: Calling btStart()...\n");
-    LOG_DEBUG("BtController: Controller status before btStart: %d (%s)\n",
+    wiimoteLogDebug("BtController: Calling btStart()...\n");
+    wiimoteLogDebug("BtController: Controller status before btStart: %d (%s)\n",
               esp_bt_controller_get_status(),
               btControllerStatusToString((uint8_t)esp_bt_controller_get_status()));
 
     if (!btStart()) {
-        LOG_ERROR("BtController: btStart() failed!\n");
+        wiimoteLogError("BtController: btStart() failed!\n");
         return false;
     }
 
-    LOG_DEBUG("BtController: btStart() succeeded!\n");
-    LOG_DEBUG("BtController: Controller status after btStart: %d (%s)\n",
+    wiimoteLogDebug("BtController: btStart() succeeded!\n");
+    wiimoteLogDebug("BtController: Controller status after btStart: %d (%s)\n",
               esp_bt_controller_get_status(),
               btControllerStatusToString((uint8_t)esp_bt_controller_get_status()));
-    LOG_DEBUG("BtController: Free heap after init: %d bytes\n", ESP.getFreeHeap());
+    wiimoteLogDebug("BtController: Free heap after init: %d bytes\n", ESP.getFreeHeap());
 
     // Initialize TinyWiimote with HCI interface
-    LOG_DEBUG("BtController: Initializing TinyWiimote...\n");
+    wiimoteLogDebug("BtController: Initializing TinyWiimote...\n");
     tinyWiimoteInit(*hciCallbacks->getHciInterface());
-    LOG_DEBUG("BtController: TinyWiimote initialized\n");
+    wiimoteLogDebug("BtController: TinyWiimote initialized\n");
 
     // Set queue manager for callbacks
-    LOG_DEBUG("BtController: Setting queue manager...\n");
+    wiimoteLogDebug("BtController: Setting queue manager...\n");
     HciCallbacksHandler::setQueueManager(queueManager);
 
     // Create FreeRTOS queues
-    LOG_DEBUG("BtController: Creating HCI queues...\n");
+    wiimoteLogDebug("BtController: Creating HCI queues...\n");
     if (!queueManager->createQueues()) {
-        LOG_ERROR("BtController: Failed to create HCI queues!\n");
+        wiimoteLogError("BtController: Failed to create HCI queues!\n");
         return false;
     }
-    LOG_DEBUG("BtController: HCI queues created successfully\n");
+    wiimoteLogDebug("BtController: HCI queues created successfully\n");
 
     // Register VHCI callbacks (must be done AFTER btStart)
-    LOG_DEBUG("BtController: Registering VHCI callbacks...\n");
+    wiimoteLogDebug("BtController: Registering VHCI callbacks...\n");
     esp_err_t ret = esp_vhci_host_register_callback(hciCallbacks->getVhciCallback());
     if (ret != ESP_OK) {
-        LOG_ERROR("BtController: Failed to register VHCI callback! Error: 0x%x\n", ret);
+        wiimoteLogError("BtController: Failed to register VHCI callback! Error: 0x%x\n", ret);
         return false;
     }
-    LOG_DEBUG("BtController: VHCI callbacks registered successfully!\n");
+    wiimoteLogDebug("BtController: VHCI callbacks registered successfully!\n");
 
     initialized = true;
-    LOG_INFO("BtController: Bluetooth controller initialization complete!\n");
+    wiimoteLogInfo("BtController: Bluetooth controller initialization complete!\n");
     return true;
 }
 

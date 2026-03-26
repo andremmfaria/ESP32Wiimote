@@ -47,16 +47,16 @@ void WiimoteExtensions::handleReport(uint16_t ch, uint8_t *data, uint16_t len) {
         case ControllerReportState::Init:
             if (data[1] == 0x20) {
                 uint8_t rawBattery = data[7];
-                LOG_DEBUG("Wiimote: Status report 0x20 - Raw battery value: 0x%02x (%d)\n",
+                wiimoteLogDebug("Wiimote: Status report 0x20 - Raw battery value: 0x%02x (%d)\n",
                           rawBattery, rawBattery);
                 state_->setBatteryLevel(rawBattery);
                 if ((data[4] & 0x02) != 0) {
-                    LOG_INFO("Extension controller connected\n");
+                    wiimoteLogInfo("Extension controller connected\n");
                     protocol.writeMemory(ch, WiimoteAddressSpace::ControlRegister, 0xA400F0,
                                          (const uint8_t[]){0x55}, 1);
                     controllerReportState_ = ControllerReportState::WaitAckOutReport;
                 } else {
-                    LOG_INFO("Extension controller NOT connected\n");
+                    wiimoteLogInfo("Extension controller NOT connected\n");
                     state_->setNunchukConnected(false);
                     setDefaultReportingMode(&protocol, state_, ch);
                 }
@@ -100,7 +100,7 @@ void WiimoteExtensions::handleReport(uint16_t ch, uint8_t *data, uint16_t len) {
                 if (memcmp(data + 5, (const uint8_t[]){0x00, 0xFA}, 2) == 0) {
                     if (memcmp(data + 7, (const uint8_t[]){0x00, 0x00, 0xA4, 0x20, 0x00, 0x00},
                                6) == 0) {
-                        LOG_INFO("Nunchuk detected\n");
+                        wiimoteLogInfo("Nunchuk detected\n");
                         state_->setNunchukConnected(true);
                         setNunchukReportingMode(&protocol, state_, ch);
                     }

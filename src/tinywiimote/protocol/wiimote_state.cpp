@@ -35,7 +35,7 @@ void WiimoteState::setBatteryLevel(uint8_t level) {
     // Full battery is typically 0xC8 (200) but max is 0xD0 (208)
     uint8_t percentage = (level > 208) ? 100 : (level * 100) / 208;
     batteryLevel_ = percentage;
-    LOG_DEBUG("WiimoteState: Battery: raw=0x%02x (%d) -> %d%%\n", level, level, percentage);
+    wiimoteLogDebug("WiimoteState: Battery: raw=0x%02x (%d) -> %d%%\n", level, level, percentage);
 }
 
 uint8_t WiimoteState::getBatteryLevel() const {

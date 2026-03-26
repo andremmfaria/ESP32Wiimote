@@ -34,23 +34,23 @@ esp_vhci_host_callback_t *HciCallbacksHandler::getVhciCallback() {
 }
 
 void HciCallbacksHandler::notifyHostSendAvailable() {
-    LOG_DEBUG("notifyHostSendAvailable\n");
+    wiimoteLogDebug("notifyHostSendAvailable\n");
     if (!tinyWiimoteDeviceIsInited()) {
         tinyWiimoteResetDevice();
     }
 }
 
 int HciCallbacksHandler::notifyHostRecv(uint8_t *data, uint16_t len) {
-    LOG_DEBUG("notifyHostRecv:");
+    wiimoteLogDebug("notifyHostRecv:");
     for (int i = 0; i < len; i++) {
-        LOG_DEBUG(" %02x", data[i]);
+        wiimoteLogDebug(" %02x", data[i]);
     }
-    LOG_DEBUG("\n");
+    wiimoteLogDebug("\n");
 
     if ((queueManager != nullptr) && queueManager->sendToRxQueue(data, len)) {
         return ESP_OK;
     }
-    LOG_ERROR("HciCallback: Failed to send data to RX queue\n");
+    wiimoteLogError("HciCallback: Failed to send data to RX queue\n");
     return ESP_FAIL;
 }
 
@@ -58,6 +58,6 @@ void HciCallbacksHandler::hciHostSendPacket(uint8_t *data, size_t len) {
     if (queueManager != nullptr) {
         queueManager->sendToTxQueue(data, len);
     } else {
-        LOG_WARN("HciCallback: Queue manager not set, cannot send packet\n");
+        wiimoteLogWarn("HciCallback: Queue manager not set, cannot send packet\n");
     }
 }

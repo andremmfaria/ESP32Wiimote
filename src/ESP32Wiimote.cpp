@@ -78,10 +78,10 @@ void logWifiConnectedDetails(const WiimoteNetworkCredentials &network,
         ip = "not-assigned";
     }
 
-    LOG_INFO("ESP32Wiimote: wifi.connected ssid=%s mode=%s mac=%s ip=%s\n", safeSsid(network),
+    wiimoteLogInfo("ESP32Wiimote: wifi.connected ssid=%s mode=%s mac=%s ip=%s\n", safeSsid(network),
              wifiDeliveryModeToString(kMode), mac.c_str(), ip.c_str());
 #else
-    LOG_INFO("ESP32Wiimote: wifi.connected ssid=%s mode=%s\n", safeSsid(network),
+    wiimoteLogInfo("ESP32Wiimote: wifi.connected ssid=%s mode=%s\n", safeSsid(network),
              wifiDeliveryModeToString(kMode));
 #endif
 }
@@ -458,7 +458,7 @@ void ESP32Wiimote::applyRuntimeConfig(const ESP32WiimoteConfig &config, bool log
 
     if (logValidationErrors &&
         (serialPrivilegedToken_ == nullptr || serialPrivilegedToken_[0] == '\0')) {
-        LOG_ERROR("ESP32Wiimote: serialPrivilegedToken must be provided\n");
+        wiimoteLogError("ESP32Wiimote: serialPrivilegedToken must be provided\n");
     }
 
     wifiTokenFallbackToSerial_ = false;
@@ -592,18 +592,18 @@ ESP32Wiimote::WifiControlState ESP32Wiimote::getWifiControlState() const {
  * Returns true if initialization succeeded, false otherwise
  */
 bool ESP32Wiimote::init() {
-    LOG_INFO("ESP32Wiimote: Starting initialization...\n");
-    LOG_INFO("ESP32Wiimote: wifi.config enabled=%d mode=%s ssid=%s\n",
+    wiimoteLogInfo("ESP32Wiimote: Starting initialization...\n");
+    wiimoteLogInfo("ESP32Wiimote: wifi.config enabled=%d mode=%s ssid=%s\n",
              static_cast<int>(wifiEnabled_), wifiDeliveryModeToString(wifiDeliveryMode_),
              safeSsid(networkCredentials_));
     if (!wifiEnabled_) {
-        LOG_INFO("ESP32Wiimote: wifi.startup skipped (config.wifi.enabled=0)\n");
+        wiimoteLogInfo("ESP32Wiimote: wifi.startup skipped (config.wifi.enabled=0)\n");
     }
 
     // Initialize Bluetooth controller (which initializes TinyWiimote, queues, and VHCI callbacks)
-    LOG_DEBUG("ESP32Wiimote: Calling BluetoothController::init()...\n");
+    wiimoteLogDebug("ESP32Wiimote: Calling BluetoothController::init()...\n");
     if (!BluetoothController::init(hciCallbacks_, queueManager_)) {
-        LOG_ERROR("ESP32Wiimote: Bluetooth controller initialization failed!\n");
+        wiimoteLogError("ESP32Wiimote: Bluetooth controller initialization failed!\n");
         return false;
     }
 
@@ -626,7 +626,7 @@ bool ESP32Wiimote::init() {
         Serial.println("@wm: info wifi_api_token_missing_using_serial_token");
     }
 
-    LOG_INFO("ESP32Wiimote: Initialization complete!\n");
+    wiimoteLogInfo("ESP32Wiimote: Initialization complete!\n");
     return true;
 }
 
@@ -914,7 +914,7 @@ void ESP32Wiimote::processWifiControl() {
         case KWifiInitStageStartWifi:
             wifiNetworkConnectAttempted_ = true;
             if (!wifiNetworkCredentialsConfigured_) {
-                LOG_WARN("ESP32Wiimote: wifi.startup failed (missing credentials)\n");
+                wiimoteLogWarn("ESP32Wiimote: wifi.startup failed (missing credentials)\n");
                 wifiNetworkConnectFailed_ = true;
                 wifiControlEnabled_ = false;
                 wifiControlInitializing_ = false;
@@ -922,7 +922,7 @@ void ESP32Wiimote::processWifiControl() {
             }
 
             if (strcmp(networkCredentials_.ssid, kWifiMockFailSsid) == 0) {
-                LOG_WARN("ESP32Wiimote: wifi.startup failed (mock join failure) ssid=%s\n",
+                wiimoteLogWarn("ESP32Wiimote: wifi.startup failed (mock join failure) ssid=%s\n",
                          safeSsid(networkCredentials_));
                 wifiNetworkConnectFailed_ = true;
                 wifiControlEnabled_ = false;
@@ -937,7 +937,7 @@ void ESP32Wiimote::processWifiControl() {
             wifiNetworkConnected_ = false;
             wifiNetworkConnectFailed_ = false;
             wifiLayerStarted_ = true;
-            LOG_INFO("ESP32Wiimote: wifi.startup connecting ssid=%s mode=%s timeout_ms=%lu\n",
+            wiimoteLogInfo("ESP32Wiimote: wifi.startup connecting ssid=%s mode=%s timeout_ms=%lu\n",
                      safeSsid(networkCredentials_), wifiDeliveryModeToString(wifiDeliveryMode_),
                      static_cast<unsigned long>(kWifiConnectTimeoutMs));
             wifiInitStage_ = KWifiInitStageWaitNetworkConnected;
@@ -961,7 +961,7 @@ void ESP32Wiimote::processWifiControl() {
 
             if (static_cast<uint32_t>(millis()) - wifiNetworkConnectStartMs_ >=
                 kWifiConnectTimeoutMs) {
-                LOG_WARN("ESP32Wiimote: wifi.startup failed (timeout) ssid=%s status=%d\n",
+                wiimoteLogWarn("ESP32Wiimote: wifi.startup failed (timeout) ssid=%s status=%d\n",
                          safeSsid(networkCredentials_), static_cast<int>(WiFi.status()));
                 wifiNetworkConnectFailed_ = true;
                 wifiControlEnabled_ = false;
@@ -994,7 +994,7 @@ void ESP32Wiimote::processWifiControl() {
         case KWifiInitStageReady:
             wifiControlInitializing_ = false;
             wifiControlReady_ = true;
-            LOG_INFO("ESP32Wiimote: wifi.startup ready static=%d api=%d ws=%d\n",
+            wiimoteLogInfo("ESP32Wiimote: wifi.startup ready static=%d api=%d ws=%d\n",
                      static_cast<int>(staticRoutesRegistered_),
                      static_cast<int>(apiRoutesRegistered_),
                      static_cast<int>(websocketRoutesRegistered_));
@@ -1028,21 +1028,21 @@ bool ESP32Wiimote::startWifiHttpServer() {
         return true;
     }
 
-    LOG_INFO("ESP32Wiimote: wifi.http starting port=%u\n",
+    wiimoteLogInfo("ESP32Wiimote: wifi.http starting port=%u\n",
              static_cast<unsigned int>(kWifiHttpPort));
     httpServer_->setHandler(handleWifiHttpRequest, this);
     if (!httpServer_->begin(kWifiHttpPort)) {
         serverBindFailed_ = true;
         serverStarted_ = false;
         const unsigned int kErrorCode = static_cast<unsigned int>(httpServer_->lastStartError());
-        LOG_WARN("ESP32Wiimote: wifi.http start failed port=%u error_code=%u\n",
+        wiimoteLogWarn("ESP32Wiimote: wifi.http start failed port=%u error_code=%u\n",
                  static_cast<unsigned int>(kWifiHttpPort), kErrorCode);
         return false;
     }
 
     serverStarted_ = true;
     serverBindFailed_ = false;
-    LOG_INFO("ESP32Wiimote: wifi.http started port=%u\n", static_cast<unsigned int>(kWifiHttpPort));
+    wiimoteLogInfo("ESP32Wiimote: wifi.http started port=%u\n", static_cast<unsigned int>(kWifiHttpPort));
     return true;
 }
 
@@ -1053,7 +1053,7 @@ void ESP32Wiimote::stopWifiHttpServer() {
 
     httpServer_->end();
     if (serverStarted_) {
-        LOG_INFO("ESP32Wiimote: wifi.http stopped port=%u\n",
+        wiimoteLogInfo("ESP32Wiimote: wifi.http stopped port=%u\n",
                  static_cast<unsigned int>(kWifiHttpPort));
     }
     serverStarted_ = false;

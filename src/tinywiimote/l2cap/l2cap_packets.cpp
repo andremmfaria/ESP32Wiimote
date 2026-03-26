@@ -46,16 +46,16 @@ void L2capPacketSender::sendAclL2capPacket(uint16_t ch,
                                            uint8_t *payload,
                                            uint16_t payloadLen) {
     if (sendCallback_ == nullptr) {
-        LOG_ERROR("L2CAP: sendCallback is null\n");
+        wiimoteLogError("L2CAP: sendCallback is null\n");
         return;
     }
 
     if (payloadLen > 255) {
-        LOG_ERROR("L2CAP: Payload too large: %d bytes (max 255)\n", payloadLen);
+        wiimoteLogError("L2CAP: Payload too large: %d bytes (max 255)\n", payloadLen);
         return;
     }
 
-    LOG_DEBUG("L2CAP: Sending ACL packet: ch=0x%04x remoteCID=0x%04x len=%d\n", ch, remoteCID,
+    wiimoteLogDebug("L2CAP: Sending ACL packet: ch=0x%04x remoteCID=0x%04x len=%d\n", ch, remoteCID,
               payloadLen);
 
     const AclPacketControl kControl = {0b10, 0b00};

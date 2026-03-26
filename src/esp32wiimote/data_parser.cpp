@@ -25,11 +25,11 @@ int WiimoteDataParser::parseData() {
     TinyWiimoteData rd = tinyWiimoteRead();
 
     if (rd.len < 4) {
-        LOG_DEBUG("DataParser: Data too short: len=%d\n", rd.len);
+        wiimoteLogDebug("DataParser: Data too short: len=%d\n", rd.len);
         return 0;
     }
     if (rd.data[0] != (uint8_t)WiimoteHidPrefix::InputReport) {
-        LOG_DEBUG("DataParser: Invalid HID prefix: 0x%02x (%s)\n", rd.data[0],
+        wiimoteLogDebug("DataParser: Invalid HID prefix: 0x%02x (%s)\n", rd.data[0],
                   wiimoteHidPrefixToString(rd.data[0]));
         return 0;
     }

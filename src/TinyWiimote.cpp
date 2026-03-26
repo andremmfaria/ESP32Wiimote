@@ -68,8 +68,8 @@ static void hciSendPacketAdapter(uint8_t *data, size_t len, void *userData) {
 
 static void onAclConnected(uint16_t connectionHandle, void *userData) {
     (void)userData;
-    LOG_INFO("TinyWiimote: ACL connection established! Handle: 0x%04x\n", connectionHandle);
-    LOG_DEBUG("TinyWiimote: Sending L2CAP connection request...\n");
+    wiimoteLogInfo("TinyWiimote: ACL connection established! Handle: 0x%04x\n", connectionHandle);
+    wiimoteLogDebug("TinyWiimote: Sending L2CAP connection request...\n");
     gRuntime.l2capSignaling.sendConnectionRequest(connectionHandle,
                                                   (uint16_t)L2capPsm::HidInterrupt, 0x0045);
 }
@@ -79,9 +79,9 @@ static void onDisconnected(uint16_t connectionHandle, uint8_t reason, void *user
     (void)reason;
     (void)userData;
 
-    LOG_INFO("TinyWiimote: Wiimote disconnected! Handle: 0x%04x, Reason: 0x%02x (%s)\n",
+    wiimoteLogInfo("TinyWiimote: Wiimote disconnected! Handle: 0x%04x, Reason: 0x%02x (%s)\n",
              connectionHandle, reason, hciDisconnectionReasonToString(reason));
-    LOG_INFO("Wiimote lost\n");
+    wiimoteLogInfo("Wiimote lost\n");
     gRuntime.wiimoteState.reset();
     resetDeviceInternal();
 }
@@ -116,15 +116,15 @@ static void handleL2capData(const L2capFrameHeader &header, uint8_t *data, uint1
 
         case (uint8_t)WiimoteHidPrefix::InputReport: {
             if (len > 1) {
-                LOG_DEBUG("TinyWiimote: HID input report=0x%02x (%s)\n", data[1],
+                wiimoteLogDebug("TinyWiimote: HID input report=0x%02x (%s)\n", data[1],
                           wiimoteInputReportToString(data[1]));
             }
             if (!gRuntime.wiimoteState.isConnected()) {
-                LOG_INFO("TinyWiimote: Wiimote detected! Setting LED and marking as connected\n");
+                wiimoteLogInfo("TinyWiimote: Wiimote detected! Setting LED and marking as connected\n");
                 WiimoteLedCommand ledCommand = {0b0001};
                 gRuntime.wiimoteProtocol.setLeds(kCh, ledCommand);
                 gRuntime.wiimoteProtocol.requestStatus(kCh);
-                LOG_INFO("Wiimote detected\n");
+                wiimoteLogInfo("Wiimote detected\n");
                 gRuntime.wiimoteState.setConnected(true);
                 gRuntime.hciEventContext.scanningEnabled = false;
                 if (gRuntime.wiimoteState.getUseAccelerometer()) {
@@ -139,7 +139,7 @@ static void handleL2capData(const L2capFrameHeader &header, uint8_t *data, uint1
         }
 
         default:
-            LOG_DEBUG("L2CAP: Unhandled code=0x%02x (signal=%s, hid=%s), len=%d data=%s\n", code,
+            wiimoteLogDebug("L2CAP: Unhandled code=0x%02x (signal=%s, hid=%s), len=%d data=%s\n", code,
                       l2capSignalCodeToString(code), wiimoteHidPrefixToString(code), len,
                       format2Hex(data, len));
             break;
@@ -190,7 +190,7 @@ void handleHciData(uint8_t *data, size_t len) {
             break;
 
         default:
-            LOG_DEBUG("UNKNOWN EVENT len=%d data=%s\n", len, format2Hex(data, (uint16_t)len));
+            wiimoteLogDebug("UNKNOWN EVENT len=%d data=%s\n", len, format2Hex(data, (uint16_t)len));
             break;
     }
 }
@@ -222,17 +222,17 @@ uint8_t tinyWiimoteGetBatteryLevel() {
 
 void tinyWiimoteRequestBatteryUpdate() {
     if (!gRuntime.wiimoteState.isConnected()) {
-        LOG_WARN("TinyWiimote: Cannot request battery update - not connected\n");
+        wiimoteLogWarn("TinyWiimote: Cannot request battery update - not connected\n");
         return;
     }
 
     uint16_t ch = 0;
     if (gRuntime.l2capConnections.getFirstConnectionHandle(&ch) != 0) {
-        LOG_ERROR("TinyWiimote: Cannot request battery update - no L2CAP connection\n");
+        wiimoteLogError("TinyWiimote: Cannot request battery update - no L2CAP connection\n");
         return;
     }
 
-    LOG_DEBUG("TinyWiimote: Requesting battery status update\n");
+    wiimoteLogDebug("TinyWiimote: Requesting battery status update\n");
     gRuntime.wiimoteProtocol.requestStatus(ch);
 }
 
@@ -322,33 +322,33 @@ TinyWiimoteData tinyWiimoteRead() {
 }
 
 void tinyWiimoteInit(struct TwHciInterface hciInterface) {
-    LOG_DEBUG("TinyWiimote: Initializing TinyWiimote core...\n");
+    wiimoteLogDebug("TinyWiimote: Initializing TinyWiimote core...\n");
 
     gRuntime.hciInterface = hciInterface;
 
-    LOG_DEBUG("TinyWiimote: Resetting wiimote state...\n");
+    wiimoteLogDebug("TinyWiimote: Resetting wiimote state...\n");
     gRuntime.wiimoteState.reset();
     gRuntime.wiimoteReports.clear();
 
-    LOG_DEBUG("TinyWiimote: Setting up packet sender...\n");
+    wiimoteLogDebug("TinyWiimote: Setting up packet sender...\n");
     gRuntime.packetSender.setSendCallback(sendHciPacketRaw);
 
-    LOG_DEBUG("TinyWiimote: Initializing L2CAP connections...\n");
+    wiimoteLogDebug("TinyWiimote: Initializing L2CAP connections...\n");
     gRuntime.l2capConnections.clear();
     gRuntime.l2capSignaling.init(&gRuntime.l2capConnections, &gRuntime.packetSender);
 
-    LOG_DEBUG("TinyWiimote: Initializing Wiimote protocol...\n");
+    wiimoteLogDebug("TinyWiimote: Initializing Wiimote protocol...\n");
     gRuntime.wiimoteProtocol.init(&gRuntime.l2capConnections, &gRuntime.packetSender);
 
-    LOG_DEBUG("TinyWiimote: Initializing Wiimote extensions...\n");
+    wiimoteLogDebug("TinyWiimote: Initializing Wiimote extensions...\n");
     gRuntime.wiimoteExtensions.init(&gRuntime.wiimoteState, &gRuntime.l2capConnections,
                                     &gRuntime.packetSender);
 
-    LOG_DEBUG("TinyWiimote: Initializing HCI events...\n");
+    wiimoteLogDebug("TinyWiimote: Initializing HCI events...\n");
     hciEventsInit(&gRuntime.hciEventContext, hciSendPacketAdapter, nullptr);
     hciEventsSetCallbacks(&gRuntime.hciEventContext, onAclConnected, onDisconnected);
 
-    LOG_INFO("TinyWiimote: Core initialization complete!\n");
+    wiimoteLogInfo("TinyWiimote: Core initialization complete!\n");
 }
 
 void tinyWiimoteReqAccelerometer(bool use) {
@@ -361,17 +361,17 @@ void tinyWiimoteSetFastReconnectTtlMs(uint32_t ttlMs) {
 
 void tinyWiimoteSetScanEnabled(bool enabled) {
     if (!gRuntime.hciEventContext.deviceInited) {
-        LOG_WARN("TinyWiimote: Reject setScanEnabled(%d) - controller not started\n", enabled);
+        wiimoteLogWarn("TinyWiimote: Reject setScanEnabled(%d) - controller not started\n", enabled);
         return;
     }
 
     if (!gRuntime.wiimoteState.isConnected()) {
         if (enabled && gRuntime.hciEventContext.scanningEnabled) {
-            LOG_WARN("TinyWiimote: Reject setScanEnabled(true) - scanning already enabled\n");
+            wiimoteLogWarn("TinyWiimote: Reject setScanEnabled(true) - scanning already enabled\n");
             return;
         }
         if (!enabled && !gRuntime.hciEventContext.scanningEnabled) {
-            LOG_WARN("TinyWiimote: Reject setScanEnabled(false) - scanning already disabled\n");
+            wiimoteLogWarn("TinyWiimote: Reject setScanEnabled(false) - scanning already disabled\n");
             return;
         }
     }
@@ -385,17 +385,17 @@ void tinyWiimoteSetScanEnabled(bool enabled) {
 
 bool tinyWiimoteStartDiscovery() {
     if (!gRuntime.hciEventContext.deviceInited) {
-        LOG_WARN("TinyWiimote: Reject startDiscovery - controller not started\n");
+        wiimoteLogWarn("TinyWiimote: Reject startDiscovery - controller not started\n");
         return false;
     }
 
     if (gRuntime.wiimoteState.isConnected()) {
-        LOG_WARN("TinyWiimote: Reject startDiscovery - controller already connected\n");
+        wiimoteLogWarn("TinyWiimote: Reject startDiscovery - controller already connected\n");
         return false;
     }
 
     if (gRuntime.hciEventContext.scanningEnabled) {
-        LOG_WARN("TinyWiimote: Reject startDiscovery - scanning already enabled\n");
+        wiimoteLogWarn("TinyWiimote: Reject startDiscovery - scanning already enabled\n");
         return false;
     }
 
@@ -409,17 +409,17 @@ bool tinyWiimoteStartDiscovery() {
 
 bool tinyWiimoteStopDiscovery() {
     if (!gRuntime.hciEventContext.deviceInited) {
-        LOG_WARN("TinyWiimote: Reject stopDiscovery - controller not started\n");
+        wiimoteLogWarn("TinyWiimote: Reject stopDiscovery - controller not started\n");
         return false;
     }
 
     if (gRuntime.wiimoteState.isConnected()) {
-        LOG_WARN("TinyWiimote: Reject stopDiscovery - controller is connected\n");
+        wiimoteLogWarn("TinyWiimote: Reject stopDiscovery - controller is connected\n");
         return false;
     }
 
     if (!gRuntime.hciEventContext.scanningEnabled) {
-        LOG_WARN("TinyWiimote: Reject stopDiscovery - discovery not active\n");
+        wiimoteLogWarn("TinyWiimote: Reject stopDiscovery - discovery not active\n");
         return false;
     }
 
@@ -432,18 +432,18 @@ bool tinyWiimoteStopDiscovery() {
 
 bool tinyWiimoteDisconnect(uint8_t reason) {
     if (!gRuntime.hciEventContext.deviceInited) {
-        LOG_WARN("TinyWiimote: Reject disconnect - controller not started\n");
+        wiimoteLogWarn("TinyWiimote: Reject disconnect - controller not started\n");
         return false;
     }
 
     if (!gRuntime.wiimoteState.isConnected()) {
-        LOG_WARN("TinyWiimote: Reject disconnect - controller not connected\n");
+        wiimoteLogWarn("TinyWiimote: Reject disconnect - controller not connected\n");
         return false;
     }
 
     uint16_t connectionHandle = 0;
     if (gRuntime.l2capConnections.getFirstConnectionHandle(&connectionHandle) != 0) {
-        LOG_WARN("TinyWiimote: Reject disconnect - missing active connection handle\n");
+        wiimoteLogWarn("TinyWiimote: Reject disconnect - missing active connection handle\n");
         return false;
     }
 
@@ -455,7 +455,7 @@ bool tinyWiimoteDisconnect(uint8_t reason) {
 
 void tinyWiimoteSetAutoReconnectEnabled(bool enabled) {
     if (!gRuntime.hciEventContext.deviceInited) {
-        LOG_WARN("TinyWiimote: Reject setAutoReconnectEnabled(%d) - controller not started\n",
+        wiimoteLogWarn("TinyWiimote: Reject setAutoReconnectEnabled(%d) - controller not started\n",
                  enabled);
         return;
     }
@@ -465,7 +465,7 @@ void tinyWiimoteSetAutoReconnectEnabled(bool enabled) {
 
 void tinyWiimoteClearReconnectCache() {
     if (!gRuntime.hciEventContext.deviceInited) {
-        LOG_WARN("TinyWiimote: Reject clearReconnectCache - controller not started\n");
+        wiimoteLogWarn("TinyWiimote: Reject clearReconnectCache - controller not started\n");
         return;
     }
 
